@@ -1,0 +1,24 @@
+Flask
+Flask-SQLAlchemy
+Flask-JWT-Extended
+psycopg2-binary
+mysql-connector-python
+celery
+flower
+redis
+python-dotenv
+requests
+opencv-python
+Pillow
+numpy<2.0.0
+scikit-image
+onnxruntime
+Flask-CORS
+mediapipe
+pytz
+ultralytics
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.6.0+cpu
+torchvision==0.21.0+cpu
+tqdm
+rfdetr
