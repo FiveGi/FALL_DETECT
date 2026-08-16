@@ -7,17 +7,29 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 from dataset import load_all_videos, make_windows, split_videos, FallWindowDataset
 from model import FallClassifier
 
+# GMDCSA24_DIR_NAME lets relabel_gmdcsa24_gemini.py's downstream comparison point this
+# at "poses" (original motion-peak heuristic) or "poses_gmdcsa24_v2" (Gemini-verified
+# fall onset) without editing this file, so both runs use identical code.
+GMDCSA24_DIR_NAME = os.environ.get("GMDCSA24_DIR_NAME", "poses")
 POSE_DIRS = [
-    os.path.join(os.path.dirname(__file__), "data", "poses"),              # GMDCSA24 (MediaPipe-33, heuristic labels)
+    os.path.join(os.path.dirname(__file__), "data", GMDCSA24_DIR_NAME),    # GMDCSA24
     os.path.join(os.path.dirname(__file__), "data", "poses_fallvision"),   # FallVision (COCO-17, heuristic labels)
     os.path.join(os.path.dirname(__file__), "data", "poses_caucafall"),    # CAUCAFall (MediaPipe-33, REAL per-frame labels)
     os.path.join(os.path.dirname(__file__), "data", "poses_ofitw"),        # OmniFall OF-ItW / OOPS (MediaPipe-33, REAL segment labels, real-world not staged)
 ]
-CKPT_PATH = os.path.join(os.path.dirname(__file__), "data", "best_model.pt")
+CKPT_PATH = os.environ.get(
+    "CKPT_PATH", os.path.join(os.path.dirname(__file__), "data", "best_model.pt")
+)
 EPOCHS = 60
 BATCH_SIZE = 32
 LR = 1e-3
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+SEED = int(os.environ.get("TRAIN_SEED", 42))  # fixes torch's init/shuffle RNG so before/after label-quality comparisons aren't noise
+
+
+def set_seed(seed):
+    torch.manual_seed(seed)
+    np.random.seed(seed)
 
 
 def evaluate(model, loader):
@@ -38,6 +50,7 @@ def evaluate(model, loader):
 
 
 def main():
+    set_seed(SEED)
     print(f"Device: {DEVICE}")
     videos = load_all_videos(POSE_DIRS)
     print(f"Loaded {len(videos)} videos")

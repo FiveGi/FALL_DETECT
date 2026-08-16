@@ -892,3 +892,67 @@ flagged before this test was run. ~5 percentage point gap on n=21 stock photos.
 project already agreed is the actual bar before merging a model swap (no real camera footage from this
 deployment exists anywhere in this project as of this writing). Treat this result as "worth continuing
 toward that real validation," not as approval to ship the swap.
+
+## 17. Gemini-assisted relabeling of GMDCSA24 fall onset (real data-quality fix, null result on pooled F1 — do not repeat without reading why)
+
+**The idea:** `dataset.py`'s `make_windows()` only has a real per-frame fall boundary for CAUCAFall and
+OF-ItW/OOPS (§3). For GMDCSA24 and FallVision, the whole-clip label ("this clip contains a fall") is
+trustworthy but *which frames* count as the fall is guessed from the frame of peak motion-energy — a
+heuristic, not ground truth. Gemini can watch a real video and give an actual visual judgment of when
+the fall *begins* (losing balance), which should be a better boundary than "frame with the most pixel
+movement" (which tends to land near impact, not onset).
+
+**Scope was deliberately narrow.** Of the 4 pose sources, only GMDCSA24's 79 Fall clips were relabeled:
+CAUCAFall/OF-ItW already have real labels (nothing to fix), and FallVision (5,845 samples, the *largest*
+heuristic-labeled pool) has no raw video available locally — only pre-extracted COCO-17 keypoint CSVs —
+so Gemini has nothing to watch there. This asymmetry matters for interpreting the result below.
+
+**The relabeling itself worked and the finding is real.** `training/relabel_gmdcsa24_gemini.py` uploads
+each clip to the Gemini file API and asks for the fall-onset timestamp; `training/build_relabeled_dataset.py`
+turns that into a new `frame_labels` array, saved to `data/poses_gmdcsa24_v2/` (81 ADL clips copied
+unchanged, 79 Fall clips relabeled). Across all 79 clips, Gemini's onset was **2.2s earlier than the old
+motion-peak heuristic on average, in 74/79 clips (94%)** — verified by hand on several clips (e.g.
+`s1_Fall_01`: heuristic peak = 5.68s, Gemini onset = 3.1s; the intervening ~2.5s is the person actually
+losing balance and falling, which the old heuristic was labeling as "not fall"). One clip (`s3_Fall_06`)
+Gemini called "not a fall, looks like floor exercise" even on retry — direct frame review (by the AI
+session doing this work, not a script) showed the clip actually starts with the person already on the
+ground mid-fall-recovery, settling into lying flat by 2.3s; GMDCSA24's staged Fall clips don't always
+capture the standing-to-ground transition. That one was manually labeled fall=1 for the whole clip
+(`source: "claude_manual_review"` in `data/gemini_relabel_results.json`) rather than trusting Gemini's
+read.
+
+**Gemini's free-tier quota is 20 requests/day per model** for `gemini-2.5-flash` and was exhausted after
+~9 clips. `gemini-flash-lite-latest` draws from a separate quota pool and finished the rest — if
+re-running this, start with the lite model rather than burning the flash quota first.
+
+**The null result:** retrained `train.py` (now seeded — see `SEED`/`TRAIN_SEED` env var, added for exactly
+this kind of before/after comparison) on old-heuristic vs. Gemini-corrected GMDCSA24 labels, 3 seeds each
+(42, 7, 123), everything else identical:
+
+| | seed 42 | seed 7 | seed 123 | mean |
+|---|---|---|---|---|
+| old heuristic labels | 0.595 | 0.589 | 0.599 | 0.594 ± 0.004 |
+| Gemini-corrected labels | 0.591 | 0.602 | 0.594 | 0.596 ± 0.005 |
+
+Paired per-seed difference: -0.004, +0.013, -0.005. **The mean improvement (+0.001) is smaller than the
+run-to-run noise (±0.004-0.005). This is a wash, not a win — do not deploy this as "the more accurate
+model" on the strength of this experiment.** A GMDCSA24-only subset evaluation (`eval_gmdcsa24_cross.py`)
+shows a more encouraging diagonal (own-model-own-labels F1 0.641 -> 0.690) but the off-diagonal terms
+don't support a clean causal story (evaluating the *baseline* model against Gemini's labels also scores
+higher than against its own training labels: 0.641 -> 0.670), which looks like Gemini's boundary being
+generally easier to hit rather than a genuine model improvement, and n=43 videos is small enough that
+none of this should be over-read.
+
+**Why a real, verified data-quality fix produced a null result:** GMDCSA24 is 160 of ~6,100 pooled
+training videos — about 2.6%. Even a perfect fix there is diluted below the noise floor of a metric
+computed over the whole pooled validation set, which FallVision (5,845 samples, ~95% of it) dominates.
+**FallVision is also where the same heuristic-labeling problem is largest, and it's exactly the source
+this technique can't reach** (no video, only keypoints). If this is revisited, the actual next question is
+whether Gemini (or any model) can make a useful onset judgment from a rendered keypoint-skeleton
+animation instead of real video — untested, and not obviously going to work as well as watching real
+footage.
+
+**Not deployed to production**: `models/fall_classifier_v3.onnx` is unchanged. The relabeling scripts,
+the corrected `data/poses_gmdcsa24_v2/` dataset, and `data/gemini_relabel_results.json` all exist locally
+(the last two under the existing `training/data/` gitignore rule — not pushed) in case someone wants to
+build on this rather than repeat it from scratch.
