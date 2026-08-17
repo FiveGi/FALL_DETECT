@@ -956,3 +956,64 @@ footage.
 the corrected `data/poses_gmdcsa24_v2/` dataset, and `data/gemini_relabel_results.json` all exist locally
 (the last two under the existing `training/data/` gitignore rule — not pushed) in case someone wants to
 build on this rather than repeat it from scratch.
+
+## 18. Real false-alarm root cause found and partially fixed — MediaPipe IMAGE-mode jitter feeding the velocity feature
+
+**First real "in the wild" test of v3, ever.** A user-supplied `Test/` folder had 3 real video clips (TikTok/
+news compilations of doorbell-camera and street falls — not lab footage, not stock photos). Ran them
+through the actual production code path (`training/test_v3_on_clip.py`, calling `detect_v3_fall`/
+`V3PoseFallDetector` exactly as `camera_manager.py` does) and visually verified every alert against the
+source frame. Result: **~77% of the 24 total alerts checked were real falls**, consistent with the
+25-40% false-alarm rate already estimated in SS0/SS9 — the first time that number has been checked against
+non-lab footage rather than assumed.
+
+**Root cause of the false alarms, found and confirmed two ways:**
+1. **Quantitative**: `training/diagnose_false_positive.py` dumps every frame's shoulder-hip tilt angle and
+   MediaPipe detection status around an alert. On all 3 confirmed false positives (people standing still),
+   the tilt angle swings wildly frame-to-frame anyway — e.g. clip3 t=1.3s: 5° -> 87° -> 12° -> 83° -> 65° -> 28°
+   across consecutive frames of someone standing motionless. Clip1's case additionally had MediaPipe's
+   tracking drop to all-zero for 1-2 frames mid-window, then resume.
+2. **Independent visual check**: sent the same 3 alert frames to Gemini (`gemini-flash-lite-latest`) with
+   no context beyond "did this person fall." It called all 3 "NOT A FALL" independently, matching the
+   direct visual read.
+
+**Why this happens**: `PoseLandmarkerOptions(running_mode=vision.RunningMode.IMAGE)` treats every frame as
+an independent, context-free pose estimation problem — see `extract_poses.py`'s original comment claiming
+"we do our own temporal windowing downstream anyway, so we don't need MediaPipe's VIDEO-mode smoothing."
+That assumption is false in practice: single-frame pose estimation from an ambiguous camera angle can jump
+between multiple plausible skeleton interpretations frame to frame even for a motionless person, and
+because `_normalize_and_velocity()` computes **velocity from consecutive raw frames**, that jitter is fed
+to the classifier as if it were real fast motion — exactly the signal a fall produces.
+
+**Fix applied** (`app/detection/v3_fall_detection.py`), two parts, both inference-side only (does not touch
+training data or require retraining):
+- `_smooth_keypoints()`: a 3-frame centered moving average on x,y (not visibility) inside
+  `_normalize_and_velocity()`, damping single-frame jitter while a real fall's large multi-frame
+  displacement still comes through.
+- `V3FallDetectionState.last_good_kpts`: on a tracking dropout, hold the last real detection in the
+  buffer instead of MediaPipe's all-zero fallback, so the window doesn't see a fake real->zero->real jump.
+
+**This is a real train/inference preprocessing mismatch** — `training/dataset.py` does not apply this
+smoothing, so the model was trained on unsmoothed keypoints. Validated empirically rather than assumed
+safe, by rerunning all 3 test clips before/after and checking every alert changed, not just the ones
+expected to:
+
+| clip | timestamp | before | after (smoothing only) | after (+ hold-last-good) | verdict |
+|---|---|---|---|---|---|
+| 1 | t=15.3s (2 people standing) | 0.707 FALSE ALARM | 0.726 (unchanged) | 0.614 (reduced, still fires) | not fully fixed |
+| 2 | t=17.1s (person by motorbike) | 0.556 FALSE ALARM | gone | gone | fixed |
+| 3 | t=1.3s (person by fence) | 0.611 FALSE ALARM | gone | gone | fixed |
+| 1 | t=1.6s (real fall) | 0.889 | 0.928 | 0.930 | preserved, slightly stronger |
+| 2 | t=6.0s (real fall) | 1.000 | 1.000 | 1.000 | preserved |
+| 3 | t=4.0s (real fall) | 0.960 | 0.971 | 0.973 | preserved, slightly stronger |
+
+**2 of 3 known false positives eliminated, the third reduced (0.707 -> 0.614) but not eliminated — clip1's
+case is nighttime/low-light with two people near a doorway, likely harder tracking noise than a short
+moving-average window can fully absorb. Every checked true positive held or got slightly stronger, not
+weaker, which is the result you'd want before trusting this wasn't just trading recall for precision.**
+Not re-validated against the pooled GMDCSA24/FallVision/CAUCAFall/OF-ItW validation set from SS17 — this
+was validated only against the 3 real test clips, which is a much smaller and less rigorous check than a
+full retrain-and-compare. If clip1's residual false alarm matters enough to chase further, the next lever
+to try is a longer smoothing window or bumping `THRESHOLD` above 0.5 slightly (0.614 is close to the
+threshold) — check that doesn't suppress the real alerts that came in as low as 0.538 in SS16's clip1 run
+before doing that.

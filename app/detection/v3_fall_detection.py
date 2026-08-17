@@ -43,9 +43,36 @@ LEFT_SHOULDER, RIGHT_SHOULDER = 5, 6
 LEFT_HIP, RIGHT_HIP = 11, 12
 
 
+SMOOTH_KERNEL = 3
+# MediaPipe's PoseLandmarker runs in IMAGE mode (each frame estimated independently,
+# no temporal tracking -- see extract_poses.py), which is fine for a static photo but
+# means keypoints can jitter frame-to-frame even when the person hasn't moved: on a
+# real test clip, a standing-still person's shoulder-hip tilt angle was measured
+# swinging 5deg -> 87deg -> 12deg -> 83deg across consecutive frames (SKILL.md SS18).
+# Since velocity (frame-to-frame keypoint displacement) is a direct input feature,
+# that jitter reads as fast motion and produced 3/3 confirmed false "fall" alerts on
+# real test footage, independently confirmed by Gemini reviewing the same frames.
+# A short trailing/centered moving average on x,y (not visibility) damps single-frame
+# jitter while a genuine fall -- large, multi-frame, sustained displacement -- still
+# comes through. Applied only here (inference), not in training/dataset.py's
+# preprocessing, which is a real train/inference mismatch; validated empirically
+# instead (SS18) rather than assumed safe -- see there before changing this further.
+def _smooth_keypoints(raw_window, kernel=SMOOTH_KERNEL):
+    """raw_window: (T, 17, 3) -> same shape, x,y smoothed with a centered moving
+    average (visibility left untouched)."""
+    T = raw_window.shape[0]
+    half = kernel // 2
+    smoothed = raw_window.copy()
+    for t in range(T):
+        lo, hi = max(0, t - half), min(T, t + half + 1)
+        smoothed[t, :, :2] = raw_window[lo:hi, :, :2].mean(axis=0)
+    return smoothed
+
+
 def _normalize_and_velocity(raw_window):
     """raw_window: (WINDOW_SIZE, 17, 3) raw [x, y, visibility] -> (WINDOW_SIZE, 17, 5)
     [x, y, confidence, vx, vy], torso-relative and scale-normalized per frame."""
+    raw_window = _smooth_keypoints(raw_window)
     xy = raw_window[:, :, :2]
     vis = raw_window[:, :, 2:3]
 
@@ -128,6 +155,7 @@ class V3FallDetectionState:
         self.last_probability = 0.0
         self.last_detected = False
         self.collapse_fired = False
+        self.last_good_kpts = None
 
     def is_ready(self):
         return len(self.raw_buffer) == WINDOW_SIZE
@@ -140,7 +168,19 @@ def detect_v3_fall(frame, state: V3FallDetectionState, fall_detector: V3PoseFall
     threshold = threshold if threshold is not None else THRESHOLD
 
     kpts, person_found = fall_detector.extract_keypoints(frame)
-    state.raw_buffer.append(kpts)
+    if person_found:
+        state.last_good_kpts = kpts
+        buffered_kpts = kpts
+    else:
+        # A momentary tracking dropout (1-2 frames, common mid-fall/near occlusion --
+        # see MIN_PERSON_FRACTION above) makes extract_keypoints return an all-zero
+        # vector. Feeding that raw into the window creates a real->zero->real jump
+        # that reads as a huge velocity spike -- confirmed as part of the false-alarm
+        # mechanism in SKILL.md SS18 (alongside plain frame-to-frame jitter, which
+        # _smooth_keypoints handles separately). Hold the last real detection instead
+        # of zero-filling; person_flags still records the true miss for MIN_PERSON_FRACTION.
+        buffered_kpts = state.last_good_kpts if state.last_good_kpts is not None else kpts
+    state.raw_buffer.append(buffered_kpts)
     state.person_flags.append(person_found)
     state.frames_since_infer += 1
 
