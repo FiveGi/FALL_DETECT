@@ -1,0 +1,33 @@
+Sample output from training/test_v3_on_clip.py, run against a real (non-lab)
+test clip -- a compilation-style video of real falls, sourced from social media,
+not included here (copyrighted third-party footage; only the text summary is
+committed). See SKILL.md SS18 for the false-alarm investigation and fix this
+run reflects (post-fix numbers -- ran after the SS18 keypoint-smoothing /
+tracking-dropout-hold fix, not before).
+
+Of these 15 alerts, the ones checked by hand against the source video were
+confirmed real falls, except t=15.3s -- a known residual false alarm (two
+people standing still in low light; see SKILL.md SS18) that the SS18 fix
+reduced (0.707 -> 0.614) but did not fully eliminate.
+
+----------------------------------------------------------------------
+
+Clip: D:/project/PROJECT/Test/1.mp4
+576x1024 @ 30.0fps, 2017 frames, 67.2s
+Max fall-probability seen anywhere in clip: 1.000 (alert threshold=0.5)
+Fall alerts raised: 15
+  ALERT at t=2.0s, confidence=0.930
+  ALERT at t=7.0s, confidence=0.955
+  ALERT at t=9.6s, confidence=0.752
+  ALERT at t=15.3s, confidence=0.614  (known residual false alarm -- see SKILL.md SS18)
+  ALERT at t=19.0s, confidence=0.892
+  ALERT at t=31.1s, confidence=0.904
+  ALERT at t=33.7s, confidence=0.847
+  ALERT at t=35.4s, confidence=0.556
+  ALERT at t=38.9s, confidence=0.799
+  ALERT at t=43.6s, confidence=0.851
+  ALERT at t=47.9s, confidence=0.828
+  ALERT at t=50.9s, confidence=0.723
+  ALERT at t=53.6s, confidence=0.725
+  ALERT at t=55.9s, confidence=0.866
+  ALERT at t=59.3s, confidence=0.838
