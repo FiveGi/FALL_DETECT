@@ -1112,3 +1112,47 @@ from object detection, fused with pose) -- not a threshold or smoothing change.
 notes already say to expect and that this session's fix does not address. Still not accurate enough to
 alert autonomously -- unchanged conclusion from the original docstring, now with an actual held-out number
 behind it instead of an estimate.
+
+## 21. 8 more user-supplied clips, 69 alerts, Claude+Gemini double-checked every one -- reconfirms SS20's bed issue, finds a new night-vision mechanism
+
+**User added 8 more clips to `Test/`** (renamed to sequential `4.mp4`-`11.mp4` to match the existing
+`1.mp4`-`3.mp4` convention -- see git history for the rename). Ran all 8 through `test_v3_on_clip.py`
+(69 total alerts) and, per the user's explicit ask to have Gemini and Claude check together, screened
+every single alert frame with Gemini (`training/gemini_screen_new_clips.py`) rather than hand-sampling a
+subset like SS18/SS19 did. 3 of 69 calls hit a transient `503 UNAVAILABLE` (server overload, not quota --
+different from SS16's daily-quota wall) and were retried individually until they succeeded.
+
+**Result: 45/69 alerts judged real falls by Gemini (65.2%)** -- between SS18's domestic-clip precision
+(~77%) and SS19's sports-clip precision (59%), consistent with this batch being mostly doorbell/porch
+compilation footage (similar in kind to SS18's clip1) with a few harder cases mixed in. Followed up in
+person (Claude, direct image read) on the more unusual `NOT_A_FALL` verdicts rather than trusting Gemini's
+read alone -- same double-check standard as SS18:
+
+- **Bed-lying, again**: `11/t=1.3s` and `11/t=11.7s` -- an infrared night-vision bunk-bed/crib camera clip,
+  person lying down. Same exact mechanism as SS20, now confirmed on completely different source footage.
+  This is the most consistently reproduced false-positive cause across every real-footage test this
+  session has run.
+- **New mechanism, confirmed with `diagnose_false_positive.py` traces (not left as a guess): long tracking
+  dropouts interacting with SS18's own hold-last-good-keypoints fix.** `4/t=9.6s` (person dancing, arms
+  raised, infrared night vision) and `10/t=15.4s` (a TikTok loading-screen transition, no person on screen)
+  both fired at high confidence (0.92-0.96) with `person_found=False`. First guess was that
+  `COLLAPSE_CONFIDENCE`'s exact-1.0 shortcut had fired (SS9/original docstring) -- checked the actual
+  frame trace and that's wrong: the probabilities (0.920, 0.946, 0.960...) aren't the flat 1.0 that path
+  always returns, so this is a genuine fresh classifier inference, not the collapse shortcut. What the
+  trace actually shows in both cases: MediaPipe's `person_found` flickers True/False repeatedly for ~1-2s
+  before the alert (not one clean dropout), and SS18's fix holds the last real keypoints during every False
+  frame instead of zero-filling. With `person_found` false more often than true across that stretch, the
+  30-frame window ends up mostly *repeated, frozen copies* of one earlier pose, mixed with a few genuinely
+  different real detections -- a pattern the model never saw in training (real motion, or a genuinely still
+  person, but not "one pose held constant, spliced against jitter"). It isn't gated by `RESET_PERSON_FRACTION`
+  because the window's true/false mix stays above that 5% floor throughout.
+  **This means SS18's fix, which was validated and helped on short (1-2 frame) dropouts, has a
+  plausible different failure mode on longer/intermittent ones** -- worth knowing given the fix is already
+  in production.
+
+**Not fixed.** Root-caused with real evidence this time (not a guess), but the corrective change isn't
+obvious enough to write blind: naive options like "cap how many consecutive frames get held before falling
+back to zero-fill" or "skip inference if too many of the last N frames were held rather than real" both
+need the same before/after validation discipline SS18 used (does it fix these 2 cases without weakening
+real detections elsewhere) before going into `v3_fall_detection.py`. Flagging for next session rather than
+shipping an unvalidated patch on top of an already-partially-understood mechanism.
