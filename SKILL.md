@@ -1017,3 +1017,54 @@ full retrain-and-compare. If clip1's residual false alarm matters enough to chas
 to try is a longer smoothing window or bumping `THRESHOLD` above 0.5 slightly (0.614 is close to the
 threshold) — check that doesn't suppress the real alerts that came in as low as 0.538 in SS16's clip1 run
 before doing that.
+
+## 19. Scaled the real-footage test to 10 clips with objective ground truth — found a second, harder, different problem (not fixed)
+
+**Bigger, objectively-scored sample.** The 3 hand-picked `Test/` clips (SS18) had no formal ground truth --
+alerts were checked by eye. `training/eval_v3_on_oops.py` picks 10 more real clips a different way: query
+OmniFall's OF-ItW label table (the same one behind `poses_ofitw`) for OOPS videos that (a) have a real
+human-annotated fall/fallen segment and (b) are already downloaded locally, then score every alert
+automatically against those real segment boundaries (±1.5s tolerance) instead of eyeballing. Caught a real
+bug in the process: the first run scored 0/10 clips with zero alerts on all of them, which turned out to be
+the eval script resolving the JSON-stored clip paths relative to the wrong working directory (silent
+`cv2.VideoCapture` failure, not a detection failure) -- fixed by resolving paths from `__file__` instead of
+cwd. Worth remembering: a suspiciously uniform result (all-zero, all-pass) across an entire batch is a
+strong prior for "the harness is broken," not "the thing being measured is uniformly true" -- check the
+harness before trusting the number.
+
+**Results, 10 clips / 152s / 25 real fall segments, run against the SS18-fixed pipeline:**
+- Segment recall: 76.0% (19/25 real falls got at least one alert)
+- Precision: 59.1% (13/22 alerts were real)
+
+**Lower precision than SS18's 3 clips (~77%), and for a different, non-overlapping reason.** Random
+selection by "has a fall segment" pulled in mostly outdoor sports/stunt compilations (unicycle tricks,
+downhill mountain biking, tetherball, snowmobiling) rather than indoor/domestic footage. Checked several
+false positives by hand:
+- A person doing a balance trick on a 3-wheel-stacked unicycle, crouched forward -- an unusual but
+  controlled pose that happens to share fall's key visual signature (bent-forward torso).
+- A child riding a bike toward the camera, leaning forward -- same signature, same story.
+- MediaPipe detecting a "person" in a scene with no real person clearly in frame (a ladder over an icy
+  pond) -- a different mechanism than SS18's jitter, more like an outright spurious detection.
+- A person standing normally near a pond in an unrelated spliced-in segment of the same compilation video
+  (these OOPS source videos, like the SS16/SS18 ones, splice together unrelated clips under one
+  "weekly fails" title) -- misread the same way SS18's standing-still cases were.
+
+**This is a different kind of problem than SS18's, and not fixed here.** SS18's false alarms came from a
+mechanical bug (single-frame pose jitter leaking into the velocity feature) with a targeted, validated
+inference-side patch. These come from the model never having seen forward-leaning-but-not-falling dynamic
+poses (biking, unicycling, sports) as negative examples during training -- GMDCSA24/FallVision/CAUCAFall/
+OF-ItW are staged-fall or calm-ADL footage, not athletic footage. That's a training-data coverage gap, not
+a bug, and a smoothing filter can't fix a decision boundary the model was never taught. Fixing it for real
+would mean adding dynamic-but-not-falling ADL examples to training data and retraining -- out of scope for
+an inference-side patch, and not attempted here.
+
+**Also worth being honest about scope: this test batch was accidentally out-of-domain for what this
+project actually needs.** This is elderly *indoor* monitoring -- the deployment scenario is a home/facility
+camera watching ADLs (walking, sitting, bending, reaching), not unicycle tricks or downhill biking. A
+random "has a fall segment" filter over OOPS pulled in mostly outdoor stunt content because that's what
+FailArmy compilations are mostly made of, not because it's representative of the real use case. The 59.1%
+precision number here is a genuine result on the clips tested, but treating it as "the system's real-world
+precision" would overstate the problem -- SS18's calmer, more domestic-feeling clips (doorbell cameras,
+people walking/standing) are the closer analog to actual deployment, and scored better (~77%). If this is
+revisited, the right next sample is 10 more OOPS clips filtered to indoor/domestic-looking content
+specifically, not just "has a fall segment" -- that would be the fairer test of real deployment accuracy.
