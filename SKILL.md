@@ -1068,3 +1068,47 @@ precision" would overstate the problem -- SS18's calmer, more domestic-feeling c
 people walking/standing) are the closer analog to actual deployment, and scored better (~77%). If this is
 revisited, the right next sample is 10 more OOPS clips filtered to indoor/domestic-looking content
 specifically, not just "has a fall segment" -- that would be the fairer test of real deployment accuracy.
+
+## 20. Tried to find 10 more domain-relevant OOPS clips, failed (only 1/30), pivoted to reusing GMDCSA24 -- this is the real number
+
+**Attempted SS19's suggested next step**: screened 30 more OOPS candidates (keyword-filtered to exclude
+obvious sports/outdoor titles first) with Gemini, asking specifically "is this indoor/domestic and
+elderly-monitoring-relevant." Result: **only 1 of 30 qualified.** FailArmy compilations are curated for
+entertainment value almost by construction (violent altercations, playground stunts, pool jumps, office
+pranks) -- calm indoor ADL-like falls are rare in that corpus, not just under-sampled. Extrapolating,
+getting 10 relevant clips this way would need a pool of ~300, which isn't an efficient use of Gemini calls
+for what it would return. Abandoned this path rather than force it.
+
+**Pivoted to data already on hand.** GMDCSA24's raw video is already downloaded (SS18/SS19 both use its
+Fall half already), and `training/dataset.py`'s `split_videos(seed=42)` held out 31 of its 160 clips from
+training (15 Fall, 16 ADL) -- calm, staged, indoor, genuinely the closest available match to this
+project's actual deployment domain. `training/eval_v3_on_gmdcsa24_val.py` runs the real live pipeline
+(`detect_v3_fall`, with the SS18 fix applied) over all 31 raw videos end-to-end -- not the offline windowed
+classifier accuracy SS17 measured, the actual frame-by-frame detection loop production code runs.
+
+**Result: 14/15 Fall clips caught (93.3%), 10/16 ADL clips stayed clean (62.5%, so 6 false alarms / 37.5%).**
+This recall number is the best of any real-footage test this session. The false-alarm rate lands right in
+the 25-40% range the code's own docstring already claimed -- this is the first time that claimed number has
+actually been checked end-to-end on domain-relevant held-out video rather than asserted.
+
+**Checked 3 of the 6 ADL false alarms by hand (`s1_ADL_01`, `s4_ADL_08`, `s2_ADL_15`) -- all 3 are a person
+on a bed** (lying down, shifting position, sitting up to fold something), not a fall. This is not a new
+bug -- it's exactly the bed-exit ambiguity the docstring already names ("normal bed movement resembles the
+aftermath of a fall") and SS18's fix doesn't touch it, because it isn't jitter: the pose keypoints and
+velocity genuinely do look fall-like, because a pose-only classifier has no way to know it's looking at a
+bed instead of the floor. Fixing this for real needs a different signal entirely (e.g. bed-region context
+from object detection, fused with pose) -- not a threshold or smoothing change.
+
+**Where this leaves the accuracy picture, honestly, across everything tested this session:**
+
+| test | domain match | recall | precision / false-alarm rate |
+|---|---|---|---|
+| SS18: 3 doorbell/street clips | closer to real deployment | not separately measured | ~77% of alerts real |
+| SS19: 10 OOPS sports/stunt clips | poor match (SS20 confirms) | 76% | 59% (worse, different cause) |
+| SS20: 31 GMDCSA24 held-out clips | best match (indoor, staged-elderly) | **93.3%** | **62.5% clean (37.5% false-alarm)** |
+
+**SS20's numbers are the ones to trust for "how will this behave in the actual product."** High recall
+(catches real falls reliably) with a real, known, structural false-alarm source (beds) that the operating
+notes already say to expect and that this session's fix does not address. Still not accurate enough to
+alert autonomously -- unchanged conclusion from the original docstring, now with an actual held-out number
+behind it instead of an estimate.
