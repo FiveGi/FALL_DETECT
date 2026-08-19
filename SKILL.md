@@ -1332,3 +1332,29 @@ or retuned here -- the fix (e.g., lower NUM_POSES, raise confidence for non-prim
 window state across a track-ID reassignment instead of restarting cold) needs the same before/after
 validation discipline as SS18's fix, not a guess. Flagging for next session rather than shipping an
 unvalidated change on top of a change that itself was just shipped.
+
+## 26. Quantified SS25's multi-person false-positive cost against ground truth, not just spot checks -- smaller than feared, and localized to one mechanism
+
+**Requested: ~20 more, Gemini+Claude both checking.** Reused SS20's exact 31 GMDCSA24 held-out clips (real
+ground truth, not manual eyeballing) but ran them through the multi-person path
+(`eval_v3_on_gmdcsa24_val_multi.py`) instead of single-person -- every one of these clips has exactly one
+real person, so this is a controlled test of SS25's "extra pose slots cost false positives even on
+solo-person footage" claim against a scored dataset instead of a handful of spot-checked doorbell frames.
+
+**Result: recall identical (93.3%, same single miss `s2_Fall_20`), ADL-clean dropped 62.5% -> 56.2%
+(10/16 -> 9/16) -- exactly one new false positive** (`s3_ADL_11`), confirmed independently by both a
+direct look and Gemini (person reaching up to adjust curtains -- same raised-arm pattern family as SS23).
+All 6 of the original false-positive clips persisted unchanged; nothing was fixed or newly broken among
+them.
+
+**This is a much smaller cost than SS25's doorbell-clip spot checks suggested (clip4 alone picked up
+several new false positives).** The likely explanation: these GMDCSA24 clips are short (a few seconds) and
+single-continuous-shot, so the track-churn mechanism SS25 identified (repeated cold-start window refills
+after occlusion/reacquisition) barely gets a chance to fire -- there's no time for a track to drop and
+reappear. The longer, choppier real-world compilation clips gave track churn much more room to compound
+with the "more pose slots" effect. **Conclusion: on the specific footage this project actually targets
+(short, continuous, single-room clips), multi-person mode's false-positive cost is small (+1 in 16 tested)
+-- the bigger cost SS25 measured is concentrated in exactly the scenario (long clips, people leaving and
+re-entering frame) that's more relevant to compilation-style test footage than typical fixed-camera
+deployment, though a real deployment does still have people leaving/re-entering over a full day, so this
+isn't a reason to stop tracking it.**
