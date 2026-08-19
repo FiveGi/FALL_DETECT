@@ -1199,3 +1199,46 @@ footage) rather than reusing whatever happened to be in SS21's unrelated clips.
 a pure downgrade dressed up as "we retrained on more data." `models/fall_classifier_v3.onnx` is still the
 SS18-fixed model, unchanged. `poses_realtest_v1` and the training scripts are kept (git-tracked) in case
 someone wants to build a properly-targeted version rather than repeat this from scratch.
+
+## 23. 50 more real clips (GMDCSA24's *training* split this time), Gemini+Claude double-checked -- finds two more false-positive patterns beyond "bed"
+
+**Requested: test ~50 more, checked together (Gemini + Claude).** SS20 already exhausted GMDCSA24's 31
+held-out clips; this batch (`eval_v3_on_gmdcsa24_train50.py`) picks 50 more (25 Fall, 25 ADL, seed 99) from
+the other 129 clips -- the ones the deployed model *was* trained on. Deliberately not a generalization
+test: the question here is whether SS20/SS21's bed-lying false alarms are a pure held-out-only
+generalization gap, or show up even on clips the model has already seen.
+
+**Result: 23/25 falls caught (92.0%), 20/25 ADL clips clean (80.0%).** Both numbers land between SS20's
+held-out figures (93.3% / 62.5%) and would-be-perfect memorization -- so training-set exposure helps
+somewhat (80% > 62.5% clean) but doesn't fully cover the pattern even on clips the model trained on. That
+answers the question: this is *partly* a generalization gap and *partly* something the model never fully
+learned to reject even in-distribution.
+
+**Checked all 5 false positives and both misses by hand, cross-verified with Gemini (all 6 verdicts
+matched independently) -- and found the false positives split into three distinct patterns, only one of
+which was already known:**
+- **Bed-lying (2 of 5)** -- `s4_ADL_15`, `s4_ADL_16`, same subject/room. Same SS20/SS21 pattern, now
+  confirmed on training-set clips too.
+- **New: arms fully outstretched, T-pose / stretching exercise (2 of 5, both from `s3_ADL_02`)** -- person
+  standing upright, both arms spread wide, doing a stretch. Not bed-related at all. This connects directly
+  to SS21's `4/t=9.6s` finding (person dancing with arms raised, night vision) -- now confirmed on a
+  second, unrelated, daytime indoor clip. Two independent domains agreeing makes this a real pattern to
+  track, not a fluke: **wide/raised-arm poses are a second, distinct false-positive trigger**, separate
+  from bed-lying.
+- **New: floor-lying / bending forward near an object (1 of 5, `s3_ADL_09` + a related bend in
+  `s3_ADL_04`)** -- echoes SS17's `s3_Fall_06` ("floor exercising" per Gemini, same ambiguity class) and
+  SS19's forward-lean-while-biking finding. A third recurring shape: forward torso lean/floor-level pose
+  reads as fall-like regardless of context.
+
+**The 2 misses are also worth knowing about, not just the false positives**: `s4_Fall_08` is a real fall
+where the person ends up sprawled face-down across a bed, legs dangling off the side -- missed entirely.
+Given how much of this session's false-positive hunting has been about *suppressing* bed-related alerts,
+a real fall onto/near a bed being missed is the failure mode you'd expect if a future fix over-corrects in
+that direction -- worth checking against explicitly if bed-related hard negatives are ever added (SS22's
+lesson).
+
+**Not fixed, not retrained again.** This is measurement, not a repeat of SS22's mistake -- three
+now-distinct, cross-domain-confirmed patterns (bed-lying, wide/raised-arms, forward-lean/floor-lying) is
+enough evidence to make a properly-targeted hard-negative set for a future retrain, but building and
+validating that is its own task, not something to rush right after SS22's negative result on a narrower
+attempt.
