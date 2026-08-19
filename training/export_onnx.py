@@ -9,8 +9,12 @@ import onnxruntime as ort
 from model import FallClassifier, FEATURES_PER_FRAME
 from dataset import WINDOW_SIZE
 
-CKPT_PATH = os.path.join(os.path.dirname(__file__), "data", "best_model.pt")
-ONNX_OUT = os.path.join(os.path.dirname(__file__), "data", "fall_classifier_v3.onnx")
+CKPT_PATH = os.environ.get(
+    "EXPORT_CKPT_PATH", os.path.join(os.path.dirname(__file__), "data", "best_model.pt")
+)
+ONNX_OUT = os.environ.get(
+    "EXPORT_ONNX_OUT", os.path.join(os.path.dirname(__file__), "data", "fall_classifier_v3.onnx")
+)
 
 
 def main():

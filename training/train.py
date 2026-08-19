@@ -17,6 +17,12 @@ POSE_DIRS = [
     os.path.join(os.path.dirname(__file__), "data", "poses_caucafall"),    # CAUCAFall (MediaPipe-33, REAL per-frame labels)
     os.path.join(os.path.dirname(__file__), "data", "poses_ofitw"),        # OmniFall OF-ItW / OOPS (MediaPipe-33, REAL segment labels, real-world not staged)
 ]
+# USE_REALTEST_V1: 67 Gemini+Claude-verified segments from Test/4.mp4-11.mp4 (SS21/SS22)
+# -- 45 real falls, 22 explicit hard negatives (bed-lying, dancing, standing-near-objects
+# that the deployed model currently misfires on). Off by default so SS20/SS21's
+# baseline numbers stay reproducible; set to 1 for the SS22 before/after comparison.
+if os.environ.get("USE_REALTEST_V1") == "1":
+    POSE_DIRS.append(os.path.join(os.path.dirname(__file__), "data", "poses_realtest_v1"))
 CKPT_PATH = os.environ.get(
     "CKPT_PATH", os.path.join(os.path.dirname(__file__), "data", "best_model.pt")
 )

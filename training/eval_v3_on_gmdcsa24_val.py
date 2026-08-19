@@ -25,7 +25,7 @@ spec.loader.exec_module(v3)
 V3PoseFallDetector = v3.V3PoseFallDetector
 V3FallDetectionState = v3.V3FallDetectionState
 detect_v3_fall = v3.detect_v3_fall
-MODEL_DIR = os.path.join(ROOT, "models")
+MODEL_DIR = os.environ.get("TEST_MODEL_DIR", os.path.join(ROOT, "models"))
 
 VAL_FALL = ["s1_Fall_02", "s1_Fall_06", "s1_Fall_16", "s2_Fall_02", "s2_Fall_04",
             "s2_Fall_09", "s2_Fall_14", "s2_Fall_20", "s3_Fall_02", "s3_Fall_09",

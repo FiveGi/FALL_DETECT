@@ -1156,3 +1156,46 @@ back to zero-fill" or "skip inference if too many of the last N frames were held
 need the same before/after validation discipline SS18 used (does it fix these 2 cases without weakening
 real detections elsewhere) before going into `v3_fall_detection.py`. Flagging for next session rather than
 shipping an unvalidated patch on top of an already-partially-understood mechanism.
+
+## 22. Tried retraining on the SS21 verified clips as real training data -- null-to-negative result, and a clear lesson why
+
+**The idea, and it's a reasonable one**: SS21's Gemini+Claude double-check produced 67 fully verified
+segments from `Test/4.mp4`-`11.mp4` -- 45 confirmed real falls, 22 confirmed false positives (hard
+negatives: the model scored these high but both Gemini and Claude agree they aren't falls). Added them as
+a 5th pose source (`training/extract_realtest_poses.py` -> `poses_realtest_v1`, toggled via
+`USE_REALTEST_V1=1` in `train.py`) and retrained, 3 seeds each with/without, same discipline as SS17/SS20.
+
+**Pooled val F1: another wash** (0.594 -> 0.595, within noise) -- same dilution story as SS17: 67 segments
+against ~6100+ pooled videos is too small a fraction to move a metric averaged over everything.
+
+**The metric that actually matters -- SS20's GMDCSA24 held-out check, rerun against all 3 retrained
+models:**
+
+| | Fall recall | ADL clean | which ADL clips still false-alarm |
+|---|---|---|---|
+| baseline (SS20, no realtest data) | 93.3% (14/15) | 62.5% (10/16) | s1_ADL_01, s2_ADL_03, s2_ADL_15, s4_ADL_07, s4_ADL_08, s4_ADL_10 |
+| +realtest_v1, seed 42 | **100%** (15/15) | 43.8% (7/16) | same 6, **+3 new** (s2_ADL_16, s2_ADL_20, s3_ADL_11) |
+| +realtest_v1, seed 7 | **100%** (15/15) | 62.5% (10/16) | **exact same 6**, 0 new |
+| +realtest_v1, seed 123 | **100%** (15/15) | 56.2% (9/16) | same 6, **+1 new** (s2_ADL_16) |
+
+**Checked with a direct set-difference, not eyeballed: zero of the 6 original false-positive clips were
+fixed in any of the 3 seeds.** Recall genuinely improved (93.3% -> 100%, consistent across all 3 seeds --
+a real, repeatable effect, not noise), but the actual problem this was meant to fix -- SS20/SS21's
+bed-lying false alarms -- is completely untouched, and 2 of 3 seeds made the false-alarm rate *worse* by
+adding new false positives on previously-clean clips.
+
+**Why, and it's obvious in hindsight**: of the 22 hard negatives added, only **one** was bed-related (from
+clip 11's bunk-bed segment) -- the other 21 came from SS21's clips 4-11, which are dancing/standing/porch/
+outdoor scenes, not beds. I mined hard negatives from one failure surface (SS21's doorbell clips) and then
+re-tested against a *different* failure surface (SS20's GMDCSA24 beds) that the new data barely touched.
+One example diluted into ~1% of the pooled training set was never going to overcome a systematic bias.
+**The lesson, worth remembering before repeating this: hard-negative mining only helps the specific failure
+mode it targets -- verify what you're adding actually matches what you're testing against before training,
+not after.** A properly targeted version of this experiment would extract several bed-lying hard negatives
+specifically (there's no shortage of candidates: GMDCSA24's own ADL clips, or filming/finding more bed
+footage) rather than reusing whatever happened to be in SS21's unrelated clips.
+
+**Not deployed.** No seed fixes the known issue, and 2 of 3 make it worse -- shipping any of these would be
+a pure downgrade dressed up as "we retrained on more data." `models/fall_classifier_v3.onnx` is still the
+SS18-fixed model, unchanged. `poses_realtest_v1` and the training scripts are kept (git-tracked) in case
+someone wants to build a properly-targeted version rather than repeat this from scratch.

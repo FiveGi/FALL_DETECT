@@ -29,8 +29,8 @@ detect_v3_fall = v3.detect_v3_fall
 WINDOW_SIZE = v3.WINDOW_SIZE
 THRESHOLD = v3.THRESHOLD
 
-MODEL_DIR = os.path.join(ROOT, "models")
-RESULTS_ROOT = r"D:\project\PROJECT\Test_Results"
+MODEL_DIR = os.environ.get("TEST_MODEL_DIR", os.path.join(ROOT, "models"))
+RESULTS_ROOT = os.environ.get("TEST_RESULTS_ROOT", r"D:\project\PROJECT\Test_Results")
 
 SKELETON_EDGES = [
     (0, 1), (0, 2), (1, 3), (2, 4),           # head
