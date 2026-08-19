@@ -543,9 +543,12 @@ def process_v2_fall_detection(camera_id, config):
         # see SKILL.md SS9) and its checkpoint is 369MB -- too large for a normal git push without
         # Git LFS. v3's model files are a few MB total and already committed. v4's code/weights
         # are left in place for anyone who does have GPU access -- see get_v4_fall_detector().
+        # Multi-person: detect_v3_fall_multi tracks up to NUM_POSES people independently per
+        # camera (each with their own rolling window/alert state), instead of only ever seeing
+        # whichever one person MediaPipe's single-pose mode happened to pick.
         from app.detection.v3_fall_detection import (
-            V3FallDetectionState,
-            detect_v3_fall
+            V3MultiPersonFallState,
+            detect_v3_fall_multi
         )
         from app.services.model_manager import model_manager
 
@@ -567,8 +570,8 @@ def process_v2_fall_detection(camera_id, config):
             print(f"[V3 Pose] Using pre-loaded fall detector for camera {camera.name}")
 
             # Initialize detection state
-            fall_state = V3FallDetectionState()
-            
+            fall_state = V3MultiPersonFallState()
+
             # Initialize camera capture
             cap = cv2.VideoCapture(camera.url)
             if not cap.isOpened():
@@ -601,49 +604,52 @@ def process_v2_fall_detection(camera_id, config):
                 if frame_count % 30 == 0:
                     print(f"[Camera {camera_id}] V2 Fall Detection - Processing frame {frame_count}")
                 
-                # Perform V3 pose-based fall detection
-                detected, probability, label, processed_frame = detect_v3_fall(
-                    frame, fall_state, fall_detector, config, camera
-                )
-                
+                # Perform V3 pose-based fall detection -- one result per tracked person
+                results = detect_v3_fall_multi(frame, fall_state, fall_detector, config, camera)
+                any_detected = any(r[1] for r in results)
+                # For logging/alerting a single confidence number, use whichever tracked
+                # person is most fall-like this frame (the detected one if any, else the max).
+                top = max(results, key=lambda r: r[2]) if results else (None, False, 0.0, "no_person", None)
+                _, detected, probability, label, _ = top
+
                 # Save detection log periodically
                 now = time.time()
                 if now - last_log_time >= log_interval:
-                    detection_result = 'fall_v2' if detected else 'no_fall'
-                    risk_level = 'red' if detected else 'normal'
+                    detection_result = 'fall_v2' if any_detected else 'no_fall'
+                    risk_level = 'red' if any_detected else 'normal'
                     save_detection_log(
                         camera_id=camera.id,
                         detection_result=detection_result,
                         confidence_score=probability,
                         risk_level=risk_level,
-                        person_count=1 if detected else 0
+                        person_count=len(results)
                     )
-                    print(f"[Camera {camera_id}] V2 Fall Log: {detection_result}, Confidence: {probability:.2f}")
+                    print(f"[Camera {camera_id}] V2 Fall Log: {detection_result}, Confidence: {probability:.2f}, People tracked: {len(results)}")
                     last_log_time = now
-                
-                if detected:
-                    
+
+                if any_detected:
+
                     # Send alerts
                     current_time = datetime.now(tz)
                     now = time.time()
-                    
+
                     alert_cooldown = getattr(camera, 'alert_cooldown', None) or Config.NOTIFICATION_COOLDOWN
                     last_alert_time = getattr(camera, '_last_fall_v2_alert_time', 0)
-                    
+
                     if now - last_alert_time >= alert_cooldown:
                         # Save image for alert
                         alert_dir = getattr(Config, 'ALERT_IMAGE_DIR', None) or '/app/tmp'
                         os.makedirs(alert_dir, exist_ok=True)
                         img_path = os.path.join(alert_dir, f"v2_fall_detect_{camera_id}_{int(time.time())}.jpg")
-                        cv2.imwrite(img_path, processed_frame)
-                        
+                        cv2.imwrite(img_path, frame)
+
                         save_alert_log(camera.id, 'fall_red', img_path, additional_info={'model': 'v2', 'confidence': probability})
                         send_telegram_message_async(
-                            camera.id, camera.name, camera.room_name, 
+                            camera.id, camera.name, camera.room_name,
                             'fall_red', current_time, img_path
                         )
-                        
-                        print(f"[Camera {camera_id}] V2 FALL ALERT: {label}, Confidence: {probability:.2f}")
+
+                        print(f"[Camera {camera_id}] V2 FALL ALERT: {label}, Confidence: {probability:.2f}, People tracked: {len(results)}")
                         camera._last_fall_v2_alert_time = now
                 
                 db.session.refresh(camera)

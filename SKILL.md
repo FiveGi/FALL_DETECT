@@ -1242,3 +1242,52 @@ now-distinct, cross-domain-confirmed patterns (bed-lying, wide/raised-arms, forw
 enough evidence to make a properly-targeted hard-negative set for a future retrain, but building and
 validating that is its own task, not something to rush right after SS22's negative result on a narrower
 attempt.
+
+## 24. Multi-person tracking added -- v3 only ever tracked one person per camera before this
+
+**The gap**: `V3PoseFallDetector` never set `num_poses` on `PoseLandmarkerOptions` (MediaPipe defaults to
+1), and `extract_keypoints()` took `result.pose_landmarks[0]` -- whichever single person MediaPipe happened
+to detect first. `camera_manager.py` held one `V3FallDetectionState` per camera. With 2+ people in frame
+(a resident and a caregiver, say), only one was ever tracked -- a second person's fall could go completely
+unseen if MediaPipe's per-frame pick favored the other person, and a mid-frame pick switch would corrupt
+the rolling window with a different person's keypoints spliced in.
+
+**What changed** (`app/detection/v3_fall_detection.py`):
+- `NUM_POSES = 4`, set on `PoseLandmarkerOptions` -- MediaPipe now returns up to 4 poses per frame.
+- `extract_all_keypoints()` (new) returns every detected pose + hip-center; `extract_keypoints()` (existing,
+  used by every training/eval script this session built) is now a thin wrapper that takes just the first
+  one -- unchanged behavior for single-person callers, zero risk to the extensively-validated test tooling.
+- `_step_person()`: the single-person state machine from `detect_v3_fall` (SS9-SS18's window/smoothing/
+  collapse logic), factored out unchanged so both the single- and multi-person entry points run the exact
+  same validated logic instead of two copies that could drift.
+- `PersonTracker`: nearest-hip-center matching (`MAX_TRACK_DISTANCE=0.15` normalized, `MAX_MISSED_FRAMES=
+  WINDOW_SIZE`) -- deliberately simple (no motion model, no re-ID), matches this project's "same room, few
+  people, mostly-static camera" scope rather than building a real MOT system.
+- `V3MultiPersonFallState` + `detect_v3_fall_multi()`: one `V3FallDetectionState` per tracked person,
+  returns a list of `(track_id, detected, probability, label, hip_center)`.
+- `camera_manager.py`'s `process_v2_fall_detection` now uses the multi-person entry point, logs
+  `person_count=len(results)`, and alerts if *any* tracked person is in the fall state (kept the existing
+  camera-level cooldown rather than adding per-person cooldown -- lower risk, and this system already isn't
+  meant to alert autonomously per SS9's operating note).
+
+**Validated two ways before trusting it**:
+1. **Single-person regression check** -- reran SS20's GMDCSA24 held-out eval (which only ever has 1 person
+   per clip) against the refactored code: **identical 93.3% recall / 62.5% clean**, confirming
+   `_step_person()`'s extraction didn't change single-person behavior at all.
+2. **Real multi-person footage** -- `training/test_v3_multi_on_clip.py` (draws each tracked person in a
+   different color, labeled by track ID) against `Test/1.mp4`'s known two-person doorbell scene (~12-15s):
+   confirmed both people get simultaneous, independent skeletons/track IDs/states when MediaPipe detects
+   both (`people tracked: 2`) -- the core capability works.
+
+**Known, honest limitation, observed directly in that same clip**: when a person is briefly undetected
+(MediaPipe missed them for ~1s while they were still on screen) and then reacquired, they can get a *new*
+track ID if they moved far enough during the gap -- no motion prediction, matching the tracker's stated
+scope. This resets that person's rolling window (has to refill before re-alerting) but does not cause a
+crash or a false alert; it's a graceful continuity loss, not a safety issue. On the same full-clip run, a
+single compilation video with hard scene cuts (already established as a `Test/` artifact, not a real
+deployment scenario -- see SS18/SS21) produced 58 distinct track IDs over 67s, which is expected: a scene
+cut is a genuine, correct new-track event (the camera view itself changed), not tracker malfunction.
+
+**Not yet checked**: per-person false-alarm rate with 2+ real people in frame simultaneously and both
+moving (this session's 2-person footage was mostly one-active/one-standing-still) -- worth another
+real-footage pass if multi-person accuracy specifically needs validating further.

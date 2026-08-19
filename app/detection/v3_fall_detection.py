@@ -37,6 +37,7 @@ STRIDE = 10
 THRESHOLD = 0.5
 SMOOTH_NEED = 2   # need this many...
 SMOOTH_OF = 3      # ...positive windows out of the last this many (not strictly consecutive)
+NUM_POSES = 4      # max people tracked per camera at once -- see detect_v3_fall_multi
 
 MEDIAPIPE33_TO_COCO17 = [0, 2, 5, 7, 8, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28]
 LEFT_SHOULDER, RIGHT_SHOULDER = 5, 6
@@ -102,23 +103,35 @@ class V3PoseFallDetector:
         options = vision.PoseLandmarkerOptions(
             base_options=BaseOptions(model_asset_path=landmarker_path),
             running_mode=vision.RunningMode.IMAGE,
+            num_poses=NUM_POSES,
             min_pose_detection_confidence=0.5,
         )
         self.landmarker = vision.PoseLandmarker.create_from_options(options)
 
     def extract_keypoints(self, frame_bgr):
-        """-> ((17, 3) COCO17 [x, y, visibility], person_found: bool).
-        Zeros + False if no person detected in this frame -- the classifier was never
-        trained on all-zero input, so callers must not feed windows through it that are
-        mostly empty frames (empty room, person off-camera)."""
+        """-> ((17, 3) COCO17 [x, y, visibility], person_found: bool) for the FIRST
+        detected person only. Zeros + False if nobody detected. Single-person callers
+        (training/eval scripts, all validated against this exact signature -- see
+        SKILL.md) keep using this; camera_manager.py uses extract_all_keypoints /
+        detect_v3_fall_multi below for multi-person tracking instead."""
+        people = self.extract_all_keypoints(frame_bgr)
+        if not people:
+            return np.zeros((NUM_KEYPOINTS, 3), dtype=np.float32), False
+        return people[0][0], True
+
+    def extract_all_keypoints(self, frame_bgr):
+        """-> list of (kpts17 (17,3) [x, y, visibility], hip_center (2,)) for every
+        person detected this frame, up to NUM_POSES. Empty list if nobody detected."""
         frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
         result = self.landmarker.detect(mp_image)
-        if not result.pose_landmarks:
-            return np.zeros((NUM_KEYPOINTS, 3), dtype=np.float32), False
-        lm = result.pose_landmarks[0]
-        kpts33 = np.array([[p.x, p.y, p.visibility] for p in lm], dtype=np.float32)
-        return kpts33[MEDIAPIPE33_TO_COCO17], True
+        people = []
+        for lm in result.pose_landmarks:
+            kpts33 = np.array([[p.x, p.y, p.visibility] for p in lm], dtype=np.float32)
+            kpts17 = kpts33[MEDIAPIPE33_TO_COCO17]
+            hip_center = (kpts17[LEFT_HIP, :2] + kpts17[RIGHT_HIP, :2]) / 2.0
+            people.append((kpts17, hip_center))
+        return people
 
     def predict_window(self, raw_window):
         """raw_window: (WINDOW_SIZE, 17, 3) -> fall probability in [0, 1]."""
@@ -161,13 +174,13 @@ class V3FallDetectionState:
         return len(self.raw_buffer) == WINDOW_SIZE
 
 
-def detect_v3_fall(frame, state: V3FallDetectionState, fall_detector: V3PoseFallDetector,
-                    config, camera=None, threshold=None):
-    """Same signature/return shape as the old detect_v2_fall_only_onnx, so it's a
-    drop-in replacement: returns (detected, probability, label, frame)."""
-    threshold = threshold if threshold is not None else THRESHOLD
-
-    kpts, person_found = fall_detector.extract_keypoints(frame)
+def _step_person(kpts, person_found, state: V3FallDetectionState,
+                  fall_detector: V3PoseFallDetector, threshold):
+    """One person's rolling-window update + classification for this frame -- the
+    exact state machine detect_v3_fall validated (SS9-SS18), factored out so
+    detect_v3_fall (single person) and detect_v3_fall_multi (N people, one of these
+    states per tracked person) share identical logic instead of two copies drifting
+    apart. Returns (detected, probability, label)."""
     if person_found:
         state.last_good_kpts = kpts
         buffered_kpts = kpts
@@ -185,7 +198,7 @@ def detect_v3_fall(frame, state: V3FallDetectionState, fall_detector: V3PoseFall
     state.frames_since_infer += 1
 
     if not state.is_ready():
-        return False, 0.0, "Analyzing...", frame
+        return False, 0.0, "Analyzing..."
 
     person_fraction = sum(state.person_flags) / len(state.person_flags)
     if person_fraction < RESET_PERSON_FRACTION:
@@ -202,8 +215,8 @@ def detect_v3_fall(frame, state: V3FallDetectionState, fall_detector: V3PoseFall
         state.last_detected = False
         if was_collapse:
             state.collapse_fired = True
-            return True, 1.0, "fall", frame
-        return False, 0.0, "no_person", frame
+            return True, 1.0, "fall"
+        return False, 0.0, "no_person"
 
     if person_fraction < MIN_PERSON_FRACTION:
         # Some detections, but too few to trust a fresh prediction from this window --
@@ -215,13 +228,13 @@ def detect_v3_fall(frame, state: V3FallDetectionState, fall_detector: V3PoseFall
         # before the person went down, then got erased by this gate). Hold the last
         # known state instead of erasing it.
         label = "fall" if state.last_detected else "no_person"
-        return state.last_detected, state.last_probability, label, frame
+        return state.last_detected, state.last_probability, label
 
     # Only re-run the classifier every STRIDE frames -- matches the window stride the
     # model was validated on, and keeps this affordable at real camera frame rates.
     if state.has_run_once and state.frames_since_infer < STRIDE:
         label = "fall" if state.last_detected else "no_fall"
-        return state.last_detected, state.last_probability, label, frame
+        return state.last_detected, state.last_probability, label
 
     state.frames_since_infer = 0
     state.has_run_once = True
@@ -233,4 +246,120 @@ def detect_v3_fall(frame, state: V3FallDetectionState, fall_detector: V3PoseFall
     state.last_detected = sum(state.recent_flags) >= SMOOTH_NEED
 
     label = "fall" if state.last_detected else "no_fall"
-    return state.last_detected, probability, label, frame
+    return state.last_detected, probability, label
+
+
+def detect_v3_fall(frame, state: V3FallDetectionState, fall_detector: V3PoseFallDetector,
+                    config, camera=None, threshold=None):
+    """Single-person entry point -- same signature/return shape as the old
+    detect_v2_fall_only_onnx, so it's a drop-in replacement: returns
+    (detected, probability, label, frame). Used by all the training/eval scripts;
+    camera_manager.py uses detect_v3_fall_multi instead."""
+    threshold = threshold if threshold is not None else THRESHOLD
+    kpts, person_found = fall_detector.extract_keypoints(frame)
+    detected, probability, label = _step_person(kpts, person_found, state, fall_detector, threshold)
+    return detected, probability, label, frame
+
+
+MAX_TRACK_DISTANCE = 0.15
+# Max normalized hip-center movement (as a fraction of frame width/height) between
+# consecutive frames for a detection to count as "the same person" -- chosen as a
+# generous-but-not-unlimited gate: a person walking normally moves much less than
+# this between frames at real camera fps, but it's loose enough to survive MediaPipe's
+# own per-frame jitter (SS18) without needing a real motion model.
+MAX_MISSED_FRAMES = WINDOW_SIZE
+# How many consecutive frames a track can go undetected (occluded, briefly off-camera)
+# before being dropped -- one full window's worth, so a track surviving a gap this
+# long still has stale-but-recent history rather than restarting cold.
+
+
+class PersonTracker:
+    """Nearest-hip-center tracker so each person's rolling window doesn't get
+    contaminated by a different person's keypoints frame to frame. Not a real
+    multi-object tracker -- no motion model, no re-identification after a track is
+    dropped. Fine for the same-room, few-people, mostly-static-camera case this is
+    built for; people crossing paths closely enough to swap positions within one
+    MAX_TRACK_DISTANCE step could swap track IDs. That's a state-continuity glitch,
+    not a missed detection -- both people are still tracked and classified."""
+
+    def __init__(self):
+        self.next_id = 0
+        self.tracks = {}  # track_id -> {"centroid": (x, y), "missed": int}
+
+    def update(self, detections):
+        """detections: list of (kpts, hip_center) from extract_all_keypoints.
+        Returns list of (track_id, kpts_or_None, seen: bool) for every currently
+        active track, including ones not matched this frame (kpts=None, seen=False)."""
+        unmatched = list(range(len(detections)))
+        matched = {}
+
+        for track_id, t in sorted(self.tracks.items()):
+            if not unmatched:
+                break
+            dists = sorted(
+                ((float(np.linalg.norm(t["centroid"] - detections[i][1])), i) for i in unmatched),
+                key=lambda x: x[0],
+            )
+            best_dist, best_i = dists[0]
+            if best_dist < MAX_TRACK_DISTANCE:
+                matched[track_id] = best_i
+                unmatched.remove(best_i)
+
+        results = []
+        for track_id, t in self.tracks.items():
+            if track_id in matched:
+                kpts, centroid = detections[matched[track_id]]
+                t["centroid"] = centroid
+                t["missed"] = 0
+                results.append((track_id, kpts, True))
+            else:
+                t["missed"] += 1
+                results.append((track_id, None, False))
+
+        for i in unmatched:
+            kpts, centroid = detections[i]
+            track_id = self.next_id
+            self.next_id += 1
+            self.tracks[track_id] = {"centroid": centroid, "missed": 0}
+            results.append((track_id, kpts, True))
+
+        self.tracks = {tid: t for tid, t in self.tracks.items() if t["missed"] <= MAX_MISSED_FRAMES}
+        return [r for r in results if r[0] in self.tracks]
+
+
+class V3MultiPersonFallState:
+    """Per-camera state for multi-person detection: a PersonTracker plus one
+    V3FallDetectionState per tracked person, so each person's rolling window/alert
+    smoothing is independent of every other person in frame."""
+
+    def __init__(self):
+        self.tracker = PersonTracker()
+        self.person_states = {}  # track_id -> V3FallDetectionState
+
+
+def detect_v3_fall_multi(frame, multi_state: V3MultiPersonFallState,
+                          fall_detector: V3PoseFallDetector, config, camera=None, threshold=None):
+    """Multi-person entry point. Returns a list of
+    (track_id, detected, probability, label, hip_center) -- one entry per person
+    currently tracked in this camera's frame (including ones not seen this exact
+    frame but still within MAX_MISSED_FRAMES, matching single-person's tolerance for
+    momentary tracking dropouts)."""
+    threshold = threshold if threshold is not None else THRESHOLD
+    detections = fall_detector.extract_all_keypoints(frame)
+    tracked = multi_state.tracker.update(detections)
+
+    results = []
+    for track_id, kpts, seen in tracked:
+        state = multi_state.person_states.setdefault(track_id, V3FallDetectionState())
+        step_kpts = kpts if seen else np.zeros((NUM_KEYPOINTS, 3), dtype=np.float32)
+        detected, probability, label = _step_person(step_kpts, seen, state, fall_detector, threshold)
+        centroid = multi_state.tracker.tracks[track_id]["centroid"]
+        results.append((track_id, detected, probability, label, centroid))
+
+    # Drop state for any track the tracker has expired, so memory doesn't grow
+    # unbounded over a long-running camera session.
+    for track_id in list(multi_state.person_states):
+        if track_id not in multi_state.tracker.tracks:
+            del multi_state.person_states[track_id]
+
+    return results
