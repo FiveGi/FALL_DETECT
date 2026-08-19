@@ -1291,3 +1291,44 @@ cut is a genuine, correct new-track event (the camera view itself changed), not 
 **Not yet checked**: per-person false-alarm rate with 2+ real people in frame simultaneously and both
 moving (this session's 2-person footage was mostly one-active/one-standing-still) -- worth another
 real-footage pass if multi-person accuracy specifically needs validating further.
+
+## 25. Ran the multi-person path across all 11 `Test/` clips -- it works, but costs more false positives than expected, found and root-caused, not yet fixed
+
+**Ran `test_v3_multi_on_clip.py` on all 11 clips** (not just clip1's spot check from SS24). Alert counts vs
+the established single-person baseline: 5 of 11 clips got *more* alerts (clip1 15->19, clip4 14->21, clip5
+13->21, clip8 12->18, clip9 16->21), 2 got *fewer* (clip2 6->3, clip10 5->3), 4 stayed the same.
+
+**Checked the "more" clips by hand -- two distinct causes, not one:**
+1. **More pose slots surface more marginal detections.** `NUM_POSES=4` means MediaPipe now returns up to 4
+   candidate poses per frame instead of always just the single best one -- clip4 t=9.8s and t=9.9s both
+   fired FALL within 0.1s on two different track IDs (#7, #8) for what a direct look confirms is the same
+   already-known false positive (SS21's night-vision dancing scene) -- MediaPipe produced two slightly
+   different pose estimates for one ambiguous figure, and now both get their own track and their own alert
+   instead of one.
+2. **Track churn creates repeated cold-start windows, and cold starts seem to be where false positives
+   cluster.** clip4 t=61.2s and t=65.1s and t=87.0s are a person walking away from camera with a backpack,
+   confirmed NOT a fall by direct look, each time a *new* false positive (not a duplicate of anything in
+   the single-person run) -- most plausibly because every time this person's track resets (occlusion,
+   distance, lighting), their 30-frame window has to refill from scratch, and a freshly-filling window
+   built from a person walking away seems more prone to a spurious high score than the same person's
+   window would be if it had stayed continuous. This rhymes with a pattern already seen elsewhere this
+   session (SS21's clip3 t=1.3s, clip11 t=1.3s: false positives clustered right at the start of a clip/
+   track, before the window has "settled").
+
+**Checked the "fewer" clips too, since fewer alerts could mean a missed real fall (worse) instead of fewer
+false alarms (fine) -- the safety-relevant direction to check first.** clip2: lost the 11.2s re-trigger,
+but the underlying real event (the crosswalk fall from SS18/SS21) still fires at 2.3s, 6.0s, and 13.8s --
+not missed, just fewer redundant re-triggers of the same event (per-track window resets absorb some of
+the oscillation single-person's one continuous window used to re-flag). clip10: lost the 7.2s trigger
+(0.994 confidence in single-person mode) but the same real event (child falling down stairs, SS21) still
+fires at 8.1s (0.994) -- again not missed. **In both checked cases the real underlying event still got at
+least one alert opportunity; what changed is internal re-trigger frequency, not whether the event was
+caught at all** -- but this was only checked on 2 clips, not exhaustively.
+
+**Net assessment, stated plainly: multi-person tracking's core capability is real and validated (SS24), but
+it measurably increases false-positive churn -- worse on solo-person clips too, not just multi-person ones,
+because NUM_POSES=4 always searches for up to 4 poses even when only one person is present.** Not reverted
+or retuned here -- the fix (e.g., lower NUM_POSES, raise confidence for non-primary pose slots, or persist
+window state across a track-ID reassignment instead of restarting cold) needs the same before/after
+validation discipline as SS18's fix, not a guess. Flagging for next session rather than shipping an
+unvalidated change on top of a change that itself was just shipped.
