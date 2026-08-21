@@ -86,21 +86,28 @@ def main():
         t = frame_idx / fps
 
         results = detect_v3_fall_multi(frame, state, detector, config=None)
-        max_people_seen = max(max_people_seen, len(results))
+        # results includes tracks held through a brief dropout (up to MAX_MISSED_FRAMES,
+        # by design -- see SS24), not just people actually visible this exact frame.
+        # Drawing all of them every frame draws stale, frozen-in-place skeletons on top
+        # of current ones -- that's the "messy lines" -- so only draw ones truly seen now.
+        seen_now = {tid for tid, t_ in state.tracker.tracks.items() if t_["missed"] == 0}
+        currently_visible = [r for r in results if r[0] in seen_now]
+        max_people_seen = max(max_people_seen, len(currently_visible))
         annotated = frame.copy()
-        for track_id, detected, probability, label, centroid in results:
+        for track_id, detected, probability, label, centroid in currently_visible:
             all_track_ids_ever.add(track_id)
             color = TRACK_COLORS[track_id % len(TRACK_COLORS)]
             kpts = state.person_states[track_id].raw_buffer[-1] if state.person_states[track_id].raw_buffer else np.zeros((17, 3))
             draw_person(annotated, kpts, color, track_id, probability, label, detected)
 
+        for track_id, detected, probability, label, centroid in results:
             if last_labels.get(track_id) != label:
                 if label == "fall":
                     print(f"  t={t:5.1f}s track#{track_id} -> FALL p={probability:.3f}")
                     alerts.append((t, track_id, probability))
                 last_labels[track_id] = label
 
-        cv2.putText(annotated, f"people tracked: {len(results)}", (10, 28),
+        cv2.putText(annotated, f"people visible: {len(currently_visible)}", (10, 28),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
         writer.write(annotated)
         frame_idx += 1
