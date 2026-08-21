@@ -23,6 +23,12 @@ POSE_DIRS = [
 # baseline numbers stay reproducible; set to 1 for the SS22 before/after comparison.
 if os.environ.get("USE_REALTEST_V1") == "1":
     POSE_DIRS.append(os.path.join(os.path.dirname(__file__), "data", "poses_realtest_v1"))
+# USE_OMNIFALL_ADL: 117 real OmniFall segments labeled lying/lie_down/sitting/sit_down/
+# kneeling/squatting (SS28) -- unlike SS22, these directly target the SPECIFIC pattern
+# (bed/floor-lying, confirmed across SS17/SS20/SS21/SS23/SS27) the deployed model keeps
+# misfiring on, sourced from ~100 different OOPS subjects/rooms instead of GMDCSA24's 4.
+if os.environ.get("USE_OMNIFALL_ADL") == "1":
+    POSE_DIRS.append(os.path.join(os.path.dirname(__file__), "data", "poses_omnifall_adl"))
 CKPT_PATH = os.environ.get(
     "CKPT_PATH", os.path.join(os.path.dirname(__file__), "data", "best_model.pt")
 )

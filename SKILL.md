@@ -1409,3 +1409,53 @@ one clip) and, being geometrically close to random noise rather than a coherent 
 likely to accumulate the sustained fall-like signal the classifier's smoothing (`SMOOTH_NEED`/`SMOOTH_OF`)
 requires to actually fire an alert -- this is a real visual-clutter and wasted-compute problem (confirmed),
 but not yet confirmed to be a meaningful contributor to real false alarms specifically (untested).
+
+## 28. Retrained with properly-targeted hard negatives this time (real lying/sitting data, not SS22's mismatch) -- real recall gain, but the exact same false positives persist anyway
+
+**Did this right, unlike SS22.** SS22's hard negatives came from an unrelated failure surface (dancing/
+standing outdoors) and didn't touch GMDCSA24's bed-lying false positives at all. This time,
+`extract_omnifall_adl_poses.py` pulled 117 real segments from OmniFall's OF-ItW label table filtered to
+the exact matching activity classes -- `lying`/`lie_down` (47, full set), plus a sample of `sitting`/
+`sit_down` (40) and `kneeling`/`squatting` (30) -- sourced from roughly 40 different OOPS subjects/rooms,
+versus GMDCSA24's 4. `poses_omnifall_adl`, toggled via `USE_OMNIFALL_ADL=1`, retrained 3 seeds with/without.
+
+**Pooled val F1: small but consistently positive this time** (unlike SS22's mixed +0.003/+0.008/-0.008):
++0.010, +0.006, +0.001 across seeds 42/7/123 (baseline mean 0.594 -> 0.600).
+
+**The real test -- SS20's GMDCSA24 held-out set, ground-truth scored, all 3 seeds:**
+
+| | Fall recall | ADL clean | 
+|---|---|---|
+| baseline (SS20) | 93.3% (14/15) | 62.5% (10/16) |
+| +omnifall_adl, seed 42 | **100%** (15/15) | 50.0% (8/16) |
+| +omnifall_adl, seed 7 | **100%** (15/15) | 56.2% (9/16) |
+| +omnifall_adl, seed 123 | **100%** (15/15) | 56.2% (9/16) |
+
+**Recall hit 100% in all 3 seeds -- fully reproducible, not noise -- catching `s2_Fall_20`, the one fall
+every previous model in this file has missed.** That's a genuine, real gain worth taking seriously.
+
+**But checked with a direct set-difference (not eyeballed) whether the intended fix actually happened: it
+did not, in any seed.** All 6 of SS20's original false-positive clips (`s1_ADL_01`, `s2_ADL_03`,
+`s2_ADL_15`, `s4_ADL_07`, `s4_ADL_08`, `s4_ADL_10`) persist unchanged in every one of the 3 retrained
+models, plus 1-2 new false positives appear depending on seed (`s2_ADL_16` in 2/3, `s3_ADL_11` in 2/3).
+**47 real, diverse lying/lie_down examples -- properly targeted this time, not SS22's mismatch -- still did
+not fix a single one of the specific clips this was aimed at.**
+
+**What this actually shows**: the bed-lying false positives aren't primarily a data-scarcity problem
+(SS22's hypothesis, now tested and not confirmed) -- adding real, diverse, correctly-targeted negative
+examples moved the model in the recall direction (a real, valuable, reproducible effect) without moving it
+in the precision direction on these specific clips at all. Two plausible explanations, neither confirmed:
+(1) `train.py`'s `pos_weight` loss term explicitly weights false negatives 1.5x worse than false positives
+by design (see `train.py`'s own comment) -- structurally pulling any additional training signal toward
+"catch more real falls" even when the added data's actual purpose was precision; (2) these 6 specific
+clips may be close to irreducibly hard for a pose-only classifier regardless of how much lying/sitting data
+exists elsewhere -- something specific to their camera angle or motion pattern that isn't a generic
+"lying" concept the model is failing to generalize.
+
+**This is a real product tradeoff, not a clear win or a clear loss -- not deployed without a decision on
+it.** Every prior retraining attempt in this file (SS17, SS22) was a clean "no benefit, don't ship" call.
+This one is different: recall genuinely improved (never missing a real fall matters a lot for this use
+case) at a real precision cost (more prompts to check the camera on ADL footage) -- and given SS9's
+existing operating note already frames detections as "a prompt for staff to check the camera, not a
+confirmed event," a higher-recall/lower-precision model could be the *right* choice for this product, not
+just an inferior one. Left undeployed pending that call rather than assumed either way.
