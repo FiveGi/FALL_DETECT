@@ -1358,3 +1358,54 @@ with the "more pose slots" effect. **Conclusion: on the specific footage this pr
 re-entering frame) that's more relevant to compilation-style test footage than typical fixed-camera
 deployment, though a real deployment does still have people leaving/re-entering over a full day, so this
 isn't a reason to stop tracking it.**
+
+## 27. User-reported "detects furniture/cars/fences as people" -- confirmed real, but the obvious fix (confidence threshold) doesn't work
+
+**This is a different, upstream problem from everything else in this file.** SS9-SS26 are all about the
+fall *classifier* (`fall_classifier_v3.onnx`, trained on `training/`) misjudging a real detected person's
+pose. This is about MediaPipe's pose *detector* -- a pre-trained Google model we don't train or fine-tune
+at all -- finding a "person" where there isn't one. These need different fixes: the classifier can be
+retrained (as this whole file has done repeatedly); MediaPipe can only be worked around with a filter on
+its own output, since we have no access to retrain it.
+
+**Confirmed with real evidence, not assumed.** Scanned `Test/12.mp4` for low-average-landmark-visibility
+detections (a hallucinated pose typically scores lower than a real one) and checked each by hand /
+Gemini. Found genuine hallucinations: a close-up shot of a **burnt pizza** (no person in frame at all,
+avg visibility 0.51-0.53) and separately a **dog + shovel** scene and a **boat on water** scene (both no
+person, visibility 0.696 and 0.706).
+
+**The obvious fix -- reject detections below some visibility threshold -- does not work, checked against
+real data before proposing it:**
+
+| what | avg visibility | real person? |
+|---|---|---|
+| burnt pizza close-up (no person) | 0.51-0.53 | NO -- hallucination |
+| extreme close-up selfie face | 0.581 | YES -- real, just cropped tight |
+| dog + shovel (no person) | 0.696 | NO -- hallucination |
+| boat on water (no person) | 0.706 | NO -- hallucination |
+| person holding a cat, arm occluded | 0.669 | YES |
+| person crawling near porch steps | 0.681 | YES |
+| person tripping, partially cut off at frame edge | 0.676 | YES |
+| several more real partially-visible people | 0.649-0.713 | YES |
+
+**Real and hallucinated detections occupy the same visibility range (0.51-0.71) -- there is no clean cutoff.**
+A threshold high enough to reject the dog/shovel and boat hallucinations (>=0.71) would also reject nearly
+every genuinely real but partially-visible/occluded/awkwardly-framed person found in this same sample --
+exactly the kind of detection real deployment (someone mid-fall, partially behind furniture) most needs to
+keep. Shipping a naive threshold would trade a rare cosmetic problem for a real recall loss on the cases
+that matter most. Not implemented.
+
+**What would actually work, not yet built or validated**: an anatomical-plausibility check on the *shape*
+of the detected skeleton (are shoulder-width/hip-width/limb-proportions within plausible human ranges,
+are keypoints in a sensible spatial arrangement relative to each other) rather than a single confidence
+number -- a hallucinated pose on a pizza or a boat is likely to be geometrically incoherent in a way pure
+average visibility doesn't capture. This needs the same design-then-validate treatment as every other fix
+in this file (build it, run it against both a hallucination set and a large real-person set like SS20's,
+confirm it doesn't cost recall) -- not attempted here, flagged as the concrete next step if this is worth
+pursuing further.
+
+**Practical note on actual impact**: hallucinated poses were rare in the scan (4 of ~137 sampled points in
+one clip) and, being geometrically close to random noise rather than a coherent moving body, are less
+likely to accumulate the sustained fall-like signal the classifier's smoothing (`SMOOTH_NEED`/`SMOOTH_OF`)
+requires to actually fire an alert -- this is a real visual-clutter and wasted-compute problem (confirmed),
+but not yet confirmed to be a meaningful contributor to real false alarms specifically (untested).
