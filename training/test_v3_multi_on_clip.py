@@ -58,7 +58,7 @@ def main():
     out_dir = os.path.join(RESULTS_ROOT, clip_name)
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, "annotated_multi.mp4")
-    summary_path = os.path.join(out_dir, "summary.txt")
+    summary_path = os.path.join(out_dir, "summary_multi.txt")
 
     print(f"Loading V3 pose fall detector (multi-person, NUM_POSES={v3.NUM_POSES}) from {MODEL_DIR} ...")
     detector = V3PoseFallDetector(model_dir=MODEL_DIR)

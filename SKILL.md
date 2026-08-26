@@ -1500,3 +1500,30 @@ help across seeds -- only this specific trained checkpoint is being kept, not th
 generally. **Caveat worth stating plainly: this result depends on this specific random seed's initialization
 landing in a good spot** (seeds 42 and 7 at the same settings did not match baseline's precision) -- treat
 this as "a good model that was found and validated," not "a reliable recipe that will reproduce again."
+
+## 30. Post-deploy regression check on all 13 `Test/` clips -- 67.3% precision, no new failure modes found
+
+**Reran every `Test/` clip (now 13 -- `13.mp4` added) through the newly-deployed SS29 model**, both single-
+and multi-person paths, then Gemini-verified all 107 single-person alerts (`verify_current_model_alerts.py`
+-- re-extracts a fresh frame per alert straight from the source clip rather than trusting `alert_frames/`,
+which accumulates stale files from earlier runs since it's never cleared between them; found and fixed a
+real bug along the way: `test_v3_multi_on_clip.py` wrote to the same `summary.txt` filename as the
+single-person script, clobbering it -- now `summary_multi.txt`).
+
+**72/107 (67.3%) confirmed real falls.** Not comparable to SS29's 62.5%/84% ADL-clean numbers -- those are
+single-activity GMDCSA24 clips; `Test/`'s clips are multi-scene TikTok/doorbell compilations, a harder
+domain this file has consistently measured lower on (SS19's sports clips: 59%; SS18's calmer doorbell
+clip: ~77%). 67.3% across a mixed batch lands where expected, not a signal of a new regression.
+
+**Checked what the 35 false positives actually were -- every one matches an already-documented pattern,
+nothing new:** bed-lying (SS20/21/23/26/28), pose hallucination on non-human objects -- a burnt pizza and a
+boat, confirmed again on fresh footage (SS27), video-compilation transition artifacts (TikTok loading
+screens firing the person-gone fallback path, SS21/25), and reaching/bending forward (opening a gate,
+crawling, assisting someone with a walker) which extends SS19/23's forward-lean pattern rather than being
+new. `clip 9` alone accounted for 11 of the 35 -- spot-checked directly and confirmed it's another
+multi-scene Ring/Nest compilation with heavy scene-cut track churn, the exact mechanism SS25 already
+identified as the main driver of false positives on long choppy clips (as opposed to short continuous
+ones, where SS26 measured almost no added cost).
+
+**No code or model changes from this pass -- it's a clean bill of health for the SS29 deploy**, confirming
+the newly-shipped model didn't introduce any failure mode beyond what was already known and accepted.
