@@ -84,10 +84,15 @@ def main():
     # Missing a real fall is far worse than a false alarm, so weight the loss to punish
     # false negatives harder than the raw class ratio would -- pushes the model away from
     # the "always predict no-fall" local optimum it settled into last run.
+    # POS_WEIGHT_MULT (SS29): SS28 found adding real targeted lying/sitting hard negatives
+    # pushed recall to 100% but didn't fix a single one of the ADL false positives it was
+    # meant to fix -- testing whether this 1.5x recall bias is why, by trying it at 1.0x
+    # (no artificial bias beyond the natural class ratio) alongside the same SS28 data.
+    POS_WEIGHT_MULT = float(os.environ.get("POS_WEIGHT_MULT", "1.5"))
     train_labels = np.array([lbl for _, lbl, _ in train_samples])
     n_pos, n_neg = train_labels.sum(), len(train_labels) - train_labels.sum()
-    pos_weight = torch.tensor([(n_neg / max(n_pos, 1)) * 1.5], device=DEVICE)
-    print(f"Train windows: {n_pos} fall, {n_neg} no-fall -> pos_weight={pos_weight.item():.2f}")
+    pos_weight = torch.tensor([(n_neg / max(n_pos, 1)) * POS_WEIGHT_MULT], device=DEVICE)
+    print(f"Train windows: {n_pos} fall, {n_neg} no-fall -> pos_weight={pos_weight.item():.2f} (mult={POS_WEIGHT_MULT})")
 
     model = FallClassifier().to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), lr=LR, weight_decay=1e-4)
