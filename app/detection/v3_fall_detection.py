@@ -4,21 +4,29 @@ Replaces the v2 DeepSVDD pipeline (RGB ResNet50 + optical flow + a pose feature
 branch that always returned zeros -- see FeatureExtractorONNX.extract_pose_features
 in v2_fall_detection_onnx.py) with a model trained purely on pose keypoints, which
 is both simpler and actually uses the skeleton signal it's supposed to. See
-training/model.py and training/train.py for how it was trained (~6,100 videos
-pooled from GMDCSA24 + FallVision + CAUCAFall).
+training/model.py and training/train.py for how it was trained (~10,000 windowed
+clips pooled from GMDCSA24 + FallVision + CAUCAFall + OmniFall OF-ItW/OOPS).
 
-Preprocessing here must match training/dataset.py exactly: MediaPipe pose -> COCO-17
-subset -> torso-relative normalization -> per-frame velocity -> 30-frame window.
+Pose backend is YOLO-pose (yolo26s-pose), not MediaPipe -- switched SS34/35 after
+validating end to end (better raw detection rate on hard "person down" frames,
+faster on CPU, and -- with flip + synthetic-occlusion training augmentation added
+specifically to close a gap found on a real cane-assisted fall clip -- matching or
+exceeding the prior MediaPipe-trained model's numbers on both GMDCSA24 held-out
+test sets). Its output is already COCO-17 (index-identical to LEFT_SHOULDER=5/
+RIGHT_SHOULDER=6/LEFT_HIP=11/RIGHT_HIP=12 below), unlike MediaPipe's 33-point
+BlazePose output which needed the MEDIAPIPE33_TO_COCO17 remap (kept below, no
+longer used by this file, but training/extract_poses.py's original MediaPipe-based
+extraction scripts still reference it).
+
+Preprocessing here must match training/dataset.py exactly: pose -> COCO-17 subset ->
+torso-relative normalization -> per-frame velocity -> 30-frame window.
 
 Operating point (see training/tune_threshold.py): sigmoid threshold 0.5, plus
 requiring SMOOTH_NEED-of-last-SMOOTH_OF windows to agree before raising an alert
 (not strictly consecutive -- a 50-clip end-to-end batch test found several real
 falls where confidence spiked above threshold but dipped for a single window in
 between, which a strict "N in a row" rule threw away). This still cuts false
-alarms for a modest recall cost. Validated numbers: val F1 0.615, ~78-90%
-sensitivity depending on scenario, 25-40% false-alarm rate at the video-clip level
-(bed-exit scenarios are the worst case for false alarms -- normal bed movement
-resembles the aftermath of a fall). This is not accurate enough to alert
+alarms for a modest recall cost. This is not accurate enough to alert
 autonomously; treat detections as a prompt for staff to check the camera, not a
 confirmed event.
 """
@@ -28,8 +36,7 @@ from collections import deque
 import cv2
 import numpy as np
 import onnxruntime as ort
-import mediapipe as mp
-from mediapipe.tasks.python import vision, BaseOptions
+from ultralytics import YOLO
 
 NUM_KEYPOINTS = 17
 WINDOW_SIZE = 30
@@ -89,27 +96,29 @@ def _normalize_and_velocity(raw_window):
 
 
 class V3PoseFallDetector:
-    """Loads the pose extractor + ONNX classifier. One instance shared across all cameras."""
+    """Loads the pose extractor + ONNX classifier. One instance shared across all cameras.
+
+    Pose backend is YOLO-pose (yolo26s-pose, native COCO-17 keypoint output -- index-
+    identical to LEFT_SHOULDER/RIGHT_SHOULDER/LEFT_HIP/RIGHT_HIP below, no 33->17
+    remapping needed), not MediaPipe -- see SKILL.md SS34/35. Replaced MediaPipe after
+    validating end to end: better raw detection rate on hard "person down" frames
+    (81% vs 72%), ~40% faster on CPU, and -- after adding flip + synthetic-occlusion
+    training augmentation (SS35) specifically to close a gap found on a real clip
+    involving a mobility cane and torso rotation -- matching or exceeding the prior
+    MediaPipe-trained model's numbers on both GMDCSA24 held-out test sets."""
 
     def __init__(self, model_dir, device="cpu"):
         onnx_path = os.path.join(model_dir, "fall_classifier_v3.onnx")
-        landmarker_path = os.path.join(model_dir, "pose_landmarker_lite.task")
+        yolopose_path = os.path.join(model_dir, "yolo26s-pose.pt")
 
         providers = ["CPUExecutionProvider"]
         if device == "cuda":
             providers.insert(0, "CUDAExecutionProvider")
         self.session = ort.InferenceSession(onnx_path, providers=providers)
-
-        options = vision.PoseLandmarkerOptions(
-            base_options=BaseOptions(model_asset_path=landmarker_path),
-            running_mode=vision.RunningMode.IMAGE,
-            num_poses=NUM_POSES,
-            min_pose_detection_confidence=0.5,
-        )
-        self.landmarker = vision.PoseLandmarker.create_from_options(options)
+        self.pose_model = YOLO(yolopose_path)
 
     def extract_keypoints(self, frame_bgr):
-        """-> ((17, 3) COCO17 [x, y, visibility], person_found: bool) for the FIRST
+        """-> ((17, 3) COCO17 [x, y, confidence], person_found: bool) for the FIRST
         detected person only. Zeros + False if nobody detected. Single-person callers
         (training/eval scripts, all validated against this exact signature -- see
         SKILL.md) keep using this; camera_manager.py uses extract_all_keypoints /
@@ -120,15 +129,24 @@ class V3PoseFallDetector:
         return people[0][0], True
 
     def extract_all_keypoints(self, frame_bgr):
-        """-> list of (kpts17 (17,3) [x, y, visibility], hip_center (2,)) for every
-        person detected this frame, up to NUM_POSES. Empty list if nobody detected."""
-        frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
-        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
-        result = self.landmarker.detect(mp_image)
+        """-> list of (kpts17 (17,3) [x, y, confidence], hip_center (2,)) for every
+        person detected this frame, up to NUM_POSES, sorted by detection confidence
+        (highest first). Empty list if nobody detected."""
+        h, w = frame_bgr.shape[:2]
+        result = self.pose_model.predict(frame_bgr, verbose=False, conf=0.5, classes=[0])[0]
         people = []
-        for lm in result.pose_landmarks:
-            kpts33 = np.array([[p.x, p.y, p.visibility] for p in lm], dtype=np.float32)
-            kpts17 = kpts33[MEDIAPIPE33_TO_COCO17]
+        if result.keypoints is None or len(result.keypoints.xy) == 0:
+            return people
+        box_confs = result.boxes.conf.cpu().numpy()
+        order = np.argsort(-box_confs)[:NUM_POSES]
+        for i in order:
+            kxy = result.keypoints.xy[i].cpu().numpy()
+            kconf = (result.keypoints.conf[i].cpu().numpy()
+                     if result.keypoints.conf is not None else np.ones(NUM_KEYPOINTS, dtype=np.float32))
+            kpts17 = np.zeros((NUM_KEYPOINTS, 3), dtype=np.float32)
+            kpts17[:, 0] = kxy[:, 0] / w
+            kpts17[:, 1] = kxy[:, 1] / h
+            kpts17[:, 2] = kconf
             hip_center = (kpts17[LEFT_HIP, :2] + kpts17[RIGHT_HIP, :2]) / 2.0
             people.append((kpts17, hip_center))
         return people

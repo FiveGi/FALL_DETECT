@@ -1527,3 +1527,373 @@ ones, where SS26 measured almost no added cost).
 
 **No code or model changes from this pass -- it's a clean bill of health for the SS29 deploy**, confirming
 the newly-shipped model didn't introduce any failure mode beyond what was already known and accepted.
+
+## 31. Tested model capacity as the last untested lever -- conclusive negative, and it clarifies what's actually going on
+
+**Last untested hypothesis for the 6 persistent GMDCSA24 false positives**: `model.py`'s docstring notes a
+much bigger architecture (ST-GCN, ~17x more params) underperformed this one on the *old* data (0.582 vs
+0.615 F1) -- but that comparison predates every data change this session made, so it doesn't rule out a
+*modest* capacity increase on SS29's current winning config. Added `HIDDEN_SIZE` env var to `train.py`/
+`export_onnx.py`, tested `hidden=192` (up from 128, +50% width) on the exact same SS29 data
+(`USE_OMNIFALL_ADL=1`, `POS_WEIGHT_MULT=1.0`), 3 seeds.
+
+**Conclusive result: hidden=192 helped nothing and cost recall in 2 of 3 seeds.**
+
+| | recall | ADL clean | false-positive clips |
+|---|---|---|---|
+| hidden=128, seed123 (deployed, SS29) | 100% | 62.5% | s1_ADL_01, s2_ADL_03, s2_ADL_15, s4_ADL_07, s4_ADL_08, s4_ADL_10 |
+| hidden=192, seed42 | 100% | 62.5% | **identical set, all 6** |
+| hidden=192, seed7 | 93.3% (worse) | 62.5% | **identical set, all 6** |
+| hidden=192, seed123 | 93.3% (worse) | 62.5% | **identical set, all 6** |
+
+**Across 9 total training runs now (6 at hidden=128 from SS28/29, 3 at hidden=192 here), varying seed, data,
+pos_weight, and now model capacity, the exact same 6 clips fail every single time, with zero exceptions.**
+This isn't noise or an undertrained model -- it's a structural limit of the representation, not the
+capacity or the data. All 6 clips are the same bed-lying pattern documented since SS20. Pose keypoints
+alone -- x/y/velocity of 17 body points -- carry no information about what surface is under the person;
+a body lying flat with limbs at rest looks geometrically identical whether it's a bed or the floor. No
+amount of more parameters, more seeds, or more (correctly-targeted) training examples can teach a
+pose-only classifier a distinction the input representation cannot express in the first place.
+
+**This closes the "make the current model better" line of investigation for this specific pattern.**
+A real fix needs a different signal entirely -- e.g. fusing bed/furniture location (from object detection
+on the RGB frame) with the pose classifier's output, so the same keypoint pattern is judged differently
+depending on what's underneath the person. That's a materially bigger architecture change than anything
+tried in SS17-31 (all of which stayed within "same inputs, different model/data/hyperparameters") and
+wasn't attempted here. `hidden=192` checkpoints kept locally (`ss31_seed*_h192.pt`) but not exported to
+production -- no benefit over the deployed SS29 model, and worse recall in 2 of 3 seeds.
+
+## 32. SS29's deployed model MISSED a real elderly fall -- traced the cause, reverted production
+
+**4 new real clips added to `Test/`** (`14.mp4`-`17.mp4`), 3 of them genuine elderly-fall footage (a CCTV-
+style hospital-corridor fall, an "Elderly Person Falling" clip, "Man falling to ground"). Ran the SS29
+deployed model against all of them. **`15.mp4`: a man clearly loses balance, crumples, and ends up flat on
+his back -- confirmed by direct frame inspection, unambiguous real fall -- and the deployed model never
+alerted.** Max probability reached was 0.462, just under the 0.5 threshold.
+
+**Traced why with the full frame-by-frame trace**: `person_found=True` for virtually the entire clip (not
+a tracking-loss case, ruling out the SS18/24 mechanisms). Probability peaks at 0.462 right during the
+active falling motion (~t=6.2-6.6s) then *drops* to near-zero once he's lying still on the floor
+(0.026 by t=7.0s) -- even though he's genuinely fallen and motionless, which is exactly what a real fall's
+aftermath looks like.
+
+**Isolated the cause by testing 3 checkpoints (same seed, only the SS28/29 treatment varied) against this
+one clip:**
+
+| checkpoint | clip15 max prob | detected? |
+|---|---|---|
+| seed123, no OmniFall ADL data, pos_weight=1.5 (pre-SS28) | 0.821 | yes, clean |
+| seed123, +OmniFall ADL data, pos_weight=1.5 (SS28) | 0.549 | no (crossed once, not sustained) |
+| seed123, +OmniFall ADL data, pos_weight=1.0 (SS29, **deployed**) | 0.462 | **no** |
+
+**A clean, monotonic trade-off**: exactly the same intervention that raised GMDCSA24 precision (SS28/29's
+lying/sitting hard negatives) systematically suppresses confidence on genuine falls that end in prolonged
+stillness -- because "fallen and motionless" and "lying on a bed, motionless" are the *same signal* to a
+pose-only classifier, the SS31 finding cutting the other direction. Teaching the model "still + horizontal
+isn't a fall" to fix bed false positives also teaches it "still + horizontal isn't a fall" for the tail end
+of a real fall.
+
+**Found a better checkpoint, not just reverted blindly**: tested `ss28_seed42_without.pt` (seed 42, no
+OmniFall data, pos_weight=1.5 -- the original SS20-era config) against all 3 new real clips and GMDCSA24:
+
+| | GMDCSA24 recall | GMDCSA24 ADL-clean | clip14 | clip15 | clip16 |
+|---|---|---|---|---|---|
+| SS29 deployed (just reverted) | 100% | 62.5% (6 FP) | 0.84 hit | **0.462 MISS** | 0.963 hit |
+| this checkpoint (now deployed) | 100% | 62.5% (**same 6 FP, confirmed by set**) | 0.85 hit | **0.641 hit** | 0.93 hit |
+
+**Identical GMDCSA24 numbers, same exact false-positive clips -- but this one also catches clip15.** A
+genuine Pareto improvement over SS29, not a trade-off. Verified end-to-end against the actual production
+`models/` directory post-swap. **Deployed** -- `models/fall_classifier_v3.onnx` replaced. Not yet pushed to
+GitHub (explicit instruction this session: hold off on git until model quality work is settled).
+
+**Open question worth flagging**: this checkpoint's GMDCSA24 numbers (100%/62.5%) don't exactly match
+earlier reports of "the SS20 baseline" (93.3%/62.5%) despite nominally identical seed/data/hyperparameters
+-- likely CPU floating-point non-determinism across separate training runs even with `torch.manual_seed`
+set (thread-reduction order isn't seeded). Worth remembering: *exact* reproduction of a specific past
+run isn't guaranteed even by matching every documented parameter -- what's being trusted here is this
+specific saved checkpoint's measured behavior, not an assumption that it recreates an older result.
+
+## 33. Tried 4 YOLO/kinematic signals to fix the bed-lying false positives -- all fail, with data showing why
+
+**Following SS31's conclusion that pose-only input is structurally blind to "what's underneath the person,"
+tested whether the already-deployed `yolov10x` object detector (recognizes COCO `bed`/`couch`/`chair`) could
+supply that missing context cheaply, no retraining required.** Extracted real frames from the 6 known
+GMDCSA24-val ADL false positives and cross-checked against all 15 genuine val Fall clips using actual
+bounding boxes and keypoints, not spot checks.
+
+**Signal 1 -- "is a bed anywhere in frame":** confirmed working on the known false-positive frames (bed
+detected 0.77-0.9 confidence on 5/6 of them; the 6th, `s4_ADL_07`, is a low backlit daybed YOLO never
+catches even down to conf=0.03). But sampling all 15 genuine val Fall clips found **14 of 15 also have a bed
+visible in the room throughout the entire clip, including at t=0 before any fall** -- because GMDCSA24 fall
+clips are recorded in bedroom settings, the bed is just always in frame whether or not the person falls near
+it. This signal alone would suppress ~93% of genuine falls. Rejected outright.
+
+**Signal 2 -- person-bed bounding-box overlap** (what fraction of the person's box sits inside a bed box,
+the natural refinement): correctly separates 5/6 known false positives (overlap 0.23-0.83) from the 6 val
+Fall clips with *no* bed in the room (overlap 0.00-0.04). But **9 of the remaining 15 val Fall clips also
+show high person-bed overlap at the end (0.61-1.00)** -- these are falls that happen to land on, against, or
+next to a bed (realistic: e.g. losing balance while getting out of bed), which is geometrically
+indistinguishable from safely lying on it. The false-positive range (0.23-0.83) and this genuine-fall range
+(0.61-1.00) overlap directly in the 0.61-0.83 band -- no threshold cleanly separates them. A cutoff that
+catches the false positives would also suppress roughly 60% of genuine falls in this dataset.
+
+**Signal 3 -- recent keypoint-velocity spike** (hypothesis: a real fall's impact produces a velocity burst a
+calm bed-transition doesn't): reused the exact same per-frame velocity feature the classifier already
+consumes. False-positive clips ranged 0.06-2.20; the 9 bed-overlap-confounded genuine falls ranged
+0.16-7.54 -- heavy overlap again (e.g. `s4_ADL_10`'s false positive peaks at 2.20, above 5 of the 10 genuine
+near-bed falls). MediaPipe's own per-frame jitter and ordinary bed-settling motion (adjusting position,
+swinging legs up) produce velocity magnitudes comparable to some of GMDCSA24's less-forceful acted falls.
+
+**Consulted Gemini for a second opinion given this data** (`gemini_consult_bed_fix.py`); its most concrete
+suggestion was to check the *shape* of the sit/lie-down transition instead of a raw velocity spike -- a real
+fall is a sudden discontinuous drop (<0.5-1s), while lying on a bed is a smooth multi-second descent, so net
+displacement over a short window should be less jitter-sensitive than an instantaneous frame-to-frame diff.
+
+**Signal 4 -- max net hip-height drop over any 0.5s window** (raw, frame-height-relative, not the
+torso-normalized feature): tested exactly this. False positives: 0.02-0.53. The 9 confounded near-bed
+falls: 0.02-0.94. **Still the same story** -- e.g. two false positives sit at 0.50-0.53, above 4 of the 10
+genuine near-bed falls (0.02, 0.04, 0.04, 0.38). Some GMDCSA24 "falls" are gentle, controlled stunt falls
+(actors falling safely) with a small, gradual hip-height change; some real bed-transitions are quick.
+
+**Conclusion: 4 different geometric/kinematic signals, all tested against real ground-truth clips (not
+theorized), all show substantial distributional overlap between "false positive" and "genuine fall" -- no
+rule-based threshold on any of them cleanly separates the two classes.** This isn't a tuning problem, it
+reinforces SS31's finding at a different layer: the ambiguity isn't only that pose keypoints lack surface
+context, it's that "did they fall" and "are they now positioned near/on the bed" are genuinely
+uncorrelated in this data -- real falls land on beds too. Any signal built purely from *where* the person
+ends up, however precisely measured, inherits this confound. Gemini's two other suggestions were a
+geometric "bed-plane" heuristic (reasoned, not tested, to have the identical confound as Signal 2 -- it's
+still a position-relative-to-bed check, just measured differently) and human-in-the-loop triage: route
+ambiguous alerts to a lower-urgency notification with a snapshot for caregiver confirmation instead of a
+binary auto-alert/auto-suppress decision. The latter sidesteps the classification problem entirely rather
+than trying to solve it, and fits naturally with the already-deferred video-clip-buffer + LINE notification
+feature -- worth reconsidering once that feature is built.
+
+**No code or model changes from this investigation.** `models/fall_classifier_v3.onnx` unchanged (still
+SS32's `ss28_seed42_without.pt` export). Scripts kept in `training/`:
+`test_bed_signal_on_fps.py`, `test_bed_signal_falsepos_on_falls.py`, `test_bed_overlap_signal.py`,
+`test_velocity_spike_signal.py`, `test_hip_drop_signal.py`, `gemini_consult_bed_fix.py`.
+
+## 34. Full YOLO-pose-vs-MediaPipe pipeline swap tested end to end -- promising but not a clean win, not deployed
+
+**User asked to try replacing MediaPipe (the pose/keypoint extractor) with YOLO-pose** (`yolo26s-pose.pt` --
+native COCO-17 output, index-identical to this codebase's LEFT_SHOULDER=5/RIGHT_SHOULDER=6/LEFT_HIP=11/
+RIGHT_HIP=12 convention, so zero remapping needed unlike MediaPipe's 33-point output). Feasibility check
+first: sampled the last 2s of all 15 GMDCSA24-val Fall clips (person down after falling -- the exact case
+`v3_fall_detection.py`'s `MIN_PERSON_FRACTION` comment documents MediaPipe struggling with) plus 2 real
+`Test/` clips. **yolo26s-pose detected a person in 81.2% of these frames vs MediaPipe's 71.7%, while running
+~40% faster** (0.027s vs 0.044s/frame, 4-thread CPU). Visual check on 3 hard prone-body frames showed
+MediaPipe's skeleton visibly collapsed/tangled while yolo26s-pose's tracked the actual body shape correctly
+-- a real, visible quality difference, not just a metric.
+
+**Given this, went further and tested the full swap, not just the feasibility signal**: rebuilt the training
+pipeline's pose-extraction step with YOLO-pose (`yolopose_extractor.py`, drop-in for `.extract_keypoints()`)
+and re-extracted all 3 video-derived training datasets -- GMDCSA24 (160 clips; had to re-clone the dataset
+from GitHub since the original scratchpad copy had expired, recovering the 40 ADL clips no longer present
+locally), CAUCAFall (100), and OF-ItW/OOPS (matched down from a natural 5142 to the original 3997 segments,
+so the comparison isn't confounded by "more data" as well as a different pose backend). `poses_fallvision`
+(5845 pre-extracted external keypoints, not derived from either pose backend) stayed a shared constant.
+Trained 3 seeds (42/7/123) on the exact deployed config (no OmniFall data, pos_weight=1.5, hidden=128) --
+internal val F1 0.600/0.604/0.603, notably consistent. Exported all 3 to ONNX and built a parallel eval
+script (`eval_yolopose_on_gmdcsa24.py`) that reuses `_step_person` (the validated state machine -- pose-
+extraction-agnostic, takes raw keypoints) with YOLO-pose keypoints instead of MediaPipe's, so the model is
+tested on the same input distribution it was trained on.
+
+**GMDCSA24 val/train50 results, 3 seeds:**
+
+| seed | VAL recall | VAL ADL-clean | TRAIN50 recall | TRAIN50 ADL-clean |
+|---|---|---|---|---|
+| 42 | 100% (15/15) | 62.5% (10/16) | 92.0% (23/25) | 84.0% (21/25) |
+| 7 | 100% (15/15) | 56.2% (9/16) | 92.0% (23/25) | 84.0% (21/25) |
+| 123 | 100% (15/15) | 62.5% (10/16) | 88.0% (22/25) | 84.0% (21/25) |
+
+**Essentially matches the deployed MediaPipe model's numbers** (100%/62.5% val, 92%/84% train50 at its
+best seed) -- and the same stubborn bed-lying pattern persists almost identically (a consistent core of 4
+false-positive clips shared across all 3 seeds, with 2 more rotating in/out), reinforcing SS31/33's finding
+that this is a representational limit of pose-only input, not a MediaPipe-specific keypoint-quality problem.
+
+**But the real Test/ clips -- the ones that actually matter, 14/15/16, the genuine elderly-fall footage
+that led to SS32's fix -- told a different story:**
+
+| seed | clip14 (deployed: 0.85 hit) | clip15 (deployed: 0.64 hit) | clip16 (deployed: 0.93 hit) |
+|---|---|---|---|
+| 42 | MISSED | 0.68 hit | 0.71 hit |
+| 7 | MISSED | MISSED | 0.79 hit |
+| 123 | 0.50 hit (barely) | MISSED | 0.74 hit |
+
+**No single seed catches all 3, where the currently-deployed MediaPipe model catches all 3 solidly.**
+Checked whether this was a keypoint-extraction dropout on clip14 specifically (the same mechanism behind
+several bugs earlier in this file) -- it wasn't: YOLO-pose detects a person in 100% of clip14's frames.
+The miss is coming from the classifier's learned decision boundary, not missing pose signal. Most likely
+explanation: the deployed MediaPipe model benefited from many rounds of accumulated tuning across this
+entire file (SS18's smoothing fix, SS28/29's data experiments, threshold/pos_weight tuning) while these
+YOLO-pose checkpoints are first-pass, default-config results with zero iteration -- not evidence YOLO-pose
+keypoints are worse, but real evidence this specific swap isn't a validated, ready-to-deploy improvement.
+
+**Verdict: promising direction, not a clean win. Not deployed.** `models/fall_classifier_v3.onnx` and
+`app/detection/v3_fall_detection.py` unchanged -- still MediaPipe, still SS32's checkpoint. The higher raw
+detection rate and speed are real and reproduced independently of the training-variance question above, so
+this is worth revisiting with more tuning (more seeds, threshold sweep, possibly more real-world training
+data in the OF-ItW-style mold) rather than abandoned outright -- but swapping the production pose backend
+on the strength of matching aggregate GMDCSA24 numbers alone, while regressing on the 3 real clips that
+matter most, would have repeated exactly the mistake SS32 was about (trusting an aggregate metric that
+didn't cover the failure case that turned out to matter). New code kept in `training/`: `yolopose_extractor.py`,
+`extract_poses_yolopose.py`, `extract_caucafall_poses_yolopose.py`, `extract_ofitw_poses_yolopose.py`,
+`eval_yolopose_on_gmdcsa24.py`, `eval_yolopose_on_testclips.py`. `train.py` gained `CAUCAFALL_DIR_NAME`/
+`OFITW_DIR_NAME` env vars (mirroring the existing `GMDCSA24_DIR_NAME` pattern) so this comparison didn't
+need permanent hardcoded changes.
+
+**Follow-up tuning pass, same session, per explicit user request to keep pushing**: tried the two cheapest
+levers before concluding this needs real new training data. (1) **Ensembling** the 3 seeds' probabilities
+(`EnsembleOnnxFallClassifier`, averages `predict_window()` across checkpoints) -- made clip14/15 WORSE, not
+better (both missed, where seed42 alone had caught clip15) -- the failing seeds' low probabilities drag the
+average down rather than averaging out as noise, evidence this isn't per-seed random variance. (2) **2 more
+seeds trained** (1, 99) and **a threshold sweep down to 0.4** (`EVAL_THRESHOLD` env var added to both eval
+scripts) -- GMDCSA24 numbers barely moved (VAL still ~100%/56-62%, TRAIN50 still 92%/84%), and clip14/15
+still weren't recovered by the 3-seed ensemble even at this looser threshold.
+
+**5 seeds now tested total -- the pattern is decisive and consistent, not noise:**
+
+| seed | clip14 (deployed: 0.85 hit) | clip15 (deployed: 0.64 hit) | clip16 (deployed: 0.93 hit) |
+|---|---|---|---|
+| 42 | MISSED (peak 0.44) | 0.68 hit | 0.71 hit |
+| 7 | MISSED (peak 0.67, not sustained) | MISSED | 0.79 hit |
+| 123 | 0.50 hit (barely) | MISSED | 0.74 hit |
+| 1 | MISSED | 0.60 hit | 0.81 hit |
+| 99 | MISSED | MISSED | 0.96 hit |
+
+**clip16 is solid across all 5 seeds (0.71-0.96) -- a genuine, reproduced win.** clip15 is roughly a coin
+flip (2/5). **clip14 is caught in only 1/5, and barely** -- this is where the real problem concentrates, not
+spread evenly across all 3 clips. Diagnosed directly: frame-by-frame probability trace on clip14
+(`diagnose_yolopose_clip14.py`) shows probability never gets close to threshold with seed42 (peaks at 0.44
+around the actual fall moment, otherwise 0.03-0.2) despite the frame at that moment showing an unambiguous,
+textbook fall (elderly woman collapsed on the floor, cane fallen beside her, visible distress -- confirmed
+by direct visual inspection). Checked it isn't a keypoint-detection dropout (the documented root cause of
+several earlier bugs in this file): YOLO-pose detects a person in 100% of clip14's frames. The classifier
+itself, not the pose signal, is what's under-confident on this specific motion pattern.
+
+**Conclusion: this is very likely a training-data-coverage gap, not a fixable-by-more-seeds problem** --
+clip14's fall (using a cane, more torso rotation, brief self-occlusion during the collapse) may simply be
+under-represented in the ~4,257 video-derived training clips relative to more common falls. Ensembling and
+threshold tuning are architecture-agnostic band-aids that would apply equally to any weak spot; neither
+moved this one, which points at the data the classifier learned from rather than how its output is
+thresholded. A real fix would need either targeted new training examples of this specific fall pattern
+(mobility-aid falls, partial self-occlusion) or substantially more hyperparameter/architecture search --
+both bigger investments than this pass, and not attempted here. **Still not deployed** -- same verdict as
+before, now on stronger evidence. New file: `diagnose_yolopose_clip14.py`.
+
+**Consulted Gemini** with the full evidence above (`gemini_consult_yolopose_tuning.py`) for a second opinion
+before closing this out. Its response contained one factual error worth flagging rather than trusting blindly
+-- it reasoned as if the classifier were "trained on jittery MediaPipe data," which is wrong (this whole
+pass retrained from scratch on YOLO-pose-extracted features specifically to avoid that exact train/inference
+mismatch). Its more useful point: clip14's seed42 peak (0.44) is close enough to threshold that it's worth
+directly testing threshold=0.4 on seed42 ALONE (not just the 3-seed ensemble, which could be masking a
+single seed's near-miss by averaging in weaker seeds). **Tested it directly: still no alert** -- the 0.44
+peak doesn't sustain across enough consecutive inference windows to satisfy `_step_person`'s SMOOTH_NEED=2-
+of-3 gate even at this looser threshold, closing off the "just barely below threshold" explanation entirely.
+This confirms it's a genuine confidence/sustain problem, not a threshold calibration one.
+
+## 35. Flip + occlusion augmentation closed the gap -- YOLO-pose deployed to production, replacing MediaPipe
+
+**User asked to keep pushing for professional-grade quality.** Added two standard augmentations to
+`training/dataset.py`, applied only to the training split (never val): **horizontal flip**
+(`flip_horizontal_window` -- mirrors x and vx, swaps left/right keypoint pairs via `FLIP_PAIRS`; a fall
+isn't inherently left- or right-handed, so this doubles effective training data for free) and **synthetic
+per-joint occlusion** (`occlude_window` -- freezes 1-3 random joints' position for a short random span and
+zeros their velocity there, mirroring how `_step_person` holds last-known state on a real tracking dropout
+rather than zero-filling -- targeted directly at SS34's diagnosis that clip14's weakness involved brief
+self-occlusion during a twisting collapse). Gated behind a new `AUGMENT` env var in `train.py` (default off,
+so every prior run in this file stays exactly reproducible).
+
+**Retrained 3 seeds with `AUGMENT=1`, same YOLO-pose data as SS34. Dramatic, consistent improvement on the
+exact clip that augmentation targeted:**
+
+| seed | clip14 (no aug, SS34) | clip14 (with aug) | clip15 (with aug) | clip16 (with aug) |
+|---|---|---|---|---|
+| 42 | MISSED (peak 0.44) | **0.91 hit** | 0.72 hit | 0.74 hit |
+| 7 | MISSED | **0.68 hit** | MISSED | 0.86 hit |
+| 123 | 0.50 hit (barely) | **0.87 hit** | 0.51 hit | 0.80 hit |
+
+clip14 went from caught-in-1-of-5 (SS34, no augmentation) to caught-in-3-of-3 (with augmentation), and by
+a wide margin in 2 of the 3. This is strong evidence the SS34 diagnosis (training-data coverage gap around
+self-occlusion/rotation, not a fixable-by-more-seeds problem) was correct, and that synthetic occlusion
+augmentation is a real, working fix for it -- not just a lucky seed.
+
+**A mistake caught by re-verifying through the actual production code path, not just the parallel eval
+script -- worth documenting honestly.** Initially picked seed123-aug for deployment based on a compiled
+summary table, believing it had VAL 100%/62.5% -- but that number was a mix-up with seed7's result; **seed123's
+GMDCSA24 val eval was never actually run** before that decision. Deployed it anyway, then re-verified via
+`eval_v3_on_gmdcsa24_val.py` (the real, unmodified production eval script, run twice for determinism) and
+got 100%/**50.0%** (8/16) -- worse than deployed, and a real number this time, not a mix-up. Caught before
+this went uncorrected: switched to **seed42-aug** instead, which has actual, individually-verified numbers
+across every test surface:
+
+| | Deployed (MediaPipe, pre-this-session) | seed42-aug (YOLO-pose, now deployed) |
+|---|---|---|
+| VAL recall | 100% (15/15) | 100% (15/15) |
+| VAL ADL-clean | 62.5% (10/16) | 56.2% (9/16) |
+| TRAIN50 recall | 92.0% (23/25) | 92.0% (23/25) |
+| TRAIN50 ADL-clean | 84.0% (21/25) | **88.0% (22/25)** |
+| clip14 | 0.85 hit | 0.91 hit |
+| clip15 | 0.64 hit | 0.72 hit |
+| clip16 | 0.93 hit | 0.74 hit |
+| pose detection rate, hard frames | 71.7% | 81.2% |
+| CPU inference speed | baseline | ~40% faster |
+
+All numbers on this row for seed42-aug are from the actual unmodified production scripts
+(`eval_v3_on_gmdcsa24_val.py`, `eval_v3_on_gmdcsa24_train50.py`) and the real `V3PoseFallDetector` /
+`detect_v3_fall` / `detect_v3_fall_multi` production code paths (`verify_production_testclips.py`,
+`diff_extractors.py` confirming the parallel eval script and production path produce bit-identical
+keypoints) -- not the parallel `eval_yolopose_on_*.py` scripts alone, after the seed123 lesson. **Net honest
+assessment**: a wash on VAL (-1 clean clip), a real gain on TRAIN50 (+1 clean clip) and all 3 real critical
+clips (still all caught, thinner margin on clip16 specifically: 0.74 vs 0.93), plus a genuine, independently-
+reproduced improvement in raw pose-detection reliability and CPU speed.
+
+**Deployed for real this time**: `app/detection/v3_fall_detection.py`'s `V3PoseFallDetector` now loads
+YOLO-pose (`models/yolo26s-pose.pt`, copied in) instead of MediaPipe (`mediapipe`/`vision`/`BaseOptions`
+imports removed; `pose_landmarker_lite.task` left in `models/` unused rather than deleted). `extract_all_keypoints`
+rewritten around `ultralytics.YOLO.predict()`, sorted by box confidence, capped at `NUM_POSES` -- same
+external interface (`(kpts17, hip_center)` tuples) as before, so `camera_manager.py` and every training/eval
+script that imports `V3PoseFallDetector` needed no changes. `models/fall_classifier_v3.onnx` replaced with
+the `yolopose_aug_seed42.pt` export; old MediaPipe-trained checkpoint kept at
+`models/fall_classifier_v3_mediapipe_backup.onnx` for a fast revert if needed. Verified both the single-
+person (`detect_v3_fall`) and multi-person (`detect_v3_fall_multi`) production entry points directly, not
+just through eval scripts. **Not yet pushed to GitHub** (standing instruction this session).
+
+**Caveat worth stating plainly, matching this file's established honesty norm**: VAL ADL-clean is down one
+clip (9/16 vs 10/16) and clip16's margin is notably thinner (0.74 vs 0.93) than the outgoing MediaPipe
+model. This is a net-positive trade on the evidence gathered, not a strictly-dominant win -- if a future
+session finds clip16-like real footage starts getting missed, this is the first thing to revisit, and the
+MediaPipe backup checkpoint is one file copy away from reverting the classifier (though reverting the pose
+backend itself would also require reverting `v3_fall_detection.py`'s `V3PoseFallDetector`, not just the
+`.onnx` file, since it's no longer MediaPipe-shaped).
+
+## 36. Post-deploy Gemini-verified regression check, both single- and multi-person paths, all 17 `Test/` clips
+
+**User asked for one more round of scrutiny before trusting the new deployment**, matching this file's
+established post-deploy audit pattern (SS30). Noted first that the production pipeline is fully
+deterministic (confirmed by literally rerunning `eval_v3_on_gmdcsa24_val.py` twice and getting bit-identical
+output down to the decimal -- SS35's earlier discrepancy was a real mistake, not noise), so repeating
+identical clips through identical code adds nothing; the actually-new value was checking a code path that
+hadn't been exercised yet this session: `detect_v3_fall_multi` (what `camera_manager.py` really runs), not
+just the single-person path most of this session's testing used.
+
+Ran both entry points over all 17 `Test/` clips through the real deployed `V3PoseFallDetector`
+(`collect_production_alerts.py`), then Gemini-verified every single alert frame, freshly re-extracted from
+source (`verify_production_alerts.py`, same methodology as `verify_current_model_alerts.py`):
+
+| path | alerts | Gemini-confirmed real | precision |
+|---|---|---|---|
+| single-person | 66 | 54 | 81.8% |
+| multi-person | 64 | 51 | 79.7% |
+
+**Both paths agree closely and confirm the same story**: all 3 critical real clips (14/15/16) verified as
+genuine falls by Gemini on both paths -- not an artifact of one code path. clip13's new alert (present now,
+absent before SS35's augmentation) also verified genuine ("person down on all fours on wet pavement" /
+"person motion-blurred and prone on the floor") -- a real catch, not a new false positive. Every false
+positive found matches an already-documented pattern from earlier in this file, nothing new: upright
+walking/standing misclassified (the largest category), sitting (porch swing, intentionally sitting on a
+ramp), exercise (hanging from a bar), bending to pick something up, boat-related motion, and one video-
+transition artifact (a text-only frame with no person, the SS21/25 compilation-clip mechanism). **No new
+failure mode found. Clean bill of health for this deployment**, on the same standard this file has applied
+to every prior one (SS30). No code or model changes from this pass.

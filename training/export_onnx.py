@@ -18,8 +18,9 @@ ONNX_OUT = os.environ.get(
 
 
 def main():
+    hidden = int(os.environ.get("HIDDEN_SIZE", "128"))
     ckpt = torch.load(CKPT_PATH, map_location="cpu")
-    model = FallClassifier()
+    model = FallClassifier(hidden=hidden)
     model.load_state_dict(ckpt["model_state"])
     model.eval()
     print(f"Loaded checkpoint from epoch {ckpt['epoch']}, val_f1={ckpt['val_f1']:.3f}, val_acc={ckpt['val_acc']:.3f}")

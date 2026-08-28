@@ -36,6 +36,10 @@ LEFT_HIP, RIGHT_HIP = 11, 12
 WINDOW_SIZE = 30
 STRIDE = 10
 
+# Index to swap with for a left-right mirror flip (self-pairs for Nose, which has no
+# left/right counterpart). Used by flip_horizontal_window() below.
+FLIP_PAIRS = [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15]
+
 
 def to_coco17(raw_seq):
     """raw_seq: (T, 33, 3) MediaPipe or (T, 17, 3) already-COCO17 -> (T, 17, 3) COCO17."""
@@ -167,16 +171,60 @@ def make_windows(videos, window_size=WINDOW_SIZE, stride=STRIDE, onset_buffer=No
     return samples
 
 
+def flip_horizontal_window(feat, num_keypoints=NUM_KEYPOINTS, feat_dim=5):
+    """feat: (window_size, num_keypoints*feat_dim) flat, [x,y,conf,vx,vy] per joint,
+    torso-relative normalized (hip centered at x=0) -> left-right mirrored window.
+    A fall is not inherently left- or right-handed, so this doubles effective training
+    data for free -- standard augmentation for pose classification, not yet tried in
+    any of this session's training runs (SS17-34)."""
+    T = feat.shape[0]
+    seq = feat.reshape(T, num_keypoints, feat_dim).copy()
+    seq = seq[:, FLIP_PAIRS, :]
+    seq[:, :, 0] = -seq[:, :, 0]   # x
+    seq[:, :, 3] = -seq[:, :, 3]   # vx
+    return seq.reshape(T, -1)
+
+
+def occlude_window(feat, num_keypoints=NUM_KEYPOINTS, feat_dim=5, prob=0.3, max_joints=3, max_span=8):
+    """feat: (window_size, num_keypoints*feat_dim) flat array.
+    With probability `prob`, simulates a brief per-joint tracking dropout (a common real
+    failure mode -- e.g. an elbow/wrist occluded by the torso during a twisting fall,
+    the exact pattern SS34 diagnosed as clip14's likely weak spot) by freezing a few
+    joints' position for a short run of frames and zeroing their velocity there, mirroring
+    how _step_person holds the last known state rather than zero-filling on a dropout."""
+    if np.random.rand() > prob:
+        return feat
+    T = feat.shape[0]
+    seq = feat.reshape(T, num_keypoints, feat_dim).copy()
+    n_joints = np.random.randint(1, max_joints + 1)
+    joints = np.random.choice(num_keypoints, size=n_joints, replace=False)
+    span = min(np.random.randint(2, max_span + 1), T)
+    start = np.random.randint(0, max(1, T - span + 1))
+    freeze_xy = seq[max(0, start - 1), joints, :2].copy()
+    for j_idx, j in enumerate(joints):
+        seq[start:start + span, j, 0] = freeze_xy[j_idx, 0]
+        seq[start:start + span, j, 1] = freeze_xy[j_idx, 1]
+        seq[start:start + span, j, 3] = 0.0  # vx
+        seq[start:start + span, j, 4] = 0.0  # vy
+    return seq.reshape(T, -1)
+
+
 class FallWindowDataset(Dataset):
-    def __init__(self, samples):
+    def __init__(self, samples, augment=False):
         self.samples = samples
+        self.augment = augment
 
     def __len__(self):
         return len(self.samples)
 
     def __getitem__(self, idx):
         feat, label, _name = self.samples[idx]
-        return torch.from_numpy(feat.astype(np.float32)), torch.tensor(label, dtype=torch.float32)
+        feat = feat.astype(np.float32)
+        if self.augment:
+            if np.random.rand() < 0.5:
+                feat = flip_horizontal_window(feat)
+            feat = occlude_window(feat)
+        return torch.from_numpy(feat), torch.tensor(label, dtype=torch.float32)
 
 
 def split_videos(videos, val_ratio=0.2, seed=42):

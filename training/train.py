@@ -11,11 +11,19 @@ from model import FallClassifier
 # at "poses" (original motion-peak heuristic) or "poses_gmdcsa24_v2" (Gemini-verified
 # fall onset) without editing this file, so both runs use identical code.
 GMDCSA24_DIR_NAME = os.environ.get("GMDCSA24_DIR_NAME", "poses")
+# CAUCAFALL_DIR_NAME/OFITW_DIR_NAME: same pattern as GMDCSA24_DIR_NAME, added so the
+# YOLO-pose-vs-MediaPipe pose-extractor comparison can point all three video-derived
+# datasets at their yolopose_extractor.py-produced siblings (poses_yolopose,
+# poses_caucafall_yolopose, poses_ofitw_yolopose_matched) without editing this file.
+# poses_fallvision is untouched either way -- it's pre-extracted external keypoints,
+# not derived from either pose backend, so it stays a shared constant across both runs.
+CAUCAFALL_DIR_NAME = os.environ.get("CAUCAFALL_DIR_NAME", "poses_caucafall")
+OFITW_DIR_NAME = os.environ.get("OFITW_DIR_NAME", "poses_ofitw")
 POSE_DIRS = [
     os.path.join(os.path.dirname(__file__), "data", GMDCSA24_DIR_NAME),    # GMDCSA24
     os.path.join(os.path.dirname(__file__), "data", "poses_fallvision"),   # FallVision (COCO-17, heuristic labels)
-    os.path.join(os.path.dirname(__file__), "data", "poses_caucafall"),    # CAUCAFall (MediaPipe-33, REAL per-frame labels)
-    os.path.join(os.path.dirname(__file__), "data", "poses_ofitw"),        # OmniFall OF-ItW / OOPS (MediaPipe-33, REAL segment labels, real-world not staged)
+    os.path.join(os.path.dirname(__file__), "data", CAUCAFALL_DIR_NAME),   # CAUCAFall (MediaPipe-33, REAL per-frame labels)
+    os.path.join(os.path.dirname(__file__), "data", OFITW_DIR_NAME),       # OmniFall OF-ItW / OOPS (MediaPipe-33, REAL segment labels, real-world not staged)
 ]
 # USE_REALTEST_V1: 67 Gemini+Claude-verified segments from Test/4.mp4-11.mp4 (SS21/SS22)
 # -- 45 real falls, 22 explicit hard negatives (bed-lying, dancing, standing-near-objects
@@ -76,8 +84,12 @@ def main():
     val_samples = make_windows(val_videos)
     print(f"Train windows: {len(train_samples)}, Val windows: {len(val_samples)}")
 
-    train_ds = FallWindowDataset(train_samples)
-    val_ds = FallWindowDataset(val_samples)
+    # AUGMENT (SS35): horizontal-flip + synthetic per-joint occlusion, applied only to the
+    # training split (never val, which must stay a clean measure of real generalization).
+    # Off by default so every prior run in this file stays exactly reproducible.
+    AUGMENT = os.environ.get("AUGMENT", "0") == "1"
+    train_ds = FallWindowDataset(train_samples, augment=AUGMENT)
+    val_ds = FallWindowDataset(val_samples, augment=False)
     train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True)
     val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False)
 
@@ -94,7 +106,12 @@ def main():
     pos_weight = torch.tensor([(n_neg / max(n_pos, 1)) * POS_WEIGHT_MULT], device=DEVICE)
     print(f"Train windows: {n_pos} fall, {n_neg} no-fall -> pos_weight={pos_weight.item():.2f} (mult={POS_WEIGHT_MULT})")
 
-    model = FallClassifier().to(DEVICE)
+    # HIDDEN_SIZE (SS31): model.py's docstring notes a much bigger architecture (ST-GCN,
+    # ~17x more params) underperformed this one on the old data (0.582 vs 0.615 F1) --
+    # testing a modest capacity increase (not 17x) on top of SS29's winning data/pos_weight
+    # config specifically, since that comparison predates this session's data additions.
+    HIDDEN_SIZE = int(os.environ.get("HIDDEN_SIZE", "128"))
+    model = FallClassifier(hidden=HIDDEN_SIZE).to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), lr=LR, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", factor=0.5, patience=5)
     criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)

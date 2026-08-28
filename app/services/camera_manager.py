@@ -545,7 +545,7 @@ def process_v2_fall_detection(camera_id, config):
         # are left in place for anyone who does have GPU access -- see get_v4_fall_detector().
         # Multi-person: detect_v3_fall_multi tracks up to NUM_POSES people independently per
         # camera (each with their own rolling window/alert state), instead of only ever seeing
-        # whichever one person MediaPipe's single-pose mode happened to pick.
+        # whichever one person single-pose extraction happened to pick.
         from app.detection.v3_fall_detection import (
             V3MultiPersonFallState,
             detect_v3_fall_multi

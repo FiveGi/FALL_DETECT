@@ -108,6 +108,12 @@ videos/*
 # access who wants to use it, but they'll need to source this checkpoint separately.
 models/rfdetr_fall_detector.pth
 
+# YOLO checkpoints downloaded ad hoc while benchmarking pose-extractor/detector candidates
+# (SS34/35) -- not used by the app, and yolo26x.pt alone is 113MB, over GitHub's non-LFS limit.
+# The one YOLO-pose checkpoint the app actually loads lives at models/yolo26s-pose.pt instead.
+training/*.pt
+/yolov10x.pt
+
 # Raw/intermediate training data (downloaded datasets, extracted pose features, model download
 # caches) -- 2.4GB+, none of it needed to just run the app. The trained model files under models/
 # already have the learned weights baked in; this is only needed if someone wants to retrain from
