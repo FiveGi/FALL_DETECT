@@ -1897,3 +1897,64 @@ ramp), exercise (hanging from a bar), bending to pick something up, boat-related
 transition artifact (a text-only frame with no person, the SS21/25 compilation-clip mechanism). **No new
 failure mode found. Clean bill of health for this deployment**, on the same standard this file has applied
 to every prior one (SS30). No code or model changes from this pass.
+
+## 37. Alone-detection: real ground-truth accuracy testing (not self-agreement), threshold tuning, and a failed fine-tune attempt
+
+**User pushed back on the earlier YOLO26-size benchmark (SS-era, alone-detection person counter)**:
+that comparison only measured each candidate's agreement with the *currently deployed* `yolov10x`, which
+isn't a real accuracy measure since `yolov10x` itself could be wrong. Built a proper ground-truth test
+instead: sampled 77 frames across 11 `Test/` clips (`gt_sample_frames.py`), had Gemini independently count
+the actual number of people per frame (`gt_gemini_count.py`) as ground truth, then scored all 6 YOLO
+candidates (`yolov10x`, `yolo26 n/s/m/l/x`) against it on the binary condition production actually uses --
+"is exactly 1 person present" (`gt_compare_binary.py`).
+
+**Default threshold (0.6, matching production) topped out at 80.5%** (`yolo26l`/`yolo26x` tied). Examined
+the errors directly (`gt_show_errors.py`) -- 12 of 15 for `yolo26l` were "Gemini says 1 person, YOLO
+predicted 0" (a clean miss, not a miscount). Visually inspected two: both were distant, motion-blurred,
+mid-fall/prone people in outdoor TikTok-compilation clips -- a domain mismatch with what alone-detection
+actually needs (indoor home camera, people upright/sitting, close range), not a representative failure.
+
+**Threshold sweep found the real lever**: `yolo26l` at conf=0.35 reached **88.3% overall (68/77)** with
+**zero new false alone-alerts** vs the 0.6 baseline (`gt_threshold_sweep.py`/`gt_threshold_sweep2.py` --
+also checked imgsz=1280 and `yolo26x`, neither beat this). Restricting to the 21 frames that actually match
+the real domain (clips 14/15/16, real elderly-care footage) -- **100% accuracy (21/21)**, including the one
+crowd-scene clip, correctly classified as "not exactly 1" regardless of precise headcount.
+**Not yet deployed** -- alone-detection still runs `yolov10x` @ conf=0.6 in production; recommended but
+awaiting the user's go-ahead to swap `model_manager.py`/`V2PersonDetector`.
+
+**Then tried actually training a custom person-detector**, per explicit user request to push further than
+threshold tuning. No manually-labeled home-camera dataset exists, so used self-training / pseudo-labeling:
+sampled 349 new frames from all 17 `Test/` clips (`ft_sample_frames.py`, explicitly excluding any frame
+within 1s of the 77 held-out ground-truth frames to prevent leakage), generated pseudo-labels with `yolo26l`
+at conf>=0.5 (`ft_make_pseudolabels.py`), fine-tuned `yolo26m` for 15 epochs at a low LR
+(`ft_train.py`) starting from its own pretrained weights.
+
+**Hit a real Windows bug first**: the initial run (and a second attempt at `yolo26l`) appeared to hang for
+50+ minutes producing no output. Root cause: `model.train()` was called at module level without an
+`if __name__ == "__main__":` guard -- on Windows, PyTorch's multi-worker DataLoader uses the `spawn` start
+method, which re-imports the launching module in each worker and crashes/hangs without that guard. Fixed
+by wrapping in `main()` + the guard, and setting `workers=0` as a belt-and-suspenders fix. Once fixed,
+training was fast (15 epochs in ~4 minutes) -- this machine has a CUDA GPU (RTX 4070 Ti SUPER) available
+locally, confirmed by Ultralytics' own device log, though production inference stays CPU-only
+(`ort.InferenceSession(..., providers=["CPUExecutionProvider"])`) and is unaffected by this.
+
+**Evaluated the fine-tuned checkpoint against the same 77-frame Gemini ground truth
+(`ft_eval.py`) -- conclusively worse, not better:**
+
+| | pretrained `yolo26l` @ conf=0.35 | fine-tuned `yolo26m` (best conf tried) |
+|---|---|---|
+| Overall accuracy | 88.3% | 51.9% |
+| Realistic-domain accuracy | 100% | 76.2% |
+
+**Root cause, not just a bad run**: classic self-training pitfall. 349 frames is too small a fine-tuning
+set on its own, but the deeper problem is that pseudo-labels came from the *same* model class making the
+*same* mistakes being fine-tuned on -- frames where the teacher missed a person got an empty label, actively
+teaching the student to keep missing that same pattern rather than correcting it. This is expected: self-
+training without real human-verified labels or careful confidence-based filtering degrades rather than
+improves a model that's already reasonably good, unlike SS35's augmentation (which changed *how* real
+labeled data was presented to the classifier, not what the labels were). **Not deployed.** A genuine
+accuracy gain here would need real labeled data (human- or Gemini-per-frame-verified boxes, not model self-
+labels) at meaningfully larger scale than 349 frames -- a bigger undertaking, not attempted further this
+pass. New files: `gt_sample_frames.py`, `gt_gemini_count.py`, `gt_run_yolo_variants.py`, `gt_compare.py`,
+`gt_compare_binary.py`, `gt_threshold_sweep.py`, `gt_threshold_sweep2.py`, `gt_show_errors.py`,
+`gt_show_errors2.py`, `ft_sample_frames.py`, `ft_make_pseudolabels.py`, `ft_train.py`, `ft_eval.py`.
