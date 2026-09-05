@@ -21,6 +21,14 @@ services:
       - .env
     environment:
       - TZ=Asia/Bangkok
+      - TF_CPP_MIN_LOG_LEVEL=3
+      - CUDA_VISIBLE_DEVICES=""
+      - OMP_NUM_THREADS=1
+      - TF_ENABLE_ONEDNN_OPTS=0
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
     ports:
       - "8932:8932"
     depends_on:
