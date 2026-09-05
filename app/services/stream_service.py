@@ -158,6 +158,22 @@ class RTSPStream:
         """Get the current frame (thread-safe)"""
         with self.frame_lock:
             return self.current_frame.copy() if self.current_frame is not None else None
+
+    def wait_for_new_frame(self, since: float, timeout: float = 1.0) -> float:
+        """Block until the capture thread has produced a frame newer than `since`
+        (or `timeout` elapses). Returns the frame timestamp actually observed.
+
+        Serving frames on a fixed sleep, independent of the capture thread's own
+        timing, meant the two loops could drift out of phase -- occasionally
+        re-serving a stale frame (visible as a stutter/duplicate) or serving one
+        just after a new one landed (an uneven gap right after). Waiting for the
+        capture thread's own signal instead keeps served frames genuinely paced to
+        when new video data actually arrives.
+        """
+        deadline = time.time() + timeout
+        while self.last_frame_time <= since and time.time() < deadline and self.running:
+            time.sleep(0.01)
+        return self.last_frame_time
     
     def get_mjpeg_frame(self, draw_bbox: bool = True) -> Optional[bytes]:
         """Get current frame encoded as MJPEG with optional person bounding boxes"""
@@ -383,20 +399,22 @@ def generate_mjpeg_stream(camera_id: int, camera_url: str, camera_name: str, dra
         yield b''
         return
 
+    last_served_frame_time = 0.0
+
     try:
         while stream.is_active():
+            # Wait for the capture thread's next actual frame rather than sleeping a
+            # fixed interval -- keeps this loop's pacing locked to when new video data
+            # really arrives instead of an independent timer that can drift out of
+            # phase with it (which showed up as visible stutter/duplicate frames).
+            last_served_frame_time = stream.wait_for_new_frame(last_served_frame_time)
+
             frame_data = stream.get_mjpeg_frame(draw_bbox=draw_overlay)
 
             if frame_data:
                 # MJPEG format for streaming
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + frame_data + b'\r\n')
-                # Without this, nothing paces the loop once overlay=False removed the
-                # (accidentally load-bearing) delay of running AI inference per frame --
-                # it would just re-encode and re-send the same captured frame as fast as
-                # the client can absorb it, burning CPU/bandwidth on duplicates well past
-                # the capture thread's own ~15fps.
-                time.sleep(stream.frame_interval)
             else:
                 # If no frame available, send empty frame or wait
                 time.sleep(0.1)
