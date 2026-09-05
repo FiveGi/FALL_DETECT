@@ -8,7 +8,7 @@ import os
 import cv2
 from ultralytics import YOLO
 
-RAW_DIR = r"D:\project\PROJECT\Backend-Elderly-Surveillance-main\training\data\gmdcsa24_fall_raw"
+RAW_DIR = os.path.join(os.path.dirname(__file__), "data", "gmdcsa24_fall_raw")
 
 VAL_FALL = ["s1_Fall_02", "s1_Fall_06", "s1_Fall_16", "s2_Fall_02", "s2_Fall_04",
             "s2_Fall_09", "s2_Fall_14", "s2_Fall_20", "s3_Fall_02", "s3_Fall_09",

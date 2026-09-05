@@ -15,7 +15,7 @@ import os
 import cv2
 from ultralytics import YOLO
 
-RAW_DIR = r"D:\project\PROJECT\Backend-Elderly-Surveillance-main\training\data\gmdcsa24_adl_raw_val"
+RAW_DIR = os.path.join(os.path.dirname(__file__), "data", "gmdcsa24_adl_raw_val")
 
 ALERTS = {
     "s1_ADL_01": [2.0],

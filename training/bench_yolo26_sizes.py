@@ -14,7 +14,7 @@ torch.set_num_threads(4)
 
 from ultralytics import YOLO
 
-TEST_DIR = r"D:\project\PROJECT\Test"
+TEST_DIR = os.environ.get("TEST_DIR", r"D:\project\PROJECT\Test")
 MODELS = ["yolov10x.pt", "yolo26n.pt", "yolo26s.pt", "yolo26m.pt", "yolo26l.pt", "yolo26x.pt"]
 
 CLIPS = ["1.mp4", "5.mp4", "9.mp4", "13.mp4"]

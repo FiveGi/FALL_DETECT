@@ -16,7 +16,7 @@ import numpy as np
 import mediapipe as mp
 from mediapipe.tasks.python import vision, BaseOptions
 
-TEST_DIR = r"D:\project\PROJECT\Test"
+TEST_DIR = os.environ.get("TEST_DIR", r"D:\project\PROJECT\Test")
 OUT_DIR = os.path.join(os.path.dirname(__file__), "data", "poses_realtest_v1")
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "models_cache", "pose_landmarker_lite.task")
 RESULTS_PATH = os.path.join(os.path.dirname(__file__), "data", "gemini_screen_new_clips.json")

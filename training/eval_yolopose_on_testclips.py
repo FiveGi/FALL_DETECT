@@ -19,7 +19,7 @@ from eval_yolopose_on_gmdcsa24 import make_classifier, run_clip
 ONNX_PATH = os.environ["EVAL_ONNX_PATH"]
 YOLOPOSE_MODEL = os.environ.get("YOLOPOSE_MODEL", "yolo26s-pose.pt")
 EVAL_THRESHOLD = float(os.environ.get("EVAL_THRESHOLD", THRESHOLD))
-TEST_DIR = r"D:\project\PROJECT\Test"
+TEST_DIR = os.environ.get("TEST_DIR", r"D:\project\PROJECT\Test")
 
 CLIPS = [f"{i}.mp4" for i in range(1, 18)]
 

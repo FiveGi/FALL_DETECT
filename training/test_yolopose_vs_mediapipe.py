@@ -42,7 +42,7 @@ VAL_FALL = ["s1_Fall_02", "s1_Fall_06", "s1_Fall_16", "s2_Fall_02", "s2_Fall_04"
             "s3_Fall_12", "s3_Fall_13", "s3_Fall_16", "s4_Fall_06", "s4_Fall_17"]
 FALL_DIR = os.path.join(ROOT, "training", "data", "gmdcsa24_fall_raw")
 
-TEST_DIR = r"D:\project\PROJECT\Test"
+TEST_DIR = os.environ.get("TEST_DIR", r"D:\project\PROJECT\Test")
 CROSS_CHECK_CLIPS = ["11.mp4", "15.mp4"]
 
 

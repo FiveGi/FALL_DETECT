@@ -24,7 +24,8 @@ def draw_all(frame, kxy_list):
                 cv2.line(out, (int(xa), int(ya)), (int(xb), int(yb)), color, 2)
     return out
 
-cap = cv2.VideoCapture(r"D:\project\PROJECT\Test\15.mp4")
+TEST_DIR = os.environ.get("TEST_DIR", r"D:\project\PROJECT\Test")
+cap = cv2.VideoCapture(os.path.join(TEST_DIR, "15.mp4"))
 fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
 cap.set(cv2.CAP_PROP_POS_FRAMES, int(7.0 * fps))
 ok, frame = cap.read()

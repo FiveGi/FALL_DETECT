@@ -10,7 +10,8 @@ spec.loader.exec_module(v3)
 
 detector = v3.V3PoseFallDetector(model_dir=os.path.join("..", "models"))
 state = v3.V3MultiPersonFallState()
-cap = cv2.VideoCapture(r"D:\project\PROJECT\Test\15.mp4")
+TEST_DIR = os.environ.get("TEST_DIR", r"D:\project\PROJECT\Test")
+cap = cv2.VideoCapture(os.path.join(TEST_DIR, "15.mp4"))
 fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
 frame_idx = 0
 any_alerts = []

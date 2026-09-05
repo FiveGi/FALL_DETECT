@@ -12,7 +12,7 @@ spec = importlib.util.spec_from_file_location(
 v3 = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(v3)
 
-TEST_DIR = r"D:\project\PROJECT\Test"
+TEST_DIR = os.environ.get("TEST_DIR", r"D:\project\PROJECT\Test")
 OUT_DIR = os.path.join(os.path.dirname(__file__), "data")
 
 detector = v3.V3PoseFallDetector(model_dir=os.path.join("..", "models"))

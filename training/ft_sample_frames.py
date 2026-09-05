@@ -7,7 +7,7 @@ import re
 import glob
 import cv2
 
-TEST_DIR = r"D:\project\PROJECT\Test"
+TEST_DIR = os.environ.get("TEST_DIR", r"D:\project\PROJECT\Test")
 GT_FRAMES_DIR = os.path.join(os.path.dirname(__file__), "data", "gt_frames")
 OUT_DIR = os.path.join(os.path.dirname(__file__), "data", "ft_frames")
 os.makedirs(OUT_DIR, exist_ok=True)

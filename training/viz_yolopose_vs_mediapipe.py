@@ -38,10 +38,11 @@ def extract_frame(path, t):
     cap.release()
     return frame if ok else None
 
+TEST_DIR = os.environ.get("TEST_DIR", r"D:\project\PROJECT\Test")
 CASES = [
     (os.path.join(ROOT, "training", "data", "gmdcsa24_fall_raw", "s2_Fall_09.mp4"), 5.0, "s2_Fall_09_t5"),
     (os.path.join(ROOT, "training", "data", "gmdcsa24_fall_raw", "s3_Fall_16.mp4"), 5.5, "s3_Fall_16_t5.5"),
-    (r"D:\project\PROJECT\Test\15.mp4", 7.0, "clip15_t7"),
+    (os.path.join(TEST_DIR, "15.mp4"), 7.0, "clip15_t7"),
 ]
 
 out_dir = os.path.join(ROOT, "training", "data")

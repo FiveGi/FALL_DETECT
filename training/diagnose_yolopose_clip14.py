@@ -23,7 +23,8 @@ onnx_path = sys.argv[2] if len(sys.argv) > 2 else "data/yolopose_seed42.onnx"
 extractor = YoloPoseExtractor("yolo26s-pose.pt")
 classifier = OnnxFallClassifier(onnx_path)
 
-path = os.path.join(r"D:\project\PROJECT\Test", clip)
+TEST_DIR = os.environ.get("TEST_DIR", r"D:\project\PROJECT\Test")
+path = os.path.join(TEST_DIR, clip)
 state = V3FallDetectionState()
 cap = cv2.VideoCapture(path)
 fps = cap.get(cv2.CAP_PROP_FPS) or 25.0

@@ -9,7 +9,7 @@ v3 = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(v3)
 
 detector = v3.V3PoseFallDetector(model_dir=os.path.join("..", "models"))
-TEST_DIR = r"D:\project\PROJECT\Test"
+TEST_DIR = os.environ.get("TEST_DIR", r"D:\project\PROJECT\Test")
 
 for clip in [f"{i}.mp4" for i in range(1, 18)]:
     path = os.path.join(TEST_DIR, clip)

@@ -7,7 +7,7 @@ from google import genai
 
 client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
-RESULTS_ROOT = r"D:\project\PROJECT\Test_Results"
+RESULTS_ROOT = os.environ.get("TEST_RESULTS_ROOT", r"D:\project\PROJECT\Test_Results")
 CLIPS = ["4", "5", "6", "7", "8", "9", "10", "11"]
 
 prompt = (

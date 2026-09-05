@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 from google import genai
 
-TEST_DIR = r"D:\project\PROJECT\Test"
+TEST_DIR = os.environ.get("TEST_DIR", r"D:\project\PROJECT\Test")
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 FRAMES_DIR = os.path.join(DATA_DIR, "verify_frames_prod")
 os.makedirs(FRAMES_DIR, exist_ok=True)
