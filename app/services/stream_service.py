@@ -77,18 +77,20 @@ class RTSPStream:
         self.current_frame = None
         self.frame_lock = threading.Lock()
         self.last_frame_time = time.time()
-        self.fps = 15  # Target FPS for web streaming
+        # Detection accuracy takes priority over preview smoothness on this host (only
+        # ~4 vCPUs total -- see docker-compose.yml's backend cpu cap, deliberately kept
+        # below celery_worker's so the actual detector isn't starved). Preview only
+        # needs to stay legible enough to see that/how a fall happened, not be
+        # buttery-smooth, so both knobs below lean toward "less backend CPU" over
+        # "smoother video": lower capture fps, and pose inference (the expensive part)
+        # re-run less often, with the last result reused on frames in between.
+        self.fps = 8  # Target FPS for web streaming
         self.frame_interval = 1.0 / self.fps
 
-        # Pose inference is comparatively expensive and backend now runs CPU-throttled
-        # (see docker-compose.yml -- celery_worker, the actual detector, needs the CPU
-        # more than this live preview does). Re-running it on every single served frame
-        # made the preview visibly stutter. Cache the last result and only re-infer every
-        # Nth frame; skeleton lag by a couple frames is imperceptible for a live preview.
         self._pose_cache = []
         self._pose_cache_lock = threading.Lock()
         self._pose_frame_counter = 0
-        self._pose_infer_every = 3
+        self._pose_infer_every = 6
 
         # Stream statistics
         self.total_frames = 0
