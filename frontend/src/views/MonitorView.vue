@@ -114,13 +114,14 @@ const editingCamera = ref({
   detection_type: 'bed_exit',
   alert_start_time: '21:00',
   alert_end_time: '05:00',
-  notification_cooldown_min: 10,
+  notification_cooldown_sec: 600,
   ai_confidence_threshold: 0.5,
 })
 const showEditModal = ref(false)
 const message = ref('')
 const messageType = ref('')
-const availableVideos = ref([]) // เก็บรายชื่อไฟล์วิดีโอที่มีอยู่
+const testVideos = ref([]) // รายชื่อไฟล์วิดีโอทดสอบในโฟลเดอร์ Test/ ของ backend
+const editingCameraSourceType = ref('url')
 
 // Time filter states
 const timeFilterEnabled = ref(false)
@@ -1184,37 +1185,19 @@ function removeCamera(camera) {
 
 async function loadAvailableVideos() {
   try {
-    const response = await fetch('/videos/')
-    if (response.ok) {
-      const html = await response.text()
-      const videoPattern = /href="([^"]+\.(mp4|avi|mov|wmv|flv|webm|mkv|m4v))"/gi
-      const matches = [...html.matchAll(videoPattern)]
-      availableVideos.value = matches.map(match => match[1])
-    } else {
-      const commonVideos = []
-      for (let i = 1; i <= 20; i++) {
-        const filename = `${i.toString().padStart(2, '0')}.mp4`
-        try {
-          const testResponse = await fetch(`/videos/${filename}`, { method: 'HEAD' })
-          if (testResponse.ok) {
-            commonVideos.push(filename)
-          }
-        } catch (e) {
-        }
-      }
-      availableVideos.value = commonVideos
-    }
+    testVideos.value = await cameraService.getTestVideos()
   } catch (error) {
-    availableVideos.value = ['01.mp4', '02.mp4', '03.mp4', '19.mp4', '20.mp4']
+    console.error('Failed to load test videos:', error)
   }
 }
 
 function startEditCamera(camera) {
   loadAvailableVideos()
+  editingCameraSourceType.value = (camera.url || '').startsWith('/app/Test/') ? 'test' : 'url'
 
   editingCamera.value = {
     ...camera,
-    notification_cooldown_min: camera.notification_cooldown ? Math.round(camera.notification_cooldown / 60) : 10,
+    notification_cooldown_sec: camera.notification_cooldown ?? 600,
     detection_type: camera.detection_type || 'bed_exit',
     alert_start_time: camera.alert_start_time || '21:00',
     alert_end_time: camera.alert_end_time || '05:00',
@@ -1242,7 +1225,7 @@ async function saveEditCamera() {
 
     const updateData = {
       ...editingCamera.value,
-      notification_cooldown: editingCamera.value.notification_cooldown_min * 60,
+      notification_cooldown: editingCamera.value.notification_cooldown_sec,
       detection_type: editingCamera.value.detection_type,
       alert_start_time: editingCamera.value.alert_start_time,
       alert_end_time: editingCamera.value.alert_end_time,
@@ -1750,6 +1733,20 @@ function getUserCameraCount(userId) {
             </div>
 
             <div class="form-group">
+              <label class="form-label">แหล่งวิดีโอ</label>
+              <div class="source-type-toggle">
+                <label>
+                  <input type="radio" value="url" v-model="editingCameraSourceType" />
+                  กล้องจริง (RTSP/URL)
+                </label>
+                <label>
+                  <input type="radio" value="test" v-model="editingCameraSourceType" />
+                  ไฟล์วิดีโอทดสอบ
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group" v-if="editingCameraSourceType === 'url'">
               <label for="edit-camera-url" class="form-label"
                 >URL การเชื่อมต่อ <span class="required">*</span></label
               >
@@ -1758,27 +1755,21 @@ function getUserCameraCount(userId) {
                 id="edit-camera-url"
                 v-model="editingCamera.url"
                 class="form-input"
-                placeholder="เช่น http://localhost:3001/videos/19.mp4"
+                placeholder="เช่น rtsp://username:password@ip:port/path"
               />
+            </div>
 
-              <!-- ตัวอย่าง URLs ที่มีอยู่ -->
-              <div class="video-examples" v-if="availableVideos.length > 0">
-                <label class="form-label-small">ไฟล์วิดีโอที่มีอยู่:</label>
-                <div class="video-list">
-                  <button
-                    v-for="video in availableVideos.slice(0, 5)"
-                    :key="video"
-                    type="button"
-                    class="video-example-btn"
-                    @click="editingCamera.url = `http://localhost:3001/videos/${video}`"
-                  >
-                    {{ video }}
-                  </button>
-                  <small v-if="availableVideos.length > 5" class="more-videos">
-                    และอีก {{ availableVideos.length - 5 }} ไฟล์...
-                  </small>
-                </div>
-              </div>
+            <div class="form-group" v-else>
+              <label for="edit-camera-test-video" class="form-label"
+                >เลือกไฟล์วิดีโอทดสอบ <span class="required">*</span></label
+              >
+              <select id="edit-camera-test-video" v-model="editingCamera.url" class="form-input">
+                <option value="" disabled>เลือกไฟล์วิดีโอ</option>
+                <option v-for="v in testVideos" :key="v.filename" :value="v.url">
+                  {{ v.filename }}
+                </option>
+              </select>
+              <small class="form-help">ไฟล์จากโฟลเดอร์ Test/ ของ backend</small>
             </div>
 
             <div class="form-group">
@@ -1818,9 +1809,9 @@ function getUserCameraCount(userId) {
             </div>
 
             <div class="form-group">
-              <label for="edit-notification-cooldown" class="form-label">ระยะห่างการแจ้งเตือน (นาที)</label>
-              <input type="number" id="edit-notification-cooldown" v-model.number="editingCamera.notification_cooldown_min" class="form-input" min="0" />
-              <small class="form-help">เวลาที่ต้องรอก่อนแจ้งเตือนครั้งต่อไป (ป้องกันการแจ้งเตือนซ้ำเร็วเกินไป)</small>
+              <label for="edit-notification-cooldown" class="form-label">ระยะห่างการแจ้งเตือน (วินาที)</label>
+              <input type="number" id="edit-notification-cooldown" v-model.number="editingCamera.notification_cooldown_sec" class="form-input" min="1" step="1" />
+              <small class="form-help">เวลาที่ต้องรอก่อนแจ้งเตือนครั้งต่อไป (ป้องกันการแจ้งเตือนซ้ำเร็วเกินไป) เช่น 30 วินาที, 60 วินาที (1 นาที), 600 วินาที (10 นาที)</small>
             </div>
 
             <div class="form-group">
@@ -2924,6 +2915,20 @@ function getUserCameraCount(userId) {
   color: #6b7280;
   font-size: 0.75rem;
   margin-top: 0.25rem;
+}
+
+.source-type-toggle {
+  display: flex;
+  gap: 1.5rem;
+  padding: 0.5rem 0;
+}
+
+.source-type-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: normal;
+  cursor: pointer;
 }
 
 .required {
