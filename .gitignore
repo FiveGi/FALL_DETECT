@@ -118,3 +118,7 @@ training/*.pt
 # scratch, which is out of scope for "clone and run."
 training/data/
 training/models_cache/
+
+# Runtime-generated alert snapshot images (app/services/alert_service.py saves a
+# frame here on every fall_red/alone_yellow alert) -- not source, regenerated on use.
+/tmp/

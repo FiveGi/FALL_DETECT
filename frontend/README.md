@@ -17,41 +17,37 @@ npm run dev
 npm run build
 ```
 
-### การติดตั้งด้วย Docker
+This frontend isn't containerized in `docker-compose.yml` -- it runs directly with `npm run dev`
+per the root [README.md](../README.md), which also covers the whole system (backend + frontend)
+together. The `docker build`/`docker run` commands below work if you want a standalone container
+for just this frontend, but aren't required or tested as part of the normal setup.
 
 ```bash
 # build Docker image
 docker build -t frontend .
 
 # รัน container (แบบเชื่อมต่อกับ backend network)
-docker run -d -p 3000:3000 --network backend-elderly-surveillance_default --name frontend-app frontend
+docker run -d -p 3000:3000 --network backend-elderly-surveillance-main_default --name frontend-app frontend
 
 # หรือรันแบบ standalone
 docker run -d -p 3000:3000 --name frontend-app frontend
 ```
 
-## การตั้งค่า Firebase
+## การตั้งค่า Firebase (ไม่บังคับ)
+
+Firebase มีไว้เฉพาะปุ่ม "เข้าสู่ระบบด้วย Google" และ analytics เท่านั้น -- ไม่มีค่านี้ก็เข้าใช้งานได้ปกติด้วย
+username/password (ดูด้านล่าง)
 
 1. สร้างโปรเจค Firebase ที่ [Firebase Console](https://console.firebase.google.com/)
 2. เปิดใช้งาน Authentication และเพิ่ม Google เป็น Sign-in method
-3. คัดลอกค่า configuration จาก Project settings และนำมาใส่ในไฟล์ `.env`
+3. คัดลอกค่า configuration จาก Project settings และนำมาใส่ในไฟล์ `.env` (ดูตัวอย่างใน `.env.example`)
 
 ## เทคโนโลยีที่ใช้
 - Vue 3
 - Vite
-- Firebase Authentication
+- Firebase Authentication (ไม่บังคับ)
 - Pinia
 - Vue Router
-
-VITE_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-VITE_FIREBASE_APP_ID=your_app_id
-```
-
-### 3. รันโปรเจ็ค:
-```bash
-npm run dev
-```
 
 ## การแก้ไขปัญหา
 
@@ -79,7 +75,7 @@ npm install
 - ✅ รองรับ AI Detection หลายรูปแบบ:
   - `bed_exit`: ตรวจจับการลุกจากเตียง
   - `fall`: ตรวจจับการล้ม (Enhanced Detection)
-  - `fall_v2`: ตรวจจับการล้ม (เวอร์ชั่น 2)
+  - `fall_v2`: ตรวจจับการล้ม (เวอร์ชั่น 3 - YOLO-pose, โมเดลล่าสุด แนะนำให้ใช้)
 
 ## การใช้งาน
 
@@ -136,7 +132,7 @@ npm run format
 docker build -t frontend .
 
 # รัน container
-docker run -d -p 3000:3000 --network backend-elderly-surveillance_default --name frontend-app frontend
+docker run -d -p 3000:3000 --network backend-elderly-surveillance-main_default --name frontend-app frontend
 
 # ดู logs
 docker logs frontend-app
@@ -154,12 +150,13 @@ docker exec -it frontend-app sh
 ## สถาปัตยกรรม
 
 Frontend: Vue 3 + Pinia + Vue Router
-Backend: (จะเพิ่มในอนาคต)
+Backend: Flask + Celery + PostgreSQL + Redis -- อยู่ใน repo เดียวกันนี้เอง (`../` จาก
+โฟลเดอร์นี้) วิธีรันทั้งระบบดู [README.md ที่ root](../README.md)
 
 ## การเชื่อมต่อกับ Backend
 
-ระบบถูกออกแบบให้เชื่อมต่อกับ Backend API ที่กำหนด endpoint ตามที่ระบุใน `src/config/api.js`
-ในขณะนี้ระบบใช้ localStorage เป็น fallback สำหรับการทดสอบเมื่อไม่มี Backend
+เชื่อมต่อกับ Backend API ที่กำหนด endpoint ตามที่ระบุใน `src/config/api.js` (ค่า base URL มาจาก
+`VITE_API_BASE_URL` ใน `.env` ซึ่ง `.env.example` ตั้งไว้ให้ตรงกับพอร์ต backend อยู่แล้ว)
 
 ## ลิขสิทธิ์
 

@@ -25,11 +25,13 @@ git lfs pull
 1. Copy `.env.example` to `.env` and configure your values
 2. Build and run with Docker Compose:
    ```sh
-   docker-compose up -d --build
+   docker compose up -d --build
    ```
+   (older Docker installs may only have the hyphenated `docker-compose` command instead -- same
+   thing, just swap the command name in every example below)
 3. For higher load, scale workers:
    ```sh
-   docker-compose up --scale celery_worker=5 -d
+   docker compose up --scale celery_worker=5 -d
    ```
 
 ### Frontend
@@ -51,3 +53,12 @@ use Firebase; the dashboard runs without them.
 - Flower (Celery monitoring) at `http://localhost:5555/`
 - Default admin credentials: `admin` / `admin123`
 - See [API Documentation](API_DOCUMENTATION.md) for complete endpoint reference
+
+### Trying it without a real camera
+
+`Test/` has 17 real-world video clips (see [Test/README.md](Test/README.md)) that the backend can
+run detection on exactly like a live camera. In the dashboard's "เพิ่มกล้องใหม่"/"แก้ไขกล้อง" form,
+choose "ไฟล์วิดีโอทดสอบ" as the video source and pick one from the dropdown -- no need to type a
+path or own a camera to see fall detection working end to end. `Test/13.mp4`-`Test/17.mp4` are real
+elderly-fall footage; `1.mp4`-`12.mp4` are multi-scene compilation clips (harder, mixed camera
+angles -- expect the model to catch some falls in them but not every single one).
