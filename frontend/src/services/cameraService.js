@@ -163,6 +163,20 @@ export default {
   },
 
   /**
+   * ดึงรายชื่อไฟล์วิดีโอทดสอบที่วางไว้ในโฟลเดอร์ videos/ ของ backend
+   * ใช้แทนการให้ผู้ใช้พิมพ์ path ไฟล์เอง (ป้องกันการใส่ path ของเครื่อง Windows ผิด)
+   */
+  getTestVideos: async () => {
+    try {
+      const response = await api.get(API_ENDPOINTS.CAMERAS.TEST_VIDEOS)
+      return response
+    } catch (error) {
+      console.error('Error fetching test videos:', error)
+      throw new Error('ไม่สามารถดึงรายชื่อไฟล์วิดีโอทดสอบได้')
+    }
+  },
+
+  /**
    * เริ่มการตรวจจับกล้อง
    */
   startCamera: async (cameraId) => {

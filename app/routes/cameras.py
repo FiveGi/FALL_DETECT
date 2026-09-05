@@ -1,4 +1,5 @@
 import cv2
+import os
 from flask import Blueprint, request, jsonify, current_app
 from app import db
 from app.models.camera import Camera
@@ -10,6 +11,48 @@ from app.config import Config
 import re
 
 bp = Blueprint('cameras', __name__, url_prefix='/api/cameras')
+
+LOCAL_VIDEOS_DIR = '/app/videos'
+VALID_VIDEO_EXTENSIONS = ('.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm')
+
+
+def normalize_video_url(url):
+    """
+    Recover a usable container path from common copy-paste mistakes, e.g.
+    pasting Windows Explorer's "Copy as path" output (which wraps the path
+    in quotes and uses a Windows drive letter the container can't see), or
+    the frontend's http://localhost:3000/videos/<file> convention. If the
+    filename matches something actually present in /app/videos, rewrite the
+    URL to the correct in-container path. RTSP/RTMP URLs and anything that
+    doesn't look like a local file path are left untouched.
+    """
+    if not url:
+        return url
+
+    cleaned = url.strip().strip('"').strip("'")
+
+    if cleaned.startswith(('rtsp://', 'rtmp://')):
+        return cleaned
+
+    if cleaned.startswith('http://localhost:3000/videos/'):
+        filename = cleaned.split('/')[-1]
+    elif '\\' in cleaned or re.match(r'^[A-Za-z]:', cleaned):
+        # Windows-style absolute path (e.g. "D:\project\...\1.mp4")
+        filename = cleaned.replace('\\', '/').split('/')[-1]
+    elif cleaned.startswith(LOCAL_VIDEOS_DIR + '/'):
+        return cleaned
+    elif '/' in cleaned and not cleaned.startswith('http'):
+        filename = cleaned.split('/')[-1]
+    else:
+        return cleaned
+
+    if filename.lower().endswith(VALID_VIDEO_EXTENSIONS):
+        candidate = os.path.join(LOCAL_VIDEOS_DIR, filename)
+        if os.path.exists(candidate):
+            return candidate
+
+    return cleaned
+
 
 def check_url(url):
     try:
@@ -81,6 +124,24 @@ def is_admin_or_owner(camera_id, user_id):
     camera = Camera.query.get(camera_id)
     return camera and camera.user_id == user_id
 
+@bp.route('/test-videos', methods=['GET'])
+@jwt_required()
+def list_test_videos():
+    """List local video files under /app/videos so the UI can offer them
+    as a camera source instead of requiring users to type a file path."""
+    try:
+        files = sorted(
+            f for f in os.listdir(LOCAL_VIDEOS_DIR)
+            if f.lower().endswith(VALID_VIDEO_EXTENSIONS)
+        )
+    except FileNotFoundError:
+        files = []
+
+    return jsonify([
+        {'filename': f, 'url': os.path.join(LOCAL_VIDEOS_DIR, f)}
+        for f in files
+    ])
+
 @bp.route('', methods=['GET'])
 @jwt_required()
 def list_cameras():
@@ -146,7 +207,7 @@ def add_camera():
     data = request.get_json()
     name = data.get('name')
     room_name = data.get('room_name')
-    url = data.get('url')
+    url = normalize_video_url(data.get('url'))
     detection_type = data.get('detection_type')
     owner_id = data.get('owner_id', current_user.id)  # Admin can assign to other users
     alert_start_time = data.get('alert_start_time', Config.ALERT_START_TIME)
@@ -205,11 +266,14 @@ def update_camera(id):
     
     for field in ['name', 'room_name', 'url', 'detection_type', 'alert_start_time', 'alert_end_time', 'notification_cooldown', 'ai_confidence_threshold', 'enable_alone_detection']:
         if field in data:
+            value = data[field]
+            if field == 'url':
+                value = normalize_video_url(value)
             if field in ['alert_start_time', 'alert_end_time']:
                 time_pattern = re.compile(r'^([01]\d|2[0-3]):([0-5]\d)$')
-                if not time_pattern.match(data[field]):
+                if not time_pattern.match(value):
                     return jsonify({'error': f'{field} must be in HH:MM 24-hour format (e.g., 08:30, 20:15).'}), 400
-            setattr(camera, field, data[field])
+            setattr(camera, field, value)
     
     # Allow admin to change camera owner
     if 'owner_id' in data:

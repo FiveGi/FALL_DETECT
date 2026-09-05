@@ -46,6 +46,7 @@ export const API_ENDPOINTS = {
     STATUS: (id) => `/cameras/${id}/status`,
     START: (id) => `/cameras/${id}/start`,
     STOP: (id) => `/cameras/${id}/stop`,
+    TEST_VIDEOS: '/cameras/test-videos',
   },
 
   // video streaming

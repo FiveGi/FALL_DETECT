@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useCameraStore } from '@/stores/camera'
 import { useAuthStore } from '@/stores/auth'
 import adminService from '@/services/adminService'
+import cameraService from '@/services/cameraService'
 import IconCamera from '@/components/icons/IconCamera.vue'
 import SearchFilter from '@/components/common/SearchFilter.vue'
 
@@ -34,6 +35,9 @@ const newCamera = ref({
 })
 
 const users = ref([]) // รายการผู้ใช้สำหรับเลือกเจ้าของกล้อง
+const testVideos = ref([]) // รายชื่อไฟล์วิดีโอทดสอบในโฟลเดอร์ videos/ ของ backend
+const newCameraSourceType = ref('url') // 'url' = พิมพ์เอง, 'test' = เลือกจากไฟล์ทดสอบ
+const editingCameraSourceType = ref('url')
 const message = ref('')
 const messageType = ref('')
 const searchQuery = ref('')
@@ -108,6 +112,13 @@ onMounted(async () => {
     } catch (error) {
       console.error('Failed to load users:', error)
     }
+  }
+
+  // โหลดรายชื่อไฟล์วิดีโอทดสอบ (สำหรับ dropdown เลือกแหล่งวิดีโอ)
+  try {
+    testVideos.value = await cameraService.getTestVideos()
+  } catch (error) {
+    console.error('Failed to load test videos:', error)
   }
 })
 
@@ -193,6 +204,7 @@ function startEditCamera(camera) {
     alert_end_time: camera.alert_end_time || '05:00',
     ai_confidence_threshold: camera.ai_confidence_threshold ?? 0.5,
   }
+  editingCameraSourceType.value = (camera.url || '').startsWith('/app/videos/') ? 'test' : 'url'
   isEditing.value = true
   showEditModal.value = true
 }
@@ -375,6 +387,20 @@ function clearSearch() {
               </div>
 
               <div class="form-group">
+                <label class="form-label">แหล่งวิดีโอ</label>
+                <div class="source-type-toggle">
+                  <label>
+                    <input type="radio" value="url" v-model="newCameraSourceType" />
+                    กล้องจริง (RTSP/URL)
+                  </label>
+                  <label>
+                    <input type="radio" value="test" v-model="newCameraSourceType" />
+                    ไฟล์วิดีโอทดสอบ
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-group" v-if="newCameraSourceType === 'url'">
                 <label for="camera-url" class="form-label"
                   >URL การเชื่อมต่อ <span class="required">*</span></label
                 >
@@ -386,6 +412,22 @@ function clearSearch() {
                   placeholder="เช่น rtsp://username:password@ip:port/path"
                 />
                 <small class="form-help">รองรับ RTSP, RTMP, HLS หรือ URL ของไฟล์วิดีโอ</small>
+              </div>
+
+              <div class="form-group" v-else>
+                <label for="camera-test-video" class="form-label"
+                  >เลือกไฟล์วิดีโอทดสอบ <span class="required">*</span></label
+                >
+                <select id="camera-test-video" v-model="newCamera.url" class="form-input">
+                  <option value="" disabled>เลือกไฟล์วิดีโอ</option>
+                  <option v-for="v in testVideos" :key="v.filename" :value="v.url">
+                    {{ v.filename }}
+                  </option>
+                </select>
+                <small class="form-help" v-if="testVideos.length === 0">
+                  ไม่พบไฟล์วิดีโอในโฟลเดอร์ videos/ — วางไฟล์ .mp4 ไว้ที่โฟลเดอร์ videos/ ของโปรเจกต์ก่อน แล้วรีเฟรชหน้านี้
+                </small>
+                <small class="form-help" v-else>ไฟล์จากโฟลเดอร์ videos/ ของ backend</small>
               </div>
 
 
@@ -509,6 +551,20 @@ function clearSearch() {
             </div>
 
             <div class="form-group">
+              <label class="form-label">แหล่งวิดีโอ</label>
+              <div class="source-type-toggle">
+                <label>
+                  <input type="radio" value="url" v-model="editingCameraSourceType" />
+                  กล้องจริง (RTSP/URL)
+                </label>
+                <label>
+                  <input type="radio" value="test" v-model="editingCameraSourceType" />
+                  ไฟล์วิดีโอทดสอบ
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group" v-if="editingCameraSourceType === 'url'">
               <label for="edit-camera-url" class="form-label"
                 >URL การเชื่อมต่อ <span class="required">*</span></label
               >
@@ -520,6 +576,19 @@ function clearSearch() {
                 placeholder="เช่น rtsp://username:password@ip:port/path"
               />
               <small class="form-help">รองรับ RTSP, RTMP, HLS หรือ URL ของไฟล์วิดีโอ</small>
+            </div>
+
+            <div class="form-group" v-else>
+              <label for="edit-camera-test-video" class="form-label"
+                >เลือกไฟล์วิดีโอทดสอบ <span class="required">*</span></label
+              >
+              <select id="edit-camera-test-video" v-model="editingCamera.url" class="form-input">
+                <option value="" disabled>เลือกไฟล์วิดีโอ</option>
+                <option v-for="v in testVideos" :key="v.filename" :value="v.url">
+                  {{ v.filename }}
+                </option>
+              </select>
+              <small class="form-help">ไฟล์จากโฟลเดอร์ videos/ ของ backend</small>
             </div>
 
             <div class="form-group">
@@ -728,6 +797,20 @@ function clearSearch() {
   color: #6b7280;
   font-size: 0.875rem;
   margin-top: 0.25rem;
+}
+
+.source-type-toggle {
+  display: flex;
+  gap: 1.5rem;
+  padding: 0.5rem 0;
+}
+
+.source-type-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: normal;
+  cursor: pointer;
 }
 
 .camera-card {
