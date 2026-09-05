@@ -35,7 +35,7 @@ const newCamera = ref({
 })
 
 const users = ref([]) // รายการผู้ใช้สำหรับเลือกเจ้าของกล้อง
-const testVideos = ref([]) // รายชื่อไฟล์วิดีโอทดสอบในโฟลเดอร์ videos/ ของ backend
+const testVideos = ref([]) // รายชื่อไฟล์วิดีโอทดสอบในโฟลเดอร์ Test/ ของ backend
 const newCameraSourceType = ref('url') // 'url' = พิมพ์เอง, 'test' = เลือกจากไฟล์ทดสอบ
 const editingCameraSourceType = ref('url')
 const message = ref('')
@@ -204,7 +204,7 @@ function startEditCamera(camera) {
     alert_end_time: camera.alert_end_time || '05:00',
     ai_confidence_threshold: camera.ai_confidence_threshold ?? 0.5,
   }
-  editingCameraSourceType.value = (camera.url || '').startsWith('/app/videos/') ? 'test' : 'url'
+  editingCameraSourceType.value = (camera.url || '').startsWith('/app/Test/') ? 'test' : 'url'
   isEditing.value = true
   showEditModal.value = true
 }
@@ -306,7 +306,7 @@ function getDetectionTypeText(detectionType) {
     case 'fall':
       return 'ตรวจจับการล้ม'
     case 'fall_v2':
-      return 'ตรวจจับการล้ม (เวอร์ชั่น 2)'
+      return 'ตรวจจับการล้ม (เวอร์ชั่น 3 - YOLO-pose)'
     case 'alone_v2':
       return 'ตรวจจับผู้สูงอายุอยู่คนเดียว'
     default:
@@ -436,9 +436,9 @@ function clearSearch() {
                 <select id="detection-type" v-model="newCamera.detection_type" class="form-input">
                   <option value="bed_exit">ตรวจจับการลุกจากเตียง</option>
                   <option value="fall">ตรวจจับการล้ม</option>
-                  <option value="fall_v2">ตรวจจับการล้ม (เวอร์ชั่น 2)</option>
+                  <option value="fall_v2">ตรวจจับการล้ม (เวอร์ชั่น 3 - YOLO-pose)</option>
                 </select>
-                <small class="form-help">เลือกว่าต้องการให้ AI ตรวจจับพฤติกรรมแบบไหน - "fall" ใช้ Enhanced Detection, "fall_v2" ใช้อัลกอริธึมใหม่</small>
+                <small class="form-help">เลือกว่าต้องการให้ AI ตรวจจับพฤติกรรมแบบไหน - "ตรวจจับการล้ม" คือโมเดลเดิม (MediaPipe), "เวอร์ชั่น 3" คือโมเดลล่าสุด (YOLO-pose) แม่นยำกว่า แนะนำให้ใช้</small>
               </div>
 
               <div class="form-group">
@@ -614,9 +614,9 @@ function clearSearch() {
               <select id="edit-detection-type" v-model="editingCamera.detection_type" class="form-input">
                 <option value="bed_exit">ตรวจจับการลุกจากเตียง</option>
                 <option value="fall">ตรวจจับการล้ม</option>
-                <option value="fall_v2">ตรวจจับการล้ม (เวอร์ชั่น 2)</option>
+                <option value="fall_v2">ตรวจจับการล้ม (เวอร์ชั่น 3 - YOLO-pose)</option>
               </select>
-              <small class="form-help">เลือกว่าต้องการให้ AI ตรวจจับพฤติกรรมแบบไหน - "fall" ใช้ Enhanced Detection, "fall_v2" ใช้อัลกอริธึมใหม่</small>
+              <small class="form-help">เลือกว่าต้องการให้ AI ตรวจจับพฤติกรรมแบบไหน - "ตรวจจับการล้ม" คือโมเดลเดิม (MediaPipe), "เวอร์ชั่น 3" คือโมเดลล่าสุด (YOLO-pose) แม่นยำกว่า แนะนำให้ใช้</small>
             </div>
 
             <div class="form-group">
