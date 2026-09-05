@@ -210,6 +210,16 @@ class RTSPStream:
                     (int(x * w), int(y * h)) if conf >= self._KEYPOINT_CONF_THRESHOLD else None
                     for x, y, conf in kpts17
                 ]
+                visible = [p for p in pts if p is not None]
+
+                if visible:
+                    xs = [p[0] for p in visible]
+                    ys = [p[1] for p in visible]
+                    pad_x = int((max(xs) - min(xs)) * 0.15) + 10
+                    pad_y = int((max(ys) - min(ys)) * 0.1) + 10
+                    x1, y1 = max(0, min(xs) - pad_x), max(0, min(ys) - pad_y)
+                    x2, y2 = min(w, max(xs) + pad_x), min(h, max(ys) + pad_y)
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
                 for a, b in self._SKELETON_EDGES:
                     if pts[a] is not None and pts[b] is not None:
