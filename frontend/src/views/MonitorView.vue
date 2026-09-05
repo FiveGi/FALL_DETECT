@@ -11,7 +11,8 @@ import logService from '@/services/logService'
 import cameraService from '@/services/cameraService'
 import streamService from '@/services/streamService'
 import adminService from '@/services/adminService'
-import { getDetectionTypeText, DETECTION_TYPE_OPTIONS, DETECTION_TYPE_FORM_HELP } from '@/utils/detectionType'
+import { getDetectionTypeText, DETECTION_TYPE_OPTIONS } from '@/utils/detectionType'
+import CameraEditModal from '@/components/camera/CameraEditModal.vue'
 
 const cameraStore = useCameraStore()
 const notificationStore = useNotificationStore()
@@ -120,8 +121,6 @@ const editingCamera = ref({
 const showEditModal = ref(false)
 const message = ref('')
 const messageType = ref('')
-const testVideos = ref([]) // รายชื่อไฟล์วิดีโอทดสอบในโฟลเดอร์ Test/ ของ backend
-const editingCameraSourceType = ref('url')
 
 // Time filter states
 const timeFilterEnabled = ref(false)
@@ -1183,18 +1182,7 @@ function removeCamera(camera) {
   }
 }
 
-async function loadAvailableVideos() {
-  try {
-    testVideos.value = await cameraService.getTestVideos()
-  } catch (error) {
-    console.error('Failed to load test videos:', error)
-  }
-}
-
 function startEditCamera(camera) {
-  loadAvailableVideos()
-  editingCameraSourceType.value = (camera.url || '').startsWith('/app/Test/') ? 'test' : 'url'
-
   editingCamera.value = {
     ...camera,
     notification_cooldown_sec: camera.notification_cooldown ?? 600,
@@ -1697,137 +1685,12 @@ function getUserCameraCount(userId) {
       </div>
     </div>
 
-    <!-- Modal สำหรับแก้ไขกล้อง - กดออกได้โดยกดพื้นที่ว่างข้างๆ -->
-    <div v-if="showEditModal" class="modal-overlay" @click.self="cancelEdit" @click.stop>
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>แก้ไขกล้อง</h3>
-          <button @click="cancelEdit" class="modal-close-btn">&times;</button>
-        </div>
-        <div class="modal-body">
-          <form @submit.prevent="saveEditCamera">
-
-            <div class="form-group">
-              <label for="edit-camera-name" class="form-label"
-                >ชื่อกล้อง <span class="required">*</span></label
-              >
-              <input
-                type="text"
-                id="edit-camera-name"
-                v-model="editingCamera.name"
-                class="form-input"
-                placeholder="เช่น กล้องหน้าบ้าน, กล้องหลังบ้าน"
-                autofocus
-              />
-            </div>
-
-            <div class="form-group">
-              <label for="edit-room-name" class="form-label">ชื่อห้อง/โซน</label>
-              <input
-                type="text"
-                id="edit-room-name"
-                v-model="editingCamera.room_name"
-                class="form-input"
-                placeholder="เช่น ห้อง 101, โถงกลาง, ห้องผู้ป่วย 2"
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">แหล่งวิดีโอ</label>
-              <div class="source-type-toggle">
-                <label>
-                  <input type="radio" value="url" v-model="editingCameraSourceType" />
-                  กล้องจริง (RTSP/URL)
-                </label>
-                <label>
-                  <input type="radio" value="test" v-model="editingCameraSourceType" />
-                  ไฟล์วิดีโอทดสอบ
-                </label>
-              </div>
-            </div>
-
-            <div class="form-group" v-if="editingCameraSourceType === 'url'">
-              <label for="edit-camera-url" class="form-label"
-                >URL การเชื่อมต่อ <span class="required">*</span></label
-              >
-              <input
-                type="text"
-                id="edit-camera-url"
-                v-model="editingCamera.url"
-                class="form-input"
-                placeholder="เช่น rtsp://username:password@ip:port/path"
-              />
-            </div>
-
-            <div class="form-group" v-else>
-              <label for="edit-camera-test-video" class="form-label"
-                >เลือกไฟล์วิดีโอทดสอบ <span class="required">*</span></label
-              >
-              <select id="edit-camera-test-video" v-model="editingCamera.url" class="form-input">
-                <option value="" disabled>เลือกไฟล์วิดีโอ</option>
-                <option v-for="v in testVideos" :key="v.filename" :value="v.url">
-                  {{ v.filename }}
-                </option>
-              </select>
-              <small class="form-help">ไฟล์จากโฟลเดอร์ Test/ ของ backend</small>
-            </div>
-
-            <div class="form-group">
-              <label for="edit-detection-type" class="form-label">ประเภทการตรวจจับ</label>
-              <select id="edit-detection-type" v-model="editingCamera.detection_type" class="form-input">
-                <option v-for="opt in DETECTION_TYPE_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-              </select>
-              <small class="form-help">{{ DETECTION_TYPE_FORM_HELP }}</small>
-            </div>
-
-            <div class="form-group">
-              <label for="edit-alert-start-time" class="form-label">เวลาเริ่มการแจ้งเตือน (24 ชั่วโมง)</label>
-              <input
-                type="text"
-                id="edit-alert-start-time"
-                v-model="editingCamera.alert_start_time"
-                class="form-input"
-                pattern="^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
-                placeholder="เช่น 21:00"
-                maxlength="5"
-              />
-              <small class="form-help">รูปแบบ: ชั่วโมง:นาที (00:00 - 23:59) เช่น 21:00 หรือ 09:00</small>
-            </div>
-
-            <div class="form-group">
-              <label for="edit-alert-end-time" class="form-label">เวลาสิ้นสุดการแจ้งเตือน (24 ชั่วโมง)</label>
-              <input
-                type="text"
-                id="edit-alert-end-time"
-                v-model="editingCamera.alert_end_time"
-                class="form-input"
-                pattern="^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
-                placeholder="เช่น 05:00"
-                maxlength="5"
-              />
-              <small class="form-help">รูปแบบ: ชั่วโมง:นาที (00:00 - 23:59) เช่น 05:00 หรือ 17:00</small>
-            </div>
-
-            <div class="form-group">
-              <label for="edit-notification-cooldown" class="form-label">ระยะห่างการแจ้งเตือน (วินาที)</label>
-              <input type="number" id="edit-notification-cooldown" v-model.number="editingCamera.notification_cooldown_sec" class="form-input" min="1" step="1" />
-              <small class="form-help">เวลาที่ต้องรอก่อนแจ้งเตือนครั้งต่อไป (ป้องกันการแจ้งเตือนซ้ำเร็วเกินไป) เช่น 30 วินาที, 60 วินาที (1 นาที), 600 วินาที (10 นาที)</small>
-            </div>
-
-            <div class="form-group">
-              <label for="edit-ai-confidence-threshold" class="form-label">ความแม่นยำของ AI (0.0-1.0)</label>
-              <input type="number" id="edit-ai-confidence-threshold" v-model.number="editingCamera.ai_confidence_threshold" class="form-input" min="0" max="1" step="0.01" />
-              <small class="form-help">ระดับความมั่นใจของ AI ที่จะแจ้งเตือน (0.5 = 50%, ยิ่งสูงยิ่งแม่นยำ)</small>
-            </div>
-
-            <div class="form-actions">
-              <button type="button" @click="cancelEdit" class="btn btn-secondary">ยกเลิก</button>
-              <button type="submit" class="btn btn-primary">บันทึกการเปลี่ยนแปลง</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+    <CameraEditModal
+      v-model="editingCamera"
+      :show="showEditModal"
+      @save="saveEditCamera"
+      @cancel="cancelEdit"
+    />
   </div>
 </template>
 
@@ -2915,20 +2778,6 @@ function getUserCameraCount(userId) {
   color: #6b7280;
   font-size: 0.75rem;
   margin-top: 0.25rem;
-}
-
-.source-type-toggle {
-  display: flex;
-  gap: 1.5rem;
-  padding: 0.5rem 0;
-}
-
-.source-type-toggle label {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-weight: normal;
-  cursor: pointer;
 }
 
 .required {
