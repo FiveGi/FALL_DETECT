@@ -77,14 +77,13 @@ class RTSPStream:
         self.current_frame = None
         self.frame_lock = threading.Lock()
         self.last_frame_time = time.time()
-        # Detection accuracy takes priority over preview smoothness on this host (only
-        # ~4 vCPUs total -- see docker-compose.yml's backend cpu cap, deliberately kept
-        # below celery_worker's so the actual detector isn't starved). Preview only
-        # needs to stay legible enough to see that/how a fall happened, not be
-        # buttery-smooth, so both knobs below lean toward "less backend CPU" over
-        # "smoother video": lower capture fps, and pose inference (the expensive part)
-        # re-run less often, with the last result reused on frames in between.
-        self.fps = 8  # Target FPS for web streaming
+        # Raw capture can run at a normal rate -- it's cheap (just decode/resize/JPEG-
+        # encode, no AI) and no longer competes with celery_worker's actual detection
+        # for CPU, since the pose-skeleton overlay is opt-in (?overlay=1 on the stream
+        # route) rather than the default. If overlay IS requested, the cache below
+        # still throttles the expensive part (re-running the pose model) so that path
+        # doesn't reintroduce the same contention.
+        self.fps = 15  # Target FPS for web streaming
         self.frame_interval = 1.0 / self.fps
 
         self._pose_cache = []
@@ -368,29 +367,40 @@ class RTSPStream:
 stream_manager = RTSPStreamManager()
 
 
-def generate_mjpeg_stream(camera_id: int, camera_url: str, camera_name: str):
+def generate_mjpeg_stream(camera_id: int, camera_url: str, camera_name: str, draw_overlay: bool = False):
     """
-    Generator function for MJPEG streaming
-    Returns: MJPEG stream for HTTP response
+    Generator function for MJPEG streaming.
+
+    draw_overlay=False (default) skips pose inference entirely and just re-encodes
+    the raw captured frame -- cheap (no AI model call), so the preview can run
+    smooth without competing with celery_worker's actual detection for CPU on this
+    ~4-vCPU host. Pass draw_overlay=True to see the pose skeleton instead, at the
+    cost of the throttled/cached inference rate (see RTSPStream.__init__).
     """
     stream = stream_manager.get_stream(camera_id, camera_url, camera_name)
     if not stream:
         # Return empty response if stream cannot be created
         yield b''
         return
-    
+
     try:
         while stream.is_active():
-            frame_data = stream.get_mjpeg_frame()
-            
+            frame_data = stream.get_mjpeg_frame(draw_bbox=draw_overlay)
+
             if frame_data:
                 # MJPEG format for streaming
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + frame_data + b'\r\n')
+                # Without this, nothing paces the loop once overlay=False removed the
+                # (accidentally load-bearing) delay of running AI inference per frame --
+                # it would just re-encode and re-send the same captured frame as fast as
+                # the client can absorb it, burning CPU/bandwidth on duplicates well past
+                # the capture thread's own ~15fps.
+                time.sleep(stream.frame_interval)
             else:
                 # If no frame available, send empty frame or wait
                 time.sleep(0.1)
-                
+
     except Exception as e:
         print(f"Error in MJPEG stream generation for camera {camera_id}: {str(e)}")
     finally:

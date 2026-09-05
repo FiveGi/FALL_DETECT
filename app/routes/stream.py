@@ -48,10 +48,16 @@ def stream_camera(camera_id):
     try:
         # Log stream access
         save_system_log('INFO', f'Video stream accessed for camera {camera.name}', 'STREAM', current_user_id)
-        
+
+        # Pose-skeleton overlay is opt-in (?overlay=1) -- it re-runs the AI model on
+        # served frames, which competes with celery_worker's actual detection for CPU
+        # on this host. Default is the raw video, which is cheap to re-encode and
+        # doesn't touch the detector at all.
+        draw_overlay = request.args.get('overlay', '').lower() in ('1', 'true', 'yes')
+
         # Generate MJPEG stream
         return Response(
-            generate_mjpeg_stream(camera_id, camera.url, camera.name),
+            generate_mjpeg_stream(camera_id, camera.url, camera.name, draw_overlay=draw_overlay),
             mimetype='multipart/x-mixed-replace; boundary=frame',
             headers={
                 'Cache-Control': 'no-cache, no-store, must-revalidate',
