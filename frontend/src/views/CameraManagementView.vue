@@ -217,14 +217,7 @@ async function saveEditCamera() {
     return
   }
 
-  const originalCamera = cameras.value.find(cam => cam.id === editingCamera.value.id)
-  const wasMonitoring = activeMonitors.value[editingCamera.value.id]
-
   try {
-    if (wasMonitoring && originalCamera) {
-      await stopMonitoring(originalCamera)  // ← เพิ่ม await
-    }
-
     const updateData = {
       name: editingCamera.value.name,           // ← explicit fields
       url: editingCamera.value.url,             // ← ไม่ใช้ spread
@@ -254,37 +247,12 @@ async function saveEditCamera() {
     message.value = `อัพเดทกล้อง ${editingCamera.value.name} เรียบร้อยแล้ว`
     messageType.value = 'success'
 
-    notificationStore.sendNotification({
-      title: 'อัพเดทกล้องสำเร็จ',
-      message: `อัพเดทกล้อง ${editingCamera.value.name} เรียบร้อยแล้ว`,
-      type: 'success'
-    })
-
-    if (wasMonitoring) {
-      await nextTick()
-      const updatedCamera = cameras.value.find(cam => cam.id === editingCamera.value.id)
-      if (updatedCamera?.id && updatedCamera?.url) {  // ← guard
-        startMonitoring(updatedCamera)
-      }
-    }
-
     setTimeout(() => { message.value = '' }, 3000)
 
   } catch (err) {
     console.error('saveEditCamera error:', err)
-
-    if (wasMonitoring && originalCamera) {
-      startMonitoring(originalCamera)
-    }
-
     message.value = 'เกิดข้อผิดพลาดในการอัพเดทกล้อง'
     messageType.value = 'danger'
-
-    notificationStore.sendNotification({
-      title: 'เกิดข้อผิดพลาด',
-      message: 'ไม่สามารถอัพเดทกล้องได้',
-      type: 'error'
-    })
   }
 }
 

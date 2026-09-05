@@ -8,8 +8,7 @@
         "build": "vite build",
         "preview": "vite preview",
         "format": "prettier --write src/",
-        "copy-videos": "node scripts/copy-videos.js",
-        "setup-videos": "npm run copy-videos"
+        "lint": "eslint src/"
     },
     "dependencies": {
         "firebase": "^10.7.0",
