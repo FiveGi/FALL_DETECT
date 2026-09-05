@@ -128,8 +128,12 @@ class ModelManager:
             try:
                 self._person_detector_loading = True
                 print("[Model Manager] Loading V2 Person Detector (YOLO)...")
-                yolo_path = "/app/models/yolov10x.pt"
-                self.v2_person_detector = V2PersonDetector(yolo_path)
+                # yolo26l @ conf=0.35, not yolov10x @ 0.6 -- ground-truth testing (gt_compare.py /
+                # gt_threshold_sweep.py against Gemini-verified frame counts) found 88.3% overall /
+                # 100% on the realistic-footage subset for alone-detection, clearly ahead of
+                # yolov10x. See SKILL.md for the full comparison across all 6 YOLO variants tested.
+                yolo_path = "/app/models/yolo26l.pt"
+                self.v2_person_detector = V2PersonDetector(yolo_path, conf_thresh=0.35)
                 print("[Model Manager] V2 Person Detector loaded successfully!")
             except Exception as e:
                 print(f"[Model Manager] Error loading person detector: {e}")

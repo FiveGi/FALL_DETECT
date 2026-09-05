@@ -270,9 +270,9 @@ class V2ONNXFallDetector:
             return 0.0, False
 
 class V2PersonDetector:
-    def __init__(self, yolo_model_path="models/yolov10x.pt"):
+    def __init__(self, yolo_model_path="models/yolov10x.pt", conf_thresh=0.6):
         self.yolo_model = YOLO(yolo_model_path)
-        self.conf_thresh = 0.6
+        self.conf_thresh = conf_thresh
 
     def detect_persons(self, frame):
         results = self.yolo_model.track(
