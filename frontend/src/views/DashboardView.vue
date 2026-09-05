@@ -251,7 +251,7 @@ const recentAlerts = computed(() => {
         case 'fall':
           typeText = 'ตรวจจับการล้ม (Enhanced Detection)'; break;
         case 'fall_v2':
-          typeText = 'ตรวจจับการล้ม (เวอร์ชั่น 2)'; break;
+          typeText = 'ตรวจจับการล้ม (เวอร์ชั่น 3 - YOLO-pose)'; break;
         case 'alone_v2':
           typeText = 'ตรวจพบอยู่คนเดียว (เวอร์ชั่น 2)'; break;
         default:
@@ -274,7 +274,7 @@ function getDetectionTypeText(detectionType) {
     case 'fall':
       return 'ตรวจจับการล้ม (Enhanced Detection)'
     case 'fall_v2':
-      return 'ตรวจจับการล้ม (เวอร์ชั่น 2)'
+      return 'ตรวจจับการล้ม (เวอร์ชั่น 3 - YOLO-pose)'
     case 'alone_v2':
       return 'ตรวจจับผู้สูงอายุอยู่คนเดียว'
     default:

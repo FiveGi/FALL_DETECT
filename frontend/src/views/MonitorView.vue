@@ -636,7 +636,7 @@ function getDetectionResultText(detectionResult) {
     case 'fall':
       return 'ล้ม'
     case 'fall_v2':
-      return 'ล้ม (เวอร์ชั่น 2)'
+      return 'ล้ม (เวอร์ชั่น 3 - YOLO-pose)'
     case 'no_fall':
       return 'ไม่ตรวจพบการล้ม'
     case 'no_detection':
@@ -886,7 +886,7 @@ async function saveGlobalDetectionType() {
       ? 'ตรวจจับการลุกจากเตียง'
       : globalDetectionType.value === 'fall'
       ? 'ตรวจจับการล้ม (Enhanced Detection)'
-      : 'ตรวจจับการล้ม (เวอร์ชั่น 2)'
+      : 'ตรวจจับการล้ม (เวอร์ชั่น 3 - YOLO-pose)'
 
     if (failedCount === 0) {
       // Show success notification
@@ -1660,7 +1660,7 @@ function getUserCameraCount(userId) {
             >
               <option value="bed_exit">ตรวจจับการลุกจากเตียง</option>
               <option value="fall">ตรวจจับการล้ม (Enhanced Detection)</option>
-              <option value="fall_v2">ตรวจจับการล้ม (เวอร์ชั่น 2)</option>
+              <option value="fall_v2">ตรวจจับการล้ม (เวอร์ชั่น 3 - YOLO-pose)</option>
             </select>
           </div>
 
@@ -1791,9 +1791,9 @@ function getUserCameraCount(userId) {
               <select id="edit-detection-type" v-model="editingCamera.detection_type" class="form-input">
                 <option value="bed_exit">ตรวจจับการลุกจากเตียง</option>
                 <option value="fall">ตรวจจับการล้ม</option>
-                <option value="fall_v2">ตรวจจับการล้ม (เวอร์ชั่น 2)</option>
+                <option value="fall_v2">ตรวจจับการล้ม (เวอร์ชั่น 3 - YOLO-pose)</option>
               </select>
-              <small class="form-help">เลือกว่าต้องการให้ AI ตรวจจับพฤติกรรมแบบไหน - "fall" ใช้ Enhanced Detection, "fall_v2" ใช้อัลกอริธึมใหม่</small>
+              <small class="form-help">เลือกว่าต้องการให้ AI ตรวจจับพฤติกรรมแบบไหน - "ตรวจจับการล้ม" คือโมเดลเดิม (MediaPipe), "เวอร์ชั่น 3" คือโมเดลล่าสุด (YOLO-pose) แม่นยำกว่า แนะนำให้ใช้</small>
             </div>
 
             <div class="form-group">

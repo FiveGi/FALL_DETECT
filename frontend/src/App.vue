@@ -108,7 +108,7 @@ function getDetectionTypeText(detectionType) {
     case 'fall_detection':
       return 'ตรวจจับการล้ม'
     case 'fall_v2':
-      return 'ตรวจจับการล้ม (เวอร์ชั่น 2)'
+      return 'ตรวจจับการล้ม (เวอร์ชั่น 3 - YOLO-pose)'
     case 'alone_v2':
       return 'ตรวจจับผู้สูงอายุอยู่คนเดียว'
     default:
