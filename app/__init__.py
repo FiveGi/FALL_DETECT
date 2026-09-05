@@ -52,7 +52,7 @@ def create_app():
    
     @app.route('/videos/<filename>')
     def serve_video(filename):
-        video_dir = '/app/videos'  # Use absolute path to videos folder
+        video_dir = '/app/Test'  # Use absolute path to videos folder
         if not os.path.exists(video_dir):
             os.makedirs(video_dir)
         return send_from_directory(video_dir, filename)

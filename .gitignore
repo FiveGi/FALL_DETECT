@@ -101,8 +101,6 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 
-videos/*
-
 # v4 (RF-DETR) checkpoint -- 352MB, exceeds GitHub's 100MB per-file limit. v3 (pose-based) is the
 # active fall-detection pipeline and doesn't need this file. v4's code is kept for anyone with GPU
 # access who wants to use it, but they'll need to source this checkpoint separately.

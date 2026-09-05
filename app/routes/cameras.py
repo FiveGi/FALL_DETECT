@@ -12,7 +12,7 @@ import re
 
 bp = Blueprint('cameras', __name__, url_prefix='/api/cameras')
 
-LOCAL_VIDEOS_DIR = '/app/videos'
+LOCAL_VIDEOS_DIR = '/app/Test'
 VALID_VIDEO_EXTENSIONS = ('.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm')
 
 
@@ -22,7 +22,7 @@ def normalize_video_url(url):
     pasting Windows Explorer's "Copy as path" output (which wraps the path
     in quotes and uses a Windows drive letter the container can't see), or
     the frontend's http://localhost:3000/videos/<file> convention. If the
-    filename matches something actually present in /app/videos, rewrite the
+    filename matches something actually present in /app/Test, rewrite the
     URL to the correct in-container path. RTSP/RTMP URLs and anything that
     doesn't look like a local file path are left untouched.
     """
@@ -59,7 +59,7 @@ def check_url(url):
         # Handle local HTTP URLs (from frontend)
         if url.startswith('http://localhost:3000/videos/'):
             filename = url.split('/')[-1]
-            local_video_path = f"/app/videos/{filename}"
+            local_video_path = f"/app/Test/{filename}"
             
             # Check if the local file exists
             import os
@@ -127,7 +127,7 @@ def is_admin_or_owner(camera_id, user_id):
 @bp.route('/test-videos', methods=['GET'])
 @jwt_required()
 def list_test_videos():
-    """List local video files under /app/videos so the UI can offer them
+    """List local video files under /app/Test so the UI can offer them
     as a camera source instead of requiring users to type a file path."""
     try:
         files = sorted(

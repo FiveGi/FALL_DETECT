@@ -17,7 +17,6 @@ services:
     command: flask run --host=0.0.0.0 --port=${PORT:-8932}
     volumes:
       - .:/app
-      - ./videos:/app/videos
     env_file:
       - .env
     environment:
@@ -32,7 +31,6 @@ services:
     command: sh -c "celery -A app.celery worker --concurrency=${CAMERA_MAX_PARALLEL:-4} --loglevel=info"
     volumes:
       - .:/app
-      - ./videos:/app/videos
     env_file:
       - .env
     environment:

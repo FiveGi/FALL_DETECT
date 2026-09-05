@@ -257,13 +257,13 @@ def test_camera_stream(camera_id):
         processed_url = camera.url
         if camera.url.startswith('http://localhost:3000/videos/'):
             filename = camera.url.split('/')[-1]
-            processed_url = f"/app/videos/{filename}"
+            processed_url = f"/app/Test/{filename}"
         elif '\\' in camera.url and 'videos' in camera.url:
             filename = camera.url.split('\\')[-1]
-            processed_url = f"/app/videos/{filename}"
-        elif 'videos/' in camera.url and not camera.url.startswith('/app/videos/'):
+            processed_url = f"/app/Test/{filename}"
+        elif 'Test/' in camera.url and not camera.url.startswith('/app/Test/'):
             filename = camera.url.split('/')[-1]
-            processed_url = f"/app/videos/{filename}"
+            processed_url = f"/app/Test/{filename}"
         
         # Test connection
         cap = cv2.VideoCapture(processed_url)

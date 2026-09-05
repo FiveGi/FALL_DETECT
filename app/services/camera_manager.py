@@ -113,13 +113,13 @@ def process_fall_detection(camera_id, config):
             original_url = camera.url
             if camera.url.startswith('http://localhost:3000/videos/'):
                 filename = camera.url.split('/')[-1]
-                camera.url = f"/app/videos/{filename}"
+                camera.url = f"/app/Test/{filename}"
             elif '\\' in camera.url and 'videos' in camera.url:
                 filename = camera.url.split('\\')[-1]
-                camera.url = f"/app/videos/{filename}"
-            elif 'videos/' in camera.url and not camera.url.startswith('/app/videos/'):
+                camera.url = f"/app/Test/{filename}"
+            elif 'Test/' in camera.url and not camera.url.startswith('/app/Test/'):
                 filename = camera.url.split('/')[-1]
-                camera.url = f"/app/videos/{filename}"
+                camera.url = f"/app/Test/{filename}"
             
             is_video_file = not camera.url.startswith(('rtsp', 'rtmp')) and ('.' in camera.url or 'localhost' in original_url)
             
@@ -260,13 +260,13 @@ def process_alone_detection(camera_id, config):
             original_url = camera.url
             if camera.url.startswith('http://localhost:3000/videos/'):
                 filename = camera.url.split('/')[-1]
-                camera.url = f"/app/videos/{filename}"
+                camera.url = f"/app/Test/{filename}"
             elif '\\' in camera.url and 'videos' in camera.url:
                 filename = camera.url.split('\\')[-1]
-                camera.url = f"/app/videos/{filename}"
-            elif 'videos/' in camera.url and not camera.url.startswith('/app/videos/'):
+                camera.url = f"/app/Test/{filename}"
+            elif 'Test/' in camera.url and not camera.url.startswith('/app/Test/'):
                 filename = camera.url.split('/')[-1]
-                camera.url = f"/app/videos/{filename}"
+                camera.url = f"/app/Test/{filename}"
             
             is_video_file = not camera.url.startswith(('rtsp', 'rtmp')) and ('.' in camera.url or 'localhost' in original_url)
             
@@ -396,13 +396,13 @@ def process_bed_exit_detection(camera_id, config):
             original_url = camera.url
             if camera.url.startswith('http://localhost:3000/videos/'):
                 filename = camera.url.split('/')[-1]
-                camera.url = f"/app/videos/{filename}"
+                camera.url = f"/app/Test/{filename}"
             elif '\\' in camera.url and 'videos' in camera.url:
                 filename = camera.url.split('\\')[-1]
-                camera.url = f"/app/videos/{filename}"
-            elif 'videos/' in camera.url and not camera.url.startswith('/app/videos/'):
+                camera.url = f"/app/Test/{filename}"
+            elif 'Test/' in camera.url and not camera.url.startswith('/app/Test/'):
                 filename = camera.url.split('/')[-1]
-                camera.url = f"/app/videos/{filename}"
+                camera.url = f"/app/Test/{filename}"
             
             is_video_file = not camera.url.startswith(('rtsp', 'rtmp')) and ('.' in camera.url or 'localhost' in original_url)
             
