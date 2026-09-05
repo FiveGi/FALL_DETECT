@@ -14,6 +14,13 @@ services:
       - pgdata:/var/lib/postgresql/data
   backend:
     build: .
+    # backend, celery_worker, celery_beat and flower all run the exact same
+    # Dockerfile/build context with only their command differing -- naming the
+    # image explicitly here and having the other three reference it via `image:`
+    # (no `build:` of their own) means `docker compose build` builds it once
+    # instead of four times, and Docker Desktop's image list shows one entry
+    # instead of four identically-sized ones.
+    image: elderly-surveillance-app:latest
     command: flask run --host=0.0.0.0 --port=${PORT:-8932}
     volumes:
       - .:/app
@@ -35,7 +42,7 @@ services:
       - db
       - redis
   celery_worker:
-    build: .
+    image: elderly-surveillance-app:latest
     command: sh -c "celery -A app.celery worker --concurrency=${CAMERA_MAX_PARALLEL:-4} --loglevel=info"
     volumes:
       - .:/app
@@ -57,7 +64,7 @@ services:
       - backend
       - redis
   celery_beat:
-    build: .
+    image: elderly-surveillance-app:latest
     command: sh -c "celery -A app.celery beat --loglevel=info"
     volumes:
       - .:/app
@@ -74,7 +81,7 @@ services:
     ports:
       - "6379:6379"
   flower:
-    build: .
+    image: elderly-surveillance-app:latest
     command: sh -c "celery -A app.celery flower --port=5555"
     ports:
       - "5555:5555"
