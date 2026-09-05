@@ -79,7 +79,17 @@ class RTSPStream:
         self.last_frame_time = time.time()
         self.fps = 15  # Target FPS for web streaming
         self.frame_interval = 1.0 / self.fps
-        
+
+        # Pose inference is comparatively expensive and backend now runs CPU-throttled
+        # (see docker-compose.yml -- celery_worker, the actual detector, needs the CPU
+        # more than this live preview does). Re-running it on every single served frame
+        # made the preview visibly stutter. Cache the last result and only re-infer every
+        # Nth frame; skeleton lag by a couple frames is imperceptible for a live preview.
+        self._pose_cache = []
+        self._pose_cache_lock = threading.Lock()
+        self._pose_frame_counter = 0
+        self._pose_infer_every = 3
+
         # Stream statistics
         self.total_frames = 0
         self.dropped_frames = 0
@@ -198,12 +208,22 @@ class RTSPStream:
         try:
             from app.services.model_manager import model_manager
 
-            fall_detector = model_manager.get_v3_fall_detector()
-            if fall_detector is None:
-                return frame
-
             h, w = frame.shape[:2]
-            people = fall_detector.extract_all_keypoints(frame)
+
+            with self._pose_cache_lock:
+                self._pose_frame_counter += 1
+                should_infer = (self._pose_frame_counter % self._pose_infer_every) == 1
+
+            if should_infer:
+                fall_detector = model_manager.get_v3_fall_detector()
+                if fall_detector is None:
+                    return frame
+                people = fall_detector.extract_all_keypoints(frame)
+                with self._pose_cache_lock:
+                    self._pose_cache = people
+            else:
+                with self._pose_cache_lock:
+                    people = self._pose_cache
 
             for kpts17, _hip_center in people:
                 pts = [

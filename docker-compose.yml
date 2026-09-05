@@ -23,12 +23,12 @@ services:
       - TZ=Asia/Bangkok
       - TF_CPP_MIN_LOG_LEVEL=3
       - CUDA_VISIBLE_DEVICES=""
-      - OMP_NUM_THREADS=1
+      - OMP_NUM_THREADS=2
       - TF_ENABLE_ONEDNN_OPTS=0
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: '1.5'
     ports:
       - "8932:8932"
     depends_on:
