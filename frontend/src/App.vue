@@ -10,7 +10,7 @@ import { useLeftNotificationStore } from './stores/leftNotification'
 import LeftSideNotification from '@/components/common/LeftSideNotification.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import logService from '@/services/logService'
-import { getDetectionTypeText } from '@/utils/detectionType'
+import { getAlertTypeText } from '@/utils/detectionType'
 
 const route = useRoute()
 const router = useRouter()
@@ -84,7 +84,7 @@ async function fetchGlobalNotifications() {
 }
 
 function showGlobalNotificationAlert(apiNotification) {
-  const detectionTypeText = getDetectionTypeText(apiNotification.detection_type)
+  const detectionTypeText = getAlertTypeText(apiNotification.detection_type)
   // ใช้ cameraStore instance เดียวกัน
   const camera = cameraStore?.cameras?.find(c => c.id === apiNotification.camera_id)
   const cameraName = camera ? camera.name : `กล้อง #${apiNotification.camera_id}`
@@ -225,20 +225,6 @@ watch(
         </main>
       </div>
     </template>
-
-    <!-- แสดงการแจ้งเตือน -->
-    <div v-if="typeof currentNotification !== 'undefined' && showNotification && currentNotification" class="notification-toast">
-      <div class="notification-header">
-        <span class="notification-title">{{ currentNotification.title }}</span>
-        <button @click="showNotification = false" class="close-btn">&times;</button>
-      </div>
-      <div class="notification-body">
-        {{ currentNotification.message }}
-      </div>
-      <div class="notification-time">
-        {{ currentNotification.timestamp ? new Date(currentNotification.timestamp).toLocaleTimeString() : '' }}
-      </div>
-    </div>
 
     <footer class="app-footer">
       <div>

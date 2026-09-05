@@ -31,3 +31,20 @@ export function getDetectionTypeText(detectionType) {
 
 export const DETECTION_TYPE_FORM_HELP =
     'เลือกว่าต้องการให้ AI ตรวจจับพฤติกรรมแบบไหน - "ตรวจจับการล้ม" คือโมเดลเดิม (MediaPipe), "เวอร์ชั่น 3" คือโมเดลล่าสุด (YOLO-pose) แม่นยำกว่า แนะนำให้ใช้'
+
+// Separate value space from DETECTION_TYPE_LABELS above: these come from alert/
+// notification records (app/services/alert_service.py's save_alert_log), tagged
+// with a risk level baked into the string (fall_red, alone_yellow, ...), not
+// camera.detection_type (bed_exit/fall/fall_v2, the *setting* that produced the
+// alert). Mixing them up is exactly what made the popup notification show the
+// raw string "fall_red" instead of Thai text -- see App.vue's
+// showGlobalNotificationAlert, which used to call getDetectionTypeText() here.
+const ALERT_TYPE_LABELS = {
+    bed_exit: 'ตรวจจับการลุกจากเตียง',
+    alone_yellow: 'ตรวจจับคนอยู่คนเดียว',
+    fall_red: 'ตรวจจับการล้ม (อันตราย)',
+}
+
+export function getAlertTypeText(alertDetectionType) {
+    return ALERT_TYPE_LABELS[alertDetectionType] || 'ตรวจจับการล้ม'
+}

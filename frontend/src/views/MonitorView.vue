@@ -11,7 +11,7 @@ import logService from '@/services/logService'
 import cameraService from '@/services/cameraService'
 import streamService from '@/services/streamService'
 import adminService from '@/services/adminService'
-import { getDetectionTypeText, DETECTION_TYPE_OPTIONS } from '@/utils/detectionType'
+import { getDetectionTypeText, getAlertTypeText, DETECTION_TYPE_OPTIONS } from '@/utils/detectionType'
 import CameraEditModal from '@/components/camera/CameraEditModal.vue'
 
 const cameraStore = useCameraStore()
@@ -1094,10 +1094,7 @@ async function fetchAllNotifications() {
             const camera = cameraStore.cameras.find(c => c.id === notification.camera_id)
             const cameraName = camera ? camera.name : `#${notification.camera_id}`
             const roomName = camera ? camera.room_name : ''
-            const typeText = notification.detection_type === 'bed_exit' ? 'ตรวจจับการลุกจากเตียง' :
-                           notification.detection_type === 'alone_yellow' ? 'ตรวจจับคนอยู่คนเดียว' :
-                           notification.detection_type === 'fall_red' ? 'ตรวจจับการล้ม (อันตราย)' :
-                           'ตรวจจับการล้ม'
+            const typeText = getAlertTypeText(notification.detection_type)
             return `การแจ้งเตือน: ${typeText} (กล้อง: ${cameraName}${roomName ? ' - ' + roomName : ''})`
           })(),
           timestamp: formatTimestamp(notification.sent_at),
