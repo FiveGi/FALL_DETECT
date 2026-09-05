@@ -605,7 +605,7 @@ function triggerAlert(notification) {
   setCameraRiskLevel(notification.camera_id, riskLevel, 15)
   notificationStore.sendNotification({
     title: 'การแจ้งเตือนความปลอดภัย',
-    message: `ตรวจพบการเคลื่อนไหวที่น่าสงสัย - ${notification.detection_type}`,
+    message: `ตรวจพบการเคลื่อนไหวที่น่าสงสัย - ${getAlertTypeText(notification.detection_type)}`,
     type: 'warning',
     timestamp: formatTimestamp(notification.sent_at),
   })

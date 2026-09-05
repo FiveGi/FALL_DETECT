@@ -153,7 +153,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useCameraStore } from '@/stores/camera'
 import { useAuthStore } from '@/stores/auth'
 import adminService from '@/services/adminService'
-import { getDetectionTypeText } from '@/utils/detectionType'
+import { getDetectionTypeText, getAlertTypeText } from '@/utils/detectionType'
 import IconCamera from '@/components/icons/IconCamera.vue'
 import IconAlert from '@/components/icons/IconAlert.vue'
 import IconMotion from '@/components/icons/IconMotion.vue'
@@ -244,20 +244,11 @@ const recentAlerts = computed(() => {
       const camera = cameraStore.cameras.find(c => c.id === notification.camera_id)
       const cameraName = camera ? camera.name : `#${notification.camera_id}`
       const roomName = camera ? camera.room_name : ''
-      // แปลข้อความแจ้งเตือนเป็นไทยเต็ม
-      let typeText = ''
-      switch (notification.detection_type) {
-        case 'bed_exit':
-          typeText = 'ตรวจจับการลุกออกจากเตียง'; break;
-        case 'fall':
-          typeText = 'ตรวจจับการล้ม (Enhanced Detection)'; break;
-        case 'fall_v2':
-          typeText = 'ตรวจจับการล้ม (เวอร์ชั่น 3 - YOLO-pose)'; break;
-        case 'alone_v2':
-          typeText = 'ตรวจพบอยู่คนเดียว (เวอร์ชั่น 2)'; break;
-        default:
-          typeText = notification.detection_type ? `ตรวจพบ: ${notification.detection_type}` : 'ตรวจพบเหตุการณ์';
-      }
+      // notification.detection_type here is an alert-log value (fall_red/alone_yellow/...),
+      // not a camera.detection_type setting (bed_exit/fall/fall_v2) -- see utils/detectionType.js
+      const typeText = notification.detection_type
+        ? getAlertTypeText(notification.detection_type)
+        : 'ตรวจพบเหตุการณ์'
       return {
         camera_name: cameraName,
         camera_room: roomName,
