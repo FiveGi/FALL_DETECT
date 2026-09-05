@@ -1,3 +1,14 @@
+import os
+from threading import Thread
+from datetime import datetime
+import pytz
+import requests
+from app.models.camera import Camera
+from app.models.telegram_settings import TelegramSettings
+
+tz = pytz.timezone('Asia/Bangkok')
+
+
 def send_telegram_message_async(camera_id, camera_name, room_name, detection_type, timestamp, image_path):
     def _send():
         from app import create_app

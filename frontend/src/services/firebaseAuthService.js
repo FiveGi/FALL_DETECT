@@ -12,6 +12,9 @@ export default {
      * เข้าสู่ระบบด้วย Google (Popup)
      */
     async signInWithGoogle() {
+        if (!auth) {
+            throw new Error('Google sign-in ไม่พร้อมใช้งาน (ยังไม่ได้ตั้งค่า Firebase)')
+        }
         try {
             const result = await signInWithPopup(auth, googleProvider)
             const user = result.user
@@ -50,6 +53,9 @@ export default {
      * เข้าสู่ระบบด้วย Google (Redirect) - สำหรับมือถือ
      */
     async signInWithGoogleRedirect() {
+        if (!auth) {
+            throw new Error('Google sign-in ไม่พร้อมใช้งาน (ยังไม่ได้ตั้งค่า Firebase)')
+        }
         try {
             await signInWithRedirect(auth, googleProvider)
         } catch (error) {
@@ -62,6 +68,9 @@ export default {
      * ตรวจสอบผลลัพธ์จาก redirect
      */
     async getRedirectResult() {
+        if (!auth) {
+            return null
+        }
         try {
             const result = await getRedirectResult(auth)
             if (result) {
@@ -91,6 +100,9 @@ export default {
      * ออกจากระบบ Firebase
      */
     async signOut() {
+        if (!auth) {
+            return
+        }
         try {
             await signOut(auth)
         } catch (error) {
@@ -103,6 +115,9 @@ export default {
      * ติดตามสถานะการเข้าสู่ระบบ
      */
     onAuthStateChanged(callback) {
+        if (!auth) {
+            return () => {}
+        }
         return onAuthStateChanged(auth, callback)
     },
 
@@ -110,14 +125,14 @@ export default {
      * ได้ผู้ใช้ปัจจุบัน
      */
     getCurrentUser() {
-        return auth.currentUser
+        return auth ? auth.currentUser : null
     },
 
     /**
      * ได้ token ปัจจุบัน
      */
     async getCurrentToken() {
-        const user = auth.currentUser
+        const user = auth ? auth.currentUser : null
         if (user) {
             return await user.getIdToken()
         }
