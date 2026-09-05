@@ -131,6 +131,10 @@ const props = defineProps({
   isBlurred: {
     type: Boolean,
     default: false
+  },
+  overlay: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -154,7 +158,7 @@ const processedUrl = computed(() => {
 
   // ถ้าใช้ Stream API และมี cameraId ให้ใช้ stream endpoint
   if (props.useStreamApi && props.cameraId) {
-    const streamUrl = getMjpegStreamUrl(props.cameraId)
+    const streamUrl = getMjpegStreamUrl(props.cameraId, props.overlay)
     // ถ้า stream URL ไม่สามารถสร้างได้ ให้ fallback ไปใช้ URL เดิม
     return streamUrl || props.url
   }
@@ -174,9 +178,9 @@ const processedUrl = computed(() => {
 import streamService from '@/services/streamService'
 
 // Helper function to get MJPEG stream URL
-function getMjpegStreamUrl(cameraId) {
+function getMjpegStreamUrl(cameraId, overlay) {
   try {
-    return streamService.getCameraStreamUrl(cameraId)
+    return streamService.getCameraStreamUrl(cameraId, overlay)
   } catch (error) {
     console.error(`Failed to get MJPEG stream URL for camera ${cameraId}:`, error)
     return ''

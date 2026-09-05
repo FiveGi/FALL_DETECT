@@ -90,11 +90,17 @@ const usersForFilter = computed(() => {
 
 // State
 const activeMonitors = ref({})
+// Bumped per-camera whenever its url is edited, so MediaViewer's :key changes and
+// Vue actually remounts the <img> -- its src string is just /stream/camera/<id>
+// (opaque to the underlying clip), so it never changes on its own when only the
+// camera's url does, and the browser keeps showing whatever was already loaded.
+const streamRefreshNonce = ref({})
 const motionDetected = ref({})
 const riskLevel = ref({})
 const cameraStatuses = ref({}) // เก็บสถานะรายละเอียดของกล้องจาก backend
 const operationInProgress = ref({}) // เก็บสถานะการดำเนินการ start/stop
 const isBlurAllActive = ref(false) // สำหรับการเบลอทั้งหมด
+const showAiOverlay = ref(false) // แสดงกรอบ+เส้น skeleton จาก AI บน preview (ปิดโดย default เพื่อความลื่น)
 const logs = ref([])
 const notifications = ref([])
 const combinedActivities = ref([]) // รวม logs + notifications สำหรับแสดงในกิจกรรม
@@ -1205,6 +1211,7 @@ async function saveEditCamera() {
 
   const originalCamera = cameras.value.find(cam => cam.id === editingCamera.value.id)
   const wasMonitoring = activeMonitors.value[editingCamera.value.id]
+  const urlChanged = originalCamera && originalCamera.url !== editingCamera.value.url
 
   try {
     if (wasMonitoring && originalCamera) {
@@ -1221,6 +1228,21 @@ async function saveEditCamera() {
     }
 
     await cameraStore.updateCamera(editingCamera.value.id, updateData)
+
+    if (urlChanged) {
+      // Backend already dropped its cached stream for this camera on url change
+      // (see app/routes/cameras.py update_camera); restart it here and bump the
+      // nonce so MediaViewer's <img> actually remounts against the new clip
+      // instead of sitting on whatever it last loaded.
+      try {
+        await streamService.stopCameraStream(editingCamera.value.id)
+        await streamService.startCameraStream(editingCamera.value.id)
+      } catch (streamErr) {
+        console.error('Failed to restart stream after url change:', streamErr)
+      }
+      streamRefreshNonce.value[editingCamera.value.id] =
+        (streamRefreshNonce.value[editingCamera.value.id] || 0) + 1
+    }
 
     message.value = `อัพเดทกล้อง ${editingCamera.value.name} เรียบร้อยแล้ว`
     messageType.value = 'success'
@@ -1312,6 +1334,18 @@ function getUserCameraCount(userId) {
         >
           <i :class="isBlurAllActive ? 'fas fa-eye' : 'fas fa-eye-slash'"></i>
           {{ isBlurAllActive ? 'ยกเลิกเบลอทั้งหมด' : 'เบลอทั้งหมด' }}
+        </button>
+        <!-- AI Overlay Toggle: off by default so preview stays smooth (see
+             stream_service.py) -- turning it on re-runs the pose model on the
+             preview too, which will visibly slow it down again. -->
+        <button
+          @click="showAiOverlay = !showAiOverlay"
+          :class="showAiOverlay ? 'btn btn-warning' : 'btn btn-outline-secondary'"
+          :title="showAiOverlay
+            ? 'ปิดกรอบตรวจจับ (จะลื่นขึ้น)'
+            : 'แสดงกรอบ+เส้นตรวจจับจาก AI บนภาพ (อาจทำให้ preview หน่วง)'"
+        >
+          {{ showAiOverlay ? 'ซ่อนกรอบตรวจจับ' : 'แสดงกรอบตรวจจับ (อาจแลค)' }}
         </button>
         <!-- ซ่อนปุ่มเพิ่มกล้องสำหรับ User ที่ไม่ใช่ Admin -->
         <button v-if="isAdmin" @click="goToAddCamera" class="btn btn-primary">
@@ -1422,9 +1456,11 @@ function getUserCameraCount(userId) {
             <div class="video-container" @dblclick="fullscreenCamera === camera.id ? toggleFullscreen(camera) : null">
               <MediaViewer
                 v-if="camera.id && camera.url"
+                  :key="`${camera.id}-${streamRefreshNonce[camera.id] || 0}`"
                   :url="camera.url"
                   :camera-id="camera.id"
                   :use-stream-api="isRtspOrStreamUrl(camera.url)"
+                  :overlay="showAiOverlay"
                   :alt-text="`Camera feed for ${camera.name}`"
                   :is-fullscreen="fullscreenCamera === camera.id"
                   :is-blurred="isBlurAllActive"

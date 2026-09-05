@@ -11,8 +11,10 @@ function getAuthToken() {
 export default {
   /**
    * สร้าง URL สำหรับ MJPEG stream จากกล้อง
+   * overlay=true จะให้ backend วาดกรอบ+เส้น skeleton จากโมเดล pose ทับภาพ
+   * (ใช้โมเดลจริงอีกครั้งเพื่อวาด จึงหน่วงกว่าโหมดปกติที่ส่งวิดีโอดิบ)
    */
-  getCameraStreamUrl: (cameraId) => {
+  getCameraStreamUrl: (cameraId, overlay = false) => {
     try {
       const token = getAuthToken()
       const baseUrl = getApiBaseUrl()
@@ -40,6 +42,9 @@ export default {
 
       if (token) {
         url.searchParams.append('token', token)
+      }
+      if (overlay) {
+        url.searchParams.append('overlay', '1')
       }
 
       return url.toString()

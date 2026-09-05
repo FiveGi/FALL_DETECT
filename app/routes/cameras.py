@@ -263,7 +263,8 @@ def update_camera(id):
     
     camera = Camera.query.get_or_404(id)
     data = request.get_json()
-    
+    old_url = camera.url
+
     for field in ['name', 'room_name', 'url', 'detection_type', 'alert_start_time', 'alert_end_time', 'notification_cooldown', 'ai_confidence_threshold', 'enable_alone_detection']:
         if field in data:
             value = data[field]
@@ -274,15 +275,25 @@ def update_camera(id):
                 if not time_pattern.match(value):
                     return jsonify({'error': f'{field} must be in HH:MM 24-hour format (e.g., 08:30, 20:15).'}), 400
             setattr(camera, field, value)
-    
+
     # Allow admin to change camera owner
     if 'owner_id' in data:
         owner = User.query.get(data['owner_id'])
         if not owner:
             return jsonify({'error': f'Owner user with ID {data["owner_id"]} not found'}), 400
         camera.user_id = data['owner_id']
-    
+
     db.session.commit()
+
+    if camera.url != old_url:
+        # The preview stream (app/services/stream_service.py) keeps its own
+        # cv2.VideoCapture per camera_id, opened against whatever url it had when
+        # first started -- editing camera.url here doesn't touch that running
+        # capture, so viewers silently kept seeing the old clip. Stop it so the
+        # next view opens fresh against the new url.
+        from app.services.stream_service import stream_manager
+        stream_manager.stop_stream(camera.id)
+
     save_system_log('INFO', f'Camera updated by admin: {camera.name}', 'CAMERA', current_user.id)
     return jsonify({'message': f'Camera "{camera.name}" was updated successfully.'})
 
