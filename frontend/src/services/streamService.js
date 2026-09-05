@@ -1,0 +1,210 @@
+/**
+ * Service จัดการ Video Streaming จาก backend
+ */
+import { getApiBaseUrl, API_ENDPOINTS } from '@/config/api'
+
+// Helper to get auth token from localStorage
+function getAuthToken() {
+    return localStorage.getItem('authToken')
+}
+
+export default {
+  /**
+   * สร้าง URL สำหรับ MJPEG stream จากกล้อง
+   */
+  getCameraStreamUrl: (cameraId) => {
+    try {
+      const token = getAuthToken()
+      const baseUrl = getApiBaseUrl()
+
+      // ตรวจสอบว่า baseUrl มีค่าและถูกต้อง
+      if (!baseUrl) {
+        throw new Error('API base URL is not defined')
+      }
+
+      const endpoint = API_ENDPOINTS.STREAM.CAMERA(cameraId)
+
+      // ตรวจสอบว่า endpoint มีค่า
+      if (!endpoint) {
+        throw new Error('Stream endpoint is not defined')
+      }
+
+      // สร้าง absolute URL
+      // ใช้ Backend URL โดยตรง: http://localhost:8932
+      //const backendUrl = 'http://localhost:8932'
+      const fullUrl = `${baseUrl}${endpoint}`
+
+      console.log(`[StreamService] Creating stream URL for camera ${cameraId}:`, fullUrl)
+
+      const url = new URL(fullUrl)
+
+      if (token) {
+        url.searchParams.append('token', token)
+      }
+
+      return url.toString()
+    } catch (error) {
+      console.error(`Error creating camera stream URL for camera ${cameraId}:`, error)
+      // Return a fallback URL หรือ empty string
+      return ''
+    }
+  },
+
+  /**
+   * เริ่ม stream กล้อง
+   */
+  startCameraStream: async (cameraId) => {
+  try {
+    const token = getAuthToken()
+
+    const response = await fetch(
+      `${getApiBaseUrl()}${API_ENDPOINTS.STREAM.START(cameraId)}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      }
+    )
+
+    const data = await response.json().catch(() => null)
+
+    if (!response.ok) {
+      console.error('❌ Backend response error:', data)
+
+      throw new Error(
+        data?.message ||
+        data?.error ||
+        `HTTP ${response.status}`
+      )
+    }
+
+    return data
+
+  } catch (error) {
+    console.error(`🔥 Error starting camera stream ${cameraId}:`, error)
+    throw error
+  }
+},
+
+  /**
+   * หยุด stream กล้อง
+   */
+  stopCameraStream: async (cameraId) => {
+    try {
+      const token = getAuthToken()
+      const response = await fetch(`${getApiBaseUrl()}${API_ENDPOINTS.STREAM.STOP(cameraId)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      })
+      if (!response.ok) {
+        throw new Error('Failed to stop camera stream')
+      }
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error(`Error stopping camera stream ${cameraId}:`, error)
+      throw error
+    }
+  },
+
+  /**
+   * ดึงสถานะ stream ของกล้อง
+   */
+  getCameraStreamStatus: async (cameraId) => {
+    try {
+      const token = getAuthToken()
+      const response = await fetch(`${getApiBaseUrl()}${API_ENDPOINTS.STREAM.STATUS(cameraId)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      })
+      if (!response.ok) {
+        throw new Error('Failed to get camera stream status')
+      }
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error(`Error getting camera stream status ${cameraId}:`, error)
+      throw error
+    }
+  },
+
+  /**
+   * ดึงสถิติ stream ทั้งหมด
+   */
+  getStreamStats: async () => {
+    try {
+      const token = getAuthToken()
+      const response = await fetch(`${getApiBaseUrl()}${API_ENDPOINTS.STREAM.STATS}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      })
+      if (!response.ok) {
+        throw new Error('Failed to get stream stats')
+      }
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error('Error getting stream stats:', error)
+      throw error
+    }
+  },
+
+  /**
+   * ทดสอบการเชื่อมต่อกล้อง
+   */
+  testCameraStream: async (cameraId) => {
+    try {
+      const token = getAuthToken()
+      const response = await fetch(`${getApiBaseUrl()}${API_ENDPOINTS.STREAM.TEST(cameraId)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      })
+      if (!response.ok) {
+        throw new Error('Failed to test camera stream')
+      }
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error(`Error testing camera stream ${cameraId}:`, error)
+      throw error
+    }
+  },
+
+  /**
+   * ทำความสะอาด streams ที่ไม่ใช้งาน
+   */
+  cleanupStreams: async () => {
+    try {
+      const token = getAuthToken()
+      const response = await fetch(`${getApiBaseUrl()}${API_ENDPOINTS.STREAM.CLEANUP}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      })
+      if (!response.ok) {
+        throw new Error('Failed to cleanup streams')
+      }
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error('Error cleaning up streams:', error)
+      throw error
+    }
+  },
+}
