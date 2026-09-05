@@ -30,7 +30,7 @@ const newCamera = ref({
   owner_id: null, // เพิ่มเพื่อระบุเจ้าของกล้อง
   alert_start_time: '21:00',
   alert_end_time: '05:00',
-  notification_cooldown_min: 10, // นาที
+  notification_cooldown_sec: 600, // วินาที
   ai_confidence_threshold: 0.5,
 })
 
@@ -53,7 +53,7 @@ const editingCamera = ref({
   owner_id: null,
   alert_start_time: '21:00',
   alert_end_time: '05:00',
-  notification_cooldown_min: 10,
+  notification_cooldown_sec: 600,
   ai_confidence_threshold: 0.5,
 })
 const showEditModal = ref(false)
@@ -144,7 +144,7 @@ async function addCamera() {
       owner_id: newCamera.value.owner_id,
       alert_start_time: newCamera.value.alert_start_time,
       alert_end_time: newCamera.value.alert_end_time,
-      notification_cooldown: newCamera.value.notification_cooldown_min * 60, // แปลงเป็นวินาที
+      notification_cooldown: newCamera.value.notification_cooldown_sec,
       ai_confidence_threshold: newCamera.value.ai_confidence_threshold,
     }
     const result = await cameraStore.addCamera(camera)
@@ -161,7 +161,7 @@ async function addCamera() {
         owner_id: null,
         alert_start_time: '21:00',
         alert_end_time: '05:00',
-        notification_cooldown_min: 10,
+        notification_cooldown_sec: 600,
         ai_confidence_threshold: 0.5,
       }
       setTimeout(() => {
@@ -198,7 +198,7 @@ function startEditCamera(camera) {
   editingCamera.value = {
     ...camera,
     owner_id: camera.owner?.id || camera.owner_id,
-    notification_cooldown_min: camera.notification_cooldown ? Math.round(camera.notification_cooldown / 60) : 10,
+    notification_cooldown_sec: camera.notification_cooldown ?? 600,
     detection_type: camera.detection_type || 'bed_exit',
     alert_start_time: camera.alert_start_time || '21:00',
     alert_end_time: camera.alert_end_time || '05:00',
@@ -232,7 +232,7 @@ async function saveEditCamera() {
       detection_type: editingCamera.value.detection_type,
       alert_start_time: editingCamera.value.alert_start_time,
       alert_end_time: editingCamera.value.alert_end_time,
-      notification_cooldown: editingCamera.value.notification_cooldown_min * 60,
+      notification_cooldown: editingCamera.value.notification_cooldown_sec,
       ai_confidence_threshold: editingCamera.value.ai_confidence_threshold,
     }
 
@@ -470,9 +470,9 @@ function clearSearch() {
               </div>
 
               <div class="form-group">
-                <label for="notification-cooldown" class="form-label">ระยะห่างการแจ้งเตือน (นาที)</label>
-                <input type="number" id="notification-cooldown" v-model.number="newCamera.notification_cooldown_min" class="form-input" min="0" />
-                <small class="form-help">เวลาที่ต้องรอก่อนแจ้งเตือนครั้งต่อไป (ป้องกันการแจ้งเตือนซ้ำเร็วเกินไป)</small>
+                <label for="notification-cooldown" class="form-label">ระยะห่างการแจ้งเตือน (วินาที)</label>
+                <input type="number" id="notification-cooldown" v-model.number="newCamera.notification_cooldown_sec" class="form-input" min="1" step="1" />
+                <small class="form-help">เวลาที่ต้องรอก่อนแจ้งเตือนครั้งต่อไป (ป้องกันการแจ้งเตือนซ้ำเร็วเกินไป) เช่น 30 วินาที, 60 วินาที (1 นาที), 600 วินาที (10 นาที)</small>
               </div>
 
               <div class="form-group">
@@ -510,7 +510,7 @@ function clearSearch() {
                   <p class="camera-url">{{ camera.url }}</p>
                   <p style="font-size:0.95em;color:#64748b;">Detection: {{ getDetectionTypeText(camera.detection_type) }}</p>
                   <p style="font-size:0.95em;color:#64748b;">Alert: {{ camera.alert_start_time || '-' }} - {{ camera.alert_end_time || '-' }}</p>
-                  <p style="font-size:0.95em;color:#64748b;">Cooldown: {{ camera.notification_cooldown ? Math.round(camera.notification_cooldown/60) : '-' }} นาที</p>
+                  <p style="font-size:0.95em;color:#64748b;">Cooldown: {{ camera.notification_cooldown ?? '-' }} วินาที</p>
                   <p style="font-size:0.95em;color:#1e40af;font-weight:600;" v-if="camera.owner">
                     เจ้าของ: {{ camera.owner.username }} ({{ camera.owner.id }})
                   </p>
@@ -648,9 +648,9 @@ function clearSearch() {
             </div>
 
             <div class="form-group">
-              <label for="edit-notification-cooldown" class="form-label">ระยะห่างการแจ้งเตือน (นาที)</label>
-              <input type="number" id="edit-notification-cooldown" v-model.number="editingCamera.notification_cooldown_min" class="form-input" min="0" />
-              <small class="form-help">เวลาที่ต้องรอก่อนแจ้งเตือนครั้งต่อไป (ป้องกันการแจ้งเตือนซ้ำเร็วเกินไป)</small>
+              <label for="edit-notification-cooldown" class="form-label">ระยะห่างการแจ้งเตือน (วินาที)</label>
+              <input type="number" id="edit-notification-cooldown" v-model.number="editingCamera.notification_cooldown_sec" class="form-input" min="1" step="1" />
+              <small class="form-help">เวลาที่ต้องรอก่อนแจ้งเตือนครั้งต่อไป (ป้องกันการแจ้งเตือนซ้ำเร็วเกินไป) เช่น 30 วินาที, 60 วินาที (1 นาที), 600 วินาที (10 นาที)</small>
             </div>
 
             <div class="form-group">

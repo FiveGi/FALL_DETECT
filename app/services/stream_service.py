@@ -155,9 +155,9 @@ class RTSPStream:
             return None
         
         try:
-            # Draw bounding boxes if requested
+            # Draw pose skeletons if requested
             if draw_bbox:
-                frame = self._draw_person_bboxes(frame)
+                frame = self._draw_pose_skeleton(frame)
             
             # Resize frame for web streaming (optional, for performance)
             height, width = frame.shape[:2]
@@ -177,49 +177,55 @@ class RTSPStream:
         
         return None
     
-    def _draw_person_bboxes(self, frame: np.ndarray) -> np.ndarray:
-        """Draw bounding boxes for detected persons using YOLO"""
+    # COCO-17 skeleton edges (index-identical to the pose model's output --
+    # see app/detection/v3_fall_detection.py's module docstring).
+    _SKELETON_EDGES = [
+        (0, 1), (0, 2), (1, 3), (2, 4),          # head
+        (5, 6),                                   # shoulders
+        (5, 7), (7, 9),                           # left arm
+        (6, 8), (8, 10),                          # right arm
+        (5, 11), (6, 12), (11, 12),               # torso
+        (11, 13), (13, 15),                       # left leg
+        (12, 14), (14, 16),                       # right leg
+    ]
+    _KEYPOINT_CONF_THRESHOLD = 0.3
+
+    def _draw_pose_skeleton(self, frame: np.ndarray) -> np.ndarray:
+        """Draw the COCO-17 pose skeleton using the same YOLO-pose model that
+        drives fall detection (V3PoseFallDetector), instead of a separate
+        bounding-box-only person detector -- one model doing double duty for
+        both detection and the live preview, rather than two."""
         try:
             from app.services.model_manager import model_manager
-            
-            # Get person detector (lazy load)
-            person_detector = model_manager.get_v2_person_detector()
-            if person_detector is None:
+
+            fall_detector = model_manager.get_v3_fall_detector()
+            if fall_detector is None:
                 return frame
-            
-            # Detect persons
-            person_count, detections = person_detector.detect_persons(frame)
-            
-            # Draw bounding boxes
-            for detection in detections:
-                x1, y1, x2, y2 = detection['bbox']
-                confidence = detection['confidence']
-                track_id = detection['track_id']
-                
-                # Draw rectangle
-                color = (0, 255, 0)  # Green color
-                cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-                
-                # Draw label with confidence and track ID
-                label = f"Person {track_id if track_id != -1 else ''}: {confidence:.2f}"
-                label_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-                
-                # Draw label background
-                cv2.rectangle(frame, (x1, y1 - label_size[1] - 10), 
-                            (x1 + label_size[0], y1), color, -1)
-                
-                # Draw label text
-                cv2.putText(frame, label, (x1, y1 - 5), 
-                          cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-            
-            # Draw person count on top-left
-            count_text = f"Persons: {person_count}"
-            cv2.putText(frame, count_text, (10, 30), 
+
+            h, w = frame.shape[:2]
+            people = fall_detector.extract_all_keypoints(frame)
+
+            for kpts17, _hip_center in people:
+                pts = [
+                    (int(x * w), int(y * h)) if conf >= self._KEYPOINT_CONF_THRESHOLD else None
+                    for x, y, conf in kpts17
+                ]
+
+                for a, b in self._SKELETON_EDGES:
+                    if pts[a] is not None and pts[b] is not None:
+                        cv2.line(frame, pts[a], pts[b], (0, 255, 0), 2)
+
+                for pt in pts:
+                    if pt is not None:
+                        cv2.circle(frame, pt, 3, (0, 200, 255), -1)
+
+            count_text = f"Persons: {len(people)}"
+            cv2.putText(frame, count_text, (10, 30),
                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-            
+
         except Exception as e:
-            print(f"Error drawing bounding boxes: {str(e)}")
-        
+            print(f"Error drawing pose skeleton: {str(e)}")
+
         return frame
     
     def get_stats(self) -> dict:
