@@ -11,6 +11,7 @@ import logService from '@/services/logService'
 import cameraService from '@/services/cameraService'
 import streamService from '@/services/streamService'
 import adminService from '@/services/adminService'
+import { getDetectionTypeText, DETECTION_TYPE_OPTIONS, DETECTION_TYPE_FORM_HELP } from '@/utils/detectionType'
 
 const cameraStore = useCameraStore()
 const notificationStore = useNotificationStore()
@@ -882,11 +883,7 @@ async function saveGlobalDetectionType() {
     const successCount = results.filter(r => r.success).length
     const failedCount = results.filter(r => !r.success).length
 
-    const detectionTypeText = globalDetectionType.value === 'bed_exit'
-      ? 'ตรวจจับการลุกจากเตียง'
-      : globalDetectionType.value === 'fall'
-      ? 'ตรวจจับการล้ม (Enhanced Detection)'
-      : 'ตรวจจับการล้ม (เวอร์ชั่น 3 - YOLO-pose)'
+    const detectionTypeText = getDetectionTypeText(globalDetectionType.value)
 
     if (failedCount === 0) {
       // Show success notification
@@ -1658,9 +1655,7 @@ function getUserCameraCount(userId) {
               class="form-input"
               :disabled="isSavingSettings"
             >
-              <option value="bed_exit">ตรวจจับการลุกจากเตียง</option>
-              <option value="fall">ตรวจจับการล้ม (Enhanced Detection)</option>
-              <option value="fall_v2">ตรวจจับการล้ม (เวอร์ชั่น 3 - YOLO-pose)</option>
+              <option v-for="opt in DETECTION_TYPE_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
             </select>
           </div>
 
@@ -1789,11 +1784,9 @@ function getUserCameraCount(userId) {
             <div class="form-group">
               <label for="edit-detection-type" class="form-label">ประเภทการตรวจจับ</label>
               <select id="edit-detection-type" v-model="editingCamera.detection_type" class="form-input">
-                <option value="bed_exit">ตรวจจับการลุกจากเตียง</option>
-                <option value="fall">ตรวจจับการล้ม</option>
-                <option value="fall_v2">ตรวจจับการล้ม (เวอร์ชั่น 3 - YOLO-pose)</option>
+                <option v-for="opt in DETECTION_TYPE_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
-              <small class="form-help">เลือกว่าต้องการให้ AI ตรวจจับพฤติกรรมแบบไหน - "ตรวจจับการล้ม" คือโมเดลเดิม (MediaPipe), "เวอร์ชั่น 3" คือโมเดลล่าสุด (YOLO-pose) แม่นยำกว่า แนะนำให้ใช้</small>
+              <small class="form-help">{{ DETECTION_TYPE_FORM_HELP }}</small>
             </div>
 
             <div class="form-group">

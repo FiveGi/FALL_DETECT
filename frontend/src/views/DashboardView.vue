@@ -153,6 +153,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useCameraStore } from '@/stores/camera'
 import { useAuthStore } from '@/stores/auth'
 import adminService from '@/services/adminService'
+import { getDetectionTypeText } from '@/utils/detectionType'
 import IconCamera from '@/components/icons/IconCamera.vue'
 import IconAlert from '@/components/icons/IconAlert.vue'
 import IconMotion from '@/components/icons/IconMotion.vue'
@@ -266,21 +267,6 @@ const recentAlerts = computed(() => {
     })
 })
 
-// Helper function to get Thai detection type text
-function getDetectionTypeText(detectionType) {
-  switch (detectionType) {
-    case 'bed_exit':
-      return 'ตรวจจับการลุกจากเตียง'
-    case 'fall':
-      return 'ตรวจจับการล้ม (Enhanced Detection)'
-    case 'fall_v2':
-      return 'ตรวจจับการล้ม (เวอร์ชั่น 3 - YOLO-pose)'
-    case 'alone_v2':
-      return 'ตรวจจับผู้สูงอายุอยู่คนเดียว'
-    default:
-      return detectionType || 'การเคลื่อนไหว'
-  }
-}
 
 // Format timestamp to time only
 function formatTime(timestamp) {

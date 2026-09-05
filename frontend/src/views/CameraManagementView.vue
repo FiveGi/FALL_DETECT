@@ -5,6 +5,7 @@ import { useCameraStore } from '@/stores/camera'
 import { useAuthStore } from '@/stores/auth'
 import adminService from '@/services/adminService'
 import cameraService from '@/services/cameraService'
+import { getDetectionTypeText, DETECTION_TYPE_OPTIONS, DETECTION_TYPE_FORM_HELP } from '@/utils/detectionType'
 import IconCamera from '@/components/icons/IconCamera.vue'
 import SearchFilter from '@/components/common/SearchFilter.vue'
 
@@ -298,22 +299,6 @@ function goToMonitor() {
   router.push('/monitor')
 }
 
-// ฟังก์ชันแปลง detection type เป็นข้อความไทย
-function getDetectionTypeText(detectionType) {
-  switch (detectionType) {
-    case 'bed_exit':
-      return 'ตรวจจับการลุกจากเตียง'
-    case 'fall':
-      return 'ตรวจจับการล้ม'
-    case 'fall_v2':
-      return 'ตรวจจับการล้ม (เวอร์ชั่น 3 - YOLO-pose)'
-    case 'alone_v2':
-      return 'ตรวจจับผู้สูงอายุอยู่คนเดียว'
-    default:
-      return detectionType
-  }
-}
-
 function handleSearch(query) {
   searchQuery.value = query
 }
@@ -434,11 +419,9 @@ function clearSearch() {
               <div class="form-group">
                 <label for="detection-type" class="form-label">ประเภทการตรวจจับ</label>
                 <select id="detection-type" v-model="newCamera.detection_type" class="form-input">
-                  <option value="bed_exit">ตรวจจับการลุกจากเตียง</option>
-                  <option value="fall">ตรวจจับการล้ม</option>
-                  <option value="fall_v2">ตรวจจับการล้ม (เวอร์ชั่น 3 - YOLO-pose)</option>
+                  <option v-for="opt in DETECTION_TYPE_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
                 </select>
-                <small class="form-help">เลือกว่าต้องการให้ AI ตรวจจับพฤติกรรมแบบไหน - "ตรวจจับการล้ม" คือโมเดลเดิม (MediaPipe), "เวอร์ชั่น 3" คือโมเดลล่าสุด (YOLO-pose) แม่นยำกว่า แนะนำให้ใช้</small>
+                <small class="form-help">{{ DETECTION_TYPE_FORM_HELP }}</small>
               </div>
 
               <div class="form-group">
@@ -612,11 +595,9 @@ function clearSearch() {
             <div class="form-group">
               <label for="edit-detection-type" class="form-label">ประเภทการตรวจจับ</label>
               <select id="edit-detection-type" v-model="editingCamera.detection_type" class="form-input">
-                <option value="bed_exit">ตรวจจับการลุกจากเตียง</option>
-                <option value="fall">ตรวจจับการล้ม</option>
-                <option value="fall_v2">ตรวจจับการล้ม (เวอร์ชั่น 3 - YOLO-pose)</option>
+                <option v-for="opt in DETECTION_TYPE_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
-              <small class="form-help">เลือกว่าต้องการให้ AI ตรวจจับพฤติกรรมแบบไหน - "ตรวจจับการล้ม" คือโมเดลเดิม (MediaPipe), "เวอร์ชั่น 3" คือโมเดลล่าสุด (YOLO-pose) แม่นยำกว่า แนะนำให้ใช้</small>
+              <small class="form-help">{{ DETECTION_TYPE_FORM_HELP }}</small>
             </div>
 
             <div class="form-group">

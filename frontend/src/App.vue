@@ -10,6 +10,7 @@ import { useLeftNotificationStore } from './stores/leftNotification'
 import LeftSideNotification from '@/components/common/LeftSideNotification.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import logService from '@/services/logService'
+import { getDetectionTypeText } from '@/utils/detectionType'
 
 const route = useRoute()
 const router = useRouter()
@@ -98,22 +99,6 @@ function showGlobalNotificationAlert(apiNotification) {
   }
   notificationStore.sendNotification(notification)
   leftNotificationStore.addNotification(notification)
-}
-
-function getDetectionTypeText(detectionType) {
-  switch (detectionType) {
-    case 'bed_exit':
-      return 'ตรวจจับการลุกจากเตียง'
-    case 'fall':
-    case 'fall_detection':
-      return 'ตรวจจับการล้ม'
-    case 'fall_v2':
-      return 'ตรวจจับการล้ม (เวอร์ชั่น 3 - YOLO-pose)'
-    case 'alone_v2':
-      return 'ตรวจจับผู้สูงอายุอยู่คนเดียว'
-    default:
-      return detectionType || 'การเคลื่อนไหว'
-  }
 }
 
 // Start global notification polling
