@@ -1919,8 +1919,8 @@ actually needs (indoor home camera, people upright/sitting, close range), not a 
 also checked imgsz=1280 and `yolo26x`, neither beat this). Restricting to the 21 frames that actually match
 the real domain (clips 14/15/16, real elderly-care footage) -- **100% accuracy (21/21)**, including the one
 crowd-scene clip, correctly classified as "not exactly 1" regardless of precise headcount.
-**Not yet deployed** -- alone-detection still runs `yolov10x` @ conf=0.6 in production; recommended but
-awaiting the user's go-ahead to swap `model_manager.py`/`V2PersonDetector`.
+**Deployed.** `model_manager.py`'s `_load_person_detector()` now loads `yolo26l.pt` @ conf=0.35 (was
+`yolov10x.pt` @ 0.6) -- confirmed loading cleanly and producing a correct real alert in production.
 
 **Then tried actually training a custom person-detector**, per explicit user request to push further than
 threshold tuning. No manually-labeled home-camera dataset exists, so used self-training / pseudo-labeling:
