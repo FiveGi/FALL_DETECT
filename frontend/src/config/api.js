@@ -70,6 +70,13 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS: {
     BASE: '/detection-logs/notifications',
     DETAIL: (id) => `/detection-logs/notifications/${id}`,
+    ACKNOWLEDGE: (id) => `/detection-logs/notifications/${id}/acknowledge`,
+  },
+
+  // line
+  LINE: {
+    SETTINGS: '/line/settings',
+    TEST: '/line/test',
   },
 
   // telegram

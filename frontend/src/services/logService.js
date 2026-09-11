@@ -59,6 +59,24 @@ export default {
     }
   },
 
+  // Marks an alert as seen so the backend's escalation task stops re-sending it.
+  acknowledgeNotification: async (notificationId) => {
+    try {
+      const token = getAuthToken()
+      const response = await fetch(`${getApiBaseUrl()}${API_ENDPOINTS.NOTIFICATIONS.ACKNOWLEDGE(notificationId)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      })
+      if (!response.ok) {
+        throw new Error('Failed to acknowledge notification')
+      }
+      return await response.json()
+    } catch (error) {
+      console.error('Error acknowledging notification:', error)
+      throw error
+    }
+  },
+
   fetchNotificationByCameraId: async (cameraId) => {
     try {
       const token = getAuthToken()

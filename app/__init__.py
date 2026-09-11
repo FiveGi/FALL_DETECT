@@ -18,8 +18,30 @@ db = SQLAlchemy()
 jwt = JWTManager()
 celery = Celery(__name__)
 
+# Configured at module level, not inside create_app(): the worker and beat containers start
+# with `celery -A app.celery ...`, which only imports this package -- create_app() never runs
+# there, so anything set inside it is invisible to beat and the schedule below would silently
+# never fire. Flask's own process still calls create_app() and re-applies the same config.
+from app.config import Config as _Config
+
+# Only the keys beat/worker need, and only in celery's modern names: Config carries both
+# old-style (CELERY_BROKER_URL) and new-style (task_acks_late) keys, and handing celery both
+# at once makes it refuse to start with "Cannot mix new and old setting keys".
+celery.conf.broker_url = _Config.CELERY_BROKER_URL
+celery.conf.result_backend = _Config.CELERY_RESULT_BACKEND
+celery.conf.timezone = 'Asia/Bangkok'
+celery.conf.beat_schedule = {
+    'check-pending-acknowledgements': {
+        'task': 'app.services.escalation_service.check_pending_acknowledgements',
+        'schedule': float(_Config.ESCALATION_CHECK_SECONDS),
+    },
+}
+
 
 import app.services.camera_manager
+# Imported for its @celery.task side effect, same as camera_manager above: without this
+# the worker never registers the task and beat's messages die as "unregistered task".
+import app.services.escalation_service
 
 
 def create_app():
@@ -27,7 +49,9 @@ def create_app():
     app.config.from_object('app.config.Config')
     db.init_app(app)
     jwt.init_app(app)
-    celery.conf.update(app.config)
+    # celery config is applied at module level above (see comment there); re-applying
+    # app.config here would push flask's old-style CELERY_* keys back in and trip celery's
+    # "cannot mix new and old setting keys" check inside the worker.
    
     CORS(app, resources={
         r"/*": {
@@ -68,7 +92,7 @@ def create_app():
             return False
 
 
-    from .models import user, camera, detection_log, system_log, notification_history, telegram_settings, token_blocklist, thai_frat_assessment
+    from .models import user, camera, detection_log, system_log, notification_history, telegram_settings, line_settings, token_blocklist, thai_frat_assessment
    
     with app.app_context():
         try:
@@ -87,6 +111,28 @@ def create_app():
                     db.session.rollback()
                     print(f'Could not add telegram_chat_id column automatically: {e}')
 
+
+            # Same pattern as telegram_chat_id above: add the notification_history columns
+            # introduced after the table shipped, so alert history keeps loading on an
+            # existing database instead of erroring on a missing column.
+            if 'notification_history' in inspector.get_table_names():
+                existing = [c['name'] for c in inspector.get_columns('notification_history')]
+                for column, ddl in (
+                    ('confidence', 'ALTER TABLE notification_history ADD COLUMN confidence FLOAT'),
+                    ('acknowledged_at', 'ALTER TABLE notification_history ADD COLUMN acknowledged_at TIMESTAMP'),
+                    ('acknowledged_by', 'ALTER TABLE notification_history ADD COLUMN acknowledged_by INTEGER'),
+                    ('escalation_count', 'ALTER TABLE notification_history ADD COLUMN escalation_count INTEGER NOT NULL DEFAULT 0'),
+                    ('clip_path', 'ALTER TABLE notification_history ADD COLUMN clip_path VARCHAR(512)'),
+                ):
+                    if column in existing:
+                        continue
+                    try:
+                        db.session.execute(text(ddl))
+                        db.session.commit()
+                        print(f'Added missing column {column} to notification_history table')
+                    except Exception as e:
+                        db.session.rollback()
+                        print(f'Could not add {column} column automatically: {e}')
 
             if not User.query.filter_by(username='admin').first():
                 admin = User(username='admin', role=UserRole.ADMIN)

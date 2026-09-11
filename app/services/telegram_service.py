@@ -9,7 +9,8 @@ from app.models.telegram_settings import TelegramSettings
 tz = pytz.timezone('Asia/Bangkok')
 
 
-def send_telegram_message_async(camera_id, camera_name, room_name, detection_type, timestamp, image_path):
+def send_telegram_message_async(camera_id, camera_name, room_name, detection_type, timestamp,
+                                image_path, tier="confirmed", confidence=None, escalation_level=0):
     def _send():
         from app import create_app
         app = create_app()
@@ -30,7 +31,16 @@ def send_telegram_message_async(camera_id, camera_name, room_name, detection_typ
                 risk_level = "normal"
 
             # ✅ Alert style
-            if risk_level == "red":
+            if risk_level == "red" and tier != "confirmed":
+                # Below the confidence bar the model genuinely can't tell a fall from
+                # ordinary lying/settling (SKILL.md SS33), so this asks for a look rather
+                # than declaring an emergency -- see notification_service.alert_tier.
+                risk_level = "yellow"
+                alert_title = "❓ PLEASE CHECK ❓"
+                priority_text = "NEEDS VERIFICATION"
+                event_text = "❓ POSSIBLE FALL - PLEASE CHECK THE CAMERA"
+                emoji = "🟠"
+            elif risk_level == "red":
                 alert_title = "🚨 CRITICAL ALERT 🚨"
                 priority_text = "HIGH PRIORITY ALERT"
                 event_text = "🚨 FALL DETECTED - IMMEDIATE ASSISTANCE REQUIRED!"
@@ -48,6 +58,10 @@ def send_telegram_message_async(camera_id, camera_name, room_name, detection_typ
                 event_text = "Normal Activity"
                 emoji = "🟢"
 
+            if escalation_level > 0:
+                alert_title = f"🔁 UNACKNOWLEDGED - REMINDER #{escalation_level} 🔁"
+                priority_text = "NOBODY HAS ACKNOWLEDGED THIS ALERT"
+
             # ✅ ข้อความ format ตามที่คุณต้องการ
             text = (
                 f"{alert_title}\n"
@@ -56,7 +70,8 @@ def send_telegram_message_async(camera_id, camera_name, room_name, detection_typ
                 f"🏠 Room: {room_name}\n"
                 f"📋 Event: {event_text}\n"
                 f"⚠️ Risk Level: {risk_level.upper()}\n"
-                f"🕐 Time: {now.strftime('%Y-%m-%d %H:%M:%S (GMT+7)')}\n\n"
+                + (f"📊 Confidence: {confidence:.0%}\n" if confidence is not None else "")
+                + f"🕐 Time: {now.strftime('%Y-%m-%d %H:%M:%S (GMT+7)')}\n\n"
                 f"Please check the camera feed immediately for more details."
             )
 

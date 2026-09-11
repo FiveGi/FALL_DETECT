@@ -167,6 +167,127 @@
           </div>
         </div>
       </div>
+
+      <!-- การตั้งค่า LINE Messaging API -->
+      <div class="card">
+        <h2 class="card-title">การตั้งค่าแจ้งเตือนผ่าน LINE</h2>
+
+        <div v-if="lineSaveSuccess" class="alert alert-success">
+          บันทึกการตั้งค่า LINE สำเร็จแล้ว
+        </div>
+
+        <div v-if="lineErrorMessage" class="alert alert-error">
+          {{ lineErrorMessage }}
+        </div>
+
+        <div class="info-section">
+          <p class="info-text">
+            ระบบส่งแจ้งเตือนผ่าน LINE Messaging API โดยตรง (ไม่ผ่านบริการอื่น)
+          </p>
+
+          <div class="setup-instructions">
+            <h3>วิธีการตั้งค่า:</h3>
+            <ol>
+              <li>สร้าง Messaging API channel ที่ <strong>LINE Developers Console</strong></li>
+              <li>คัดลอก <code>Channel access token</code> มาใส่ในช่องด้านล่าง</li>
+              <li>เพิ่มบอทเป็นเพื่อนใน LINE แล้วนำ <code>User ID</code> ของคุณมากรอก</li>
+              <li>เปิดสวิตช์ แล้วกดบันทึก</li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="telegram-form">
+          <div class="form-group">
+            <label class="toggle-row">
+              <input type="checkbox" v-model="lineSettings.enabled" :disabled="isLineLoading" />
+              <span>เปิดการแจ้งเตือนผ่าน LINE</span>
+            </label>
+            <small class="form-help">
+              ปิดอยู่ = ระบบจะไม่ส่งข้อความไปที่ LINE เลย แม้จะบันทึก token ไว้แล้ว
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label for="line-token" class="form-label">
+              Channel access token
+              <span class="required">*</span>
+            </label>
+            <input
+              type="password"
+              id="line-token"
+              v-model="lineSettings.channel_access_token"
+              class="form-input"
+              :placeholder="currentLineSettings && currentLineSettings.has_token ? 'บันทึกไว้แล้ว (เว้นว่างไว้ถ้าไม่ต้องการเปลี่ยน)' : 'กรอก Channel access token'"
+              :disabled="isLineLoading"
+            />
+
+            <label for="line-user-id" class="form-label">
+              LINE User ID
+              <span class="required">*</span>
+            </label>
+            <input
+              type="text"
+              id="line-user-id"
+              v-model="lineSettings.line_user_id"
+              class="form-input"
+              placeholder="เช่น Uxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+              :disabled="isLineLoading"
+            />
+          </div>
+
+          <div class="telegram-actions">
+            <button
+              @click="saveLineSettings"
+              type="button"
+              class="btn btn-primary"
+              :disabled="isLineLoading"
+              :class="{ 'loading': isLineLoading }"
+            >
+              <span v-if="!isLineLoading">บันทึกการตั้งค่า LINE</span>
+              <span v-else>กำลังบันทึก...</span>
+            </button>
+
+            <button
+              @click="testLineSettings"
+              type="button"
+              class="btn btn-secondary"
+              :disabled="isLineLoading || isLineTesting || !(currentLineSettings && currentLineSettings.enabled)"
+              :class="{ 'loading': isLineTesting }"
+            >
+              <span v-if="!isLineTesting">ทดสอบการส่งข้อความ</span>
+              <span v-else>กำลังทดสอบ...</span>
+            </button>
+          </div>
+        </div>
+
+        <div v-if="currentLineSettings" class="current-telegram-settings">
+          <h3 class="sub-title">การตั้งค่าปัจจุบัน</h3>
+
+          <div class="setting-item">
+            <span class="setting-label">Channel access token:</span>
+            <span class="setting-value">
+              {{ currentLineSettings.has_token ? '••••••••••' + currentLineSettings.token_preview : 'ยังไม่ได้ตั้งค่า' }}
+            </span>
+          </div>
+
+          <div class="setting-item">
+            <span class="setting-label">LINE User ID:</span>
+            <span class="setting-value">{{ currentLineSettings.line_user_id || 'ยังไม่ได้ตั้งค่า' }}</span>
+          </div>
+
+          <div class="setting-item">
+            <span class="setting-label">สถานะ:</span>
+            <span class="setting-value" :class="currentLineSettings.enabled ? 'status-ready' : 'status-not-set'">
+              {{ currentLineSettings.enabled ? 'เปิดใช้งาน' : 'ปิดอยู่ (ไม่ส่งแจ้งเตือน)' }}
+            </span>
+          </div>
+
+          <div class="setting-item">
+            <span class="setting-label">อัปเดตล่าสุด:</span>
+            <span class="setting-value">{{ formatDateTime(currentLineSettings.updated_at) }}</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -178,6 +299,7 @@ import { useCameraStore } from '@/stores/camera'
 import { useAuthStore } from '@/stores/auth'
 import cameraService from '@/services/cameraService'
 import telegramService from '@/services/telegramService'
+import lineService from '@/services/lineService'
 
 const notificationStore = useNotificationStore()
 const cameraStore = useCameraStore()
@@ -231,6 +353,75 @@ const telegramSettingsStatusClass = computed(() => {
 })
 
 // Telegram methods
+// LINE settings. The token is never sent back from the server, so the input starts blank
+// and an empty value on save means "keep what is stored" (see the route's comment).
+const lineSettings = ref({
+  channel_access_token: '',
+  line_user_id: '',
+  enabled: false
+})
+const currentLineSettings = ref(null)
+const isLineLoading = ref(false)
+const isLineTesting = ref(false)
+const lineSaveSuccess = ref(false)
+const lineErrorMessage = ref('')
+
+function applyLineSettings(data) {
+  currentLineSettings.value = data
+  lineSettings.value.line_user_id = data.line_user_id || ''
+  lineSettings.value.enabled = !!data.enabled
+  lineSettings.value.channel_access_token = ''
+}
+
+async function loadLineSettings() {
+  try {
+    const res = await lineService.fetchLineSettings()
+    applyLineSettings(res.data)
+  } catch (error) {
+    lineErrorMessage.value = error.message
+  }
+}
+
+async function saveLineSettings() {
+  isLineLoading.value = true
+  lineErrorMessage.value = ''
+  lineSaveSuccess.value = false
+  try {
+    const res = await lineService.updateLineSettings({
+      channel_access_token: lineSettings.value.channel_access_token,
+      line_user_id: lineSettings.value.line_user_id,
+      enabled: lineSettings.value.enabled
+    })
+    applyLineSettings(res.data)
+    lineSaveSuccess.value = true
+    setTimeout(() => { lineSaveSuccess.value = false }, 3000)
+  } catch (error) {
+    lineErrorMessage.value = error.message
+    // Keep the toggle showing what the server actually stored, not what the user tried to
+    // set -- otherwise a rejected save leaves the UI claiming LINE is on when it is off.
+    if (currentLineSettings.value) lineSettings.value.enabled = currentLineSettings.value.enabled
+  } finally {
+    isLineLoading.value = false
+  }
+}
+
+async function testLineSettings() {
+  isLineTesting.value = true
+  lineErrorMessage.value = ''
+  try {
+    await lineService.testLineSettings()
+    notificationStore.sendNotification({
+      title: 'ส่งข้อความทดสอบแล้ว',
+      message: 'กรุณาตรวจสอบ LINE ของคุณ',
+      type: 'success'
+    })
+  } catch (error) {
+    lineErrorMessage.value = error.message
+  } finally {
+    isLineTesting.value = false
+  }
+}
+
 async function loadTelegramSettings() {
   try {
     isTelegramLoading.value = true
@@ -403,6 +594,7 @@ onMounted(() => {
 
   // Load Telegram settings
   loadTelegramSettings()
+  loadLineSettings()
 })
 
 // บันทึกการตั้งค่าช่วงเวลา
@@ -667,6 +859,22 @@ function resetTimeSettings() {
 .setting-value {
   color: #6b7280;
   font-family: monospace;
+}
+
+/* Reuses .status-ready / .status-not-set below rather than introducing a second pair of
+   status colours for the same idea. */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toggle-row input {
+  width: 1.1rem;
+  height: 1.1rem;
+  cursor: pointer;
 }
 
 .status-ready {

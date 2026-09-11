@@ -13,6 +13,8 @@ def register_blueprints(app):
     app.register_blueprint(health_bp)
     from .telegram import bp as telegram_bp
     app.register_blueprint(telegram_bp)
+    from .line import bp as line_bp
+    app.register_blueprint(line_bp)
     from .thai_frat import bp as thai_frat_bp
     app.register_blueprint(thai_frat_bp)
     from .alerts import bp as alerts_bp

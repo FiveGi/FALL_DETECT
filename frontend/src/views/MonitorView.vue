@@ -11,7 +11,7 @@ import logService from '@/services/logService'
 import cameraService from '@/services/cameraService'
 import streamService from '@/services/streamService'
 import adminService from '@/services/adminService'
-import { getDetectionTypeText, getAlertTypeText, DETECTION_TYPE_OPTIONS } from '@/utils/detectionType'
+import { getDetectionTypeText, getAlertTypeText, getAlertTier, getAlertTierText, DETECTION_TYPE_OPTIONS } from '@/utils/detectionType'
 import CameraEditModal from '@/components/camera/CameraEditModal.vue'
 
 const cameraStore = useCameraStore()
@@ -1052,6 +1052,36 @@ async function fetchAllLogs() {
   }
 }
 
+// ids currently being acknowledged, so a double click can't fire two requests
+const acknowledging = ref(new Set())
+
+// Acknowledging tells the backend a human has seen this fall alert; escalation_service
+// stops re-sending it. Updated locally as well as on the server so the button reacts
+// immediately instead of waiting for the next poll.
+async function acknowledgeAlert(activity) {
+  const id = activity.notification_id
+  if (!id || acknowledging.value.has(id)) return
+  acknowledging.value = new Set(acknowledging.value).add(id)
+  try {
+    const res = await logService.acknowledgeNotification(id)
+    activity.acknowledged_at = res.acknowledged_at
+    const target = combinedActivities.value.find(a => a.notification_id === id)
+    if (target) target.acknowledged_at = res.acknowledged_at
+    const stored = notifications.value.find(n => n.id === id)
+    if (stored) stored.acknowledged_at = res.acknowledged_at
+  } catch (e) {
+    notificationStore.sendNotification({
+      title: 'รับทราบไม่สำเร็จ',
+      message: 'ไม่สามารถบันทึกการรับทราบได้ กรุณาลองใหม่',
+      type: 'error'
+    })
+  } finally {
+    const next = new Set(acknowledging.value)
+    next.delete(id)
+    acknowledging.value = next
+  }
+}
+
 // ดึงข้อมูล notifications ทั้งหมดจากฐานข้อมูล
 async function fetchAllNotifications() {
   try {
@@ -1102,6 +1132,11 @@ async function fetchAllNotifications() {
           isLocal: false,
           activityType: 'notification',
           risk_level: riskLevel,
+          confidence: notification.confidence,
+          tier: getAlertTier(notification.detection_type, notification.confidence),
+          notification_id: notification.id,
+          acknowledged_at: notification.acknowledged_at,
+          escalation_count: notification.escalation_count || 0,
           detection_type: notification.detection_type,
           image_path: notification.image_path,
           image_url: imageUrl
@@ -1548,6 +1583,30 @@ function getUserCameraCount(userId) {
               <span class="log-time">{{ activity.timestamp }}</span>
               <div class="log-content">
                 <span class="log-message">{{ activity.message }}</span>
+                <span
+                  v-if="activity.activityType === 'notification' && activity.tier"
+                  class="tier-badge"
+                  :class="activity.tier"
+                >
+                  {{ getAlertTierText(activity.tier) }}<template v-if="activity.confidence != null"> · {{ Math.round(activity.confidence * 100) }}%</template>
+                </span>
+                <span v-if="activity.escalation_count > 0" class="escalation-badge">
+                  แจ้งซ้ำ {{ activity.escalation_count }} ครั้ง
+                </span>
+                <div
+                  v-if="activity.activityType === 'notification' && activity.detection_type && activity.detection_type.includes('fall')"
+                  class="ack-row"
+                >
+                  <span v-if="activity.acknowledged_at" class="ack-done">✓ รับทราบแล้ว</span>
+                  <button
+                    v-else
+                    class="btn-ack"
+                    :disabled="acknowledging.has(activity.notification_id)"
+                    @click="acknowledgeAlert(activity)"
+                  >
+                    {{ acknowledging.has(activity.notification_id) ? 'กำลังบันทึก...' : 'รับทราบ' }}
+                  </button>
+                </div>
                 <div v-if="activity.image_url" class="log-image">
                   <a :href="activity.image_url" target="_blank" rel="noopener noreferrer">
                     <img :src="activity.image_url" alt="Alert image" class="alert-image" />
@@ -2350,6 +2409,73 @@ function getUserCameraCount(userId) {
 .log-message {
   font-weight: 500;
   line-height: 1.25rem;
+}
+
+/* Mirrors the two tiers the backend sends to Telegram/LINE: 'confirmed' states a fall,
+   'check' asks staff to verify. Same wording either way -- the alert is never hidden. */
+.tier-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.tier-badge.confirmed {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.tier-badge.check {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.escalation-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: #ede9fe;
+  color: #5b21b6;
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.ack-row {
+  margin-top: 0.4rem;
+}
+
+.btn-ack {
+  padding: 0.2rem 0.75rem;
+  border: 1px solid #b91c1c;
+  border-radius: 6px;
+  background: #fff;
+  color: #b91c1c;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-ack:hover:not(:disabled) {
+  background: #b91c1c;
+  color: #fff;
+}
+
+.btn-ack:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.ack-done {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #15803d;
 }
 
 .log-image {

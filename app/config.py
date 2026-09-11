@@ -27,6 +27,34 @@ class Config:
     TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '')
     TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID', '')
 
+    # LINE Messaging API push notifications (app/services/line_service.py). LINE requires alert
+    # images to be served from a real public HTTPS URL (no direct file upload like Telegram), so
+    # PUBLIC_BASE_URL must point at a URL that actually reaches this backend's /api/alert-images/
+    # route from the internet (e.g. a cloudflared tunnel) -- left blank, images are skipped.
+    # Escalation (app/services/escalation_service.py): how long a fall alert may sit
+    # unacknowledged before it is re-sent, and how many times that may happen before the
+    # system stops nagging. Only falls escalate -- see that module for why.
+    ESCALATION_DELAY_MINUTES = int(os.getenv('ESCALATION_DELAY_MINUTES', 3))
+    MAX_ESCALATIONS = int(os.getenv('MAX_ESCALATIONS', 2))
+    # Alerts older than this are never escalated -- an hours-old fall can no longer be
+    # responded to, and without this floor a restart re-sends the whole unacknowledged
+    # backlog in one burst.
+    ESCALATION_MAX_AGE_MINUTES = int(os.getenv('ESCALATION_MAX_AGE_MINUTES', 30))
+    ESCALATION_CHECK_SECONDS = int(os.getenv('ESCALATION_CHECK_SECONDS', 60))
+
+    # Master on/off for LINE pushes, separate from the credentials so they can stay saved
+    # while nothing is actually sent. Defaults to off: sending a real message to someone's
+    # phone must be an explicit choice, not what happens because a container restarted.
+    LINE_ENABLED = os.getenv('LINE_ENABLED', 'false').strip().lower() in ('1', 'true', 'yes')
+
+    LINE_CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', '')
+    LINE_USER_ID = os.getenv('LINE_USER_ID', '')
+    # Needed to verify the X-Line-Signature on incoming webhook calls (the "รับทราบ"
+    # button posts back to /api/line/webhook). Without it the webhook refuses every
+    # request rather than trusting unsigned input from a public endpoint.
+    LINE_CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET', '')
+    PUBLIC_BASE_URL = os.getenv('PUBLIC_BASE_URL', '')
+
     LOGGING_INTERVAL = int(os.getenv('LOGGING_INTERVAL', 60))
     LOG_RETENTION_DAYS = int(os.getenv('LOG_RETENTION_DAYS', 30))
     NOTIFICATION_COOLDOWN = int(os.getenv('NOTIFICATION_COOLDOWN', 60))

@@ -5,24 +5,38 @@ import pytz
 
 tz = pytz.timezone('Asia/Bangkok')
 
-def save_alert_log(camera_id, detection_type, image_path=None, additional_info=None):
+def save_alert_log(camera_id, detection_type, image_path=None, additional_info=None,
+                   confidence=None, clip_path=None):
     """
     Save alert log to database regardless of telegram configuration
-    
+
     Args:
         camera_id: ID of the camera
         detection_type: Type of detection (fall_red, bed_exit, etc.)
         image_path: Path to saved image (optional)
         additional_info: Additional information to log (optional)
+        confidence: Model score for this alert (optional) -- persisted so the UI can
+            distinguish confident alerts from the ambiguous ones staff must verify.
+            Falls back to additional_info['confidence'] for callers that only pass it there.
+        clip_path: mp4 of the ~60s leading up to the alert (optional), sent to whoever
+            acknowledges it.
+
+    Returns the saved NotificationHistory row (None on failure) -- the caller needs its id
+    to put an acknowledge button on the outgoing message.
     """
     try:
         now = datetime.now(tz)
-        
+
+        if confidence is None and isinstance(additional_info, dict):
+            confidence = additional_info.get('confidence')
+
         notif = NotificationHistory(
             camera_id=camera_id,
             sent_at=now,
             detection_type=detection_type,
-            image_path=image_path
+            image_path=image_path,
+            confidence=confidence,
+            clip_path=clip_path
         )
         
         db.session.add(notif)
@@ -32,12 +46,12 @@ def save_alert_log(camera_id, detection_type, image_path=None, additional_info=N
         
         if additional_info:
             print(f"[Camera {camera_id}] Additional info: {additional_info}")
-            
-        return True
-        
+
+        return notif
+
     except Exception as e:
         print(f"[Camera {camera_id}] Failed to save alert log: {e}")
-        return False
+        return None
 
 def get_alert_history(camera_id, limit=50):
     """

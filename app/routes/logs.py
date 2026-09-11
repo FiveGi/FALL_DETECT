@@ -3,6 +3,7 @@ from app.models.detection_log import DetectionLog
 from app.models.notification_history import NotificationHistory
 from app.models.camera import Camera
 from app.models.user import User
+from app import db
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, date
 
@@ -108,7 +109,10 @@ def get_notifications():
             'camera_id': n.camera_id,
             'sent_at': n.sent_at.isoformat(),
             'detection_type': n.detection_type,
-            'image_path': n.image_path
+            'image_path': n.image_path,
+            'confidence': n.confidence,
+            'acknowledged_at': n.acknowledged_at.isoformat() if n.acknowledged_at else None,
+            'escalation_count': n.escalation_count or 0
         } for n in notifications
     ])
 
@@ -136,6 +140,43 @@ def get_notifications_for_camera(camera_id):
             'camera_id': n.camera_id,
             'sent_at': n.sent_at.isoformat(),
             'detection_type': n.detection_type,
-            'image_path': n.image_path
+            'image_path': n.image_path,
+            'confidence': n.confidence,
+            'acknowledged_at': n.acknowledged_at.isoformat() if n.acknowledged_at else None,
+            'escalation_count': n.escalation_count or 0
         } for n in notifications
     ]) 
+
+
+@bp.route('/notifications/<int:notification_id>/acknowledge', methods=['POST'])
+@jwt_required()
+def acknowledge_notification(notification_id):
+    """Mark an alert as seen so escalation_service stops re-sending it.
+
+    Idempotent on purpose: the button may be pressed twice, or by two people at once, and
+    the first acknowledgement is the one that matters -- a second press must not overwrite
+    who actually responded or look like a failure to the caller."""
+    current_user_id = int(get_jwt_identity())
+    user = User.query.get(current_user_id)
+
+    notification = NotificationHistory.query.get(notification_id)
+    if not notification:
+        return jsonify({'error': f'No notification found with ID {notification_id}.'}), 404
+
+    # Same ownership rule as the read endpoints above: a user may only acknowledge alerts
+    # from their own cameras.
+    if not (user and user.is_admin()):
+        camera = Camera.query.filter_by(id=notification.camera_id, user_id=current_user_id).first()
+        if not camera:
+            return jsonify({'error': 'Not allowed to acknowledge this notification.'}), 403
+
+    if notification.acknowledged_at is None:
+        notification.acknowledged_at = datetime.now()
+        notification.acknowledged_by = current_user_id
+        db.session.commit()
+
+    return jsonify({
+        'id': notification.id,
+        'acknowledged_at': notification.acknowledged_at.isoformat(),
+        'acknowledged_by': notification.acknowledged_by
+    }), 200

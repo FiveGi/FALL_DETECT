@@ -4,7 +4,8 @@ from app.detection.fall_detection import (
     detect_fall_legacy, FallDetectionState, FallONNXDetector, AlonePersonDetector
 )
 from app.services.logging_service import save_detection_log, save_system_log
-from app.services.telegram_service import send_telegram_message_async
+from app.services.notification_service import notify_alert
+from app.services import clip_buffer
 from app.services.alert_service import save_alert_log
 from app.models.camera import Camera
 from app import db
@@ -218,10 +219,12 @@ def process_fall_detection(camera_id, config):
                     img_path = os.path.join(alert_dir, f"fall_detect_{camera_id}_{int(time.time())}.jpg")
                     cv2.imwrite(img_path, img)
                     
-                    save_alert_log(camera_id, "fall_red", img_path, f"Confidence: {confidence:.2f}")
+                    save_alert_log(camera_id, "fall_red", img_path, f"Confidence: {confidence:.2f}",
+                                   confidence=confidence)
                     
-                    send_telegram_message_async(
-                        camera_id, camera.name, camera.room_name, "fall_red", datetime.now(tz).isoformat(), img_path
+                    notify_alert(
+                        camera_id, camera.name, camera.room_name, "fall_red", datetime.now(tz).isoformat(), img_path,
+                        confidence=confidence
                     )
                     
                     print(f"[Camera {camera_id}] FALL ALERT: {label}, Confidence: {confidence:.2f}")
@@ -506,9 +509,10 @@ def process_bed_exit_detection(camera_id, config):
                     os.makedirs(os.path.dirname(img_path), exist_ok=True)
                     cv2.imwrite(img_path, img)
                     
-                    save_alert_log(camera_id, "bed_exit", img_path, f"Confidence: {confidence:.2f}")
+                    save_alert_log(camera_id, "bed_exit", img_path, f"Confidence: {confidence:.2f}",
+                                   confidence=confidence)
                     
-                    send_telegram_message_async(
+                    notify_alert(
                         camera_id, camera.name, camera.room_name, "bed_exit", datetime.now(tz).isoformat(), img_path
                     )
                     
@@ -604,6 +608,10 @@ def process_v2_fall_detection(camera_id, config):
                 if frame_count % 30 == 0:
                     print(f"[Camera {camera_id}] V2 Fall Detection - Processing frame {frame_count}")
                 
+                # Retain this frame before classifying it: the clip an alert ships is the
+                # minute BEFORE the fall, which only exists if it was being kept all along.
+                clip_buffer.add_frame(camera_id, frame)
+
                 # Perform V3 pose-based fall detection -- one result per tracked person
                 results = detect_v3_fall_multi(frame, fall_state, fall_detector, config, camera)
                 any_detected = any(r[1] for r in results)
@@ -643,10 +651,20 @@ def process_v2_fall_detection(camera_id, config):
                         img_path = os.path.join(alert_dir, f"v2_fall_detect_{camera_id}_{int(time.time())}.jpg")
                         cv2.imwrite(img_path, frame)
 
-                        save_alert_log(camera.id, 'fall_red', img_path, additional_info={'model': 'v2', 'confidence': probability})
-                        send_telegram_message_async(
+                        # Written now, not when someone acknowledges: by then the buffer has
+                        # rolled on and the minute before the fall is gone.
+                        clip_path = clip_buffer.save_clip(camera_id, alert_dir)
+
+                        notification = save_alert_log(
+                            camera.id, 'fall_red', img_path,
+                            additional_info={'model': 'v2', 'confidence': probability},
+                            confidence=probability, clip_path=clip_path
+                        )
+                        notify_alert(
                             camera.id, camera.name, camera.room_name,
-                            'fall_red', current_time, img_path
+                            'fall_red', current_time, img_path,
+                            confidence=probability,
+                            notification_id=getattr(notification, 'id', None)
                         )
 
                         print(f"[Camera {camera_id}] V2 FALL ALERT: {label}, Confidence: {probability:.2f}, People tracked: {len(results)}")
@@ -660,6 +678,7 @@ def process_v2_fall_detection(camera_id, config):
                     time.sleep(1.0 / fps)
             
             cap.release()
+            clip_buffer.clear(camera_id)
             save_system_log('INFO', f'V2 Fall detection session ended for camera {camera.name}', 'DETECTION', camera.user_id)
             
         except Exception as e:
@@ -767,7 +786,7 @@ def process_v2_alone_detection(camera_id, config):
                     
                     if now - last_alert_time >= alert_cooldown:
                         save_alert_log(camera.id, 'alone_yellow', image_path=None, additional_info={'model': 'v2', 'person_count': person_count})
-                        send_telegram_message_async(
+                        notify_alert(
                             camera.id, camera.name, camera.room_name,
                             'alone_yellow', current_time, None
                         )
