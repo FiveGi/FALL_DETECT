@@ -1,0 +1,36 @@
+# Overlay for running on a machine with an NVIDIA GPU:
+#     docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+#
+# Why it exists: pose extraction runs on every frame with no stride, and on CPU it manages
+# ~2 fps (2 cores) to ~8 fps (16 cores) -- far below the ~25 fps the fall classifier's
+# 30-frame window assumes, which makes a live camera drop most of its frames and recall
+# collapse (training/eval_v3_frame_drop.py). On this machine's GPU the same pipeline runs
+# ~26 fps, so the deployed model works at the frame rate it was actually trained for.
+#
+# The base file is left untouched so the CPU-only server keeps working as before.
+services:
+  backend:
+    build:
+      args:
+        TORCH_VARIANT: gpu
+    image: elderly-surveillance-app:gpu
+  celery_worker:
+    image: elderly-surveillance-app:gpu
+    environment:
+      # The base file pins this empty to force CPU; clear it so the container sees the GPU.
+      - CUDA_VISIBLE_DEVICES=0
+      - V3_DEVICE=cuda
+    deploy:
+      resources:
+        limits:
+          # The GPU does the work now, but frame decoding and tracking are still CPU-side.
+          cpus: '12.0'
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+  celery_beat:
+    image: elderly-surveillance-app:gpu
+  flower:
+    image: elderly-surveillance-app:gpu

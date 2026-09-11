@@ -39,10 +39,16 @@ import onnxruntime as ort
 from ultralytics import YOLO
 
 NUM_KEYPOINTS = 17
-WINDOW_SIZE = 30
+# Overridable so the low-frame-rate experiment (a model trained on frames subsampled to the
+# rate a live camera actually achieves -- see training/eval_v3_frame_drop.py) can be evaluated
+# through this exact production code path instead of a parallel copy of it.
+WINDOW_SIZE = int(os.environ.get("V3_WINDOW_SIZE", 30))
 STRIDE = 10
 THRESHOLD = 0.5
-SMOOTH_NEED = 2   # need this many...
+# Env-overridable alongside V3_WINDOW_SIZE: at a live camera'''s real frame rate each window
+# advances by a whole 1/5 s, so "2 positive windows out of 3" is a much longer wait than it
+# was at 30fps -- worth measuring rather than assuming (training/eval_v3_frame_drop.py).
+SMOOTH_NEED = int(os.environ.get("V3_SMOOTH_NEED", 2))   # need this many...
 SMOOTH_OF = 3      # ...positive windows out of the last this many (not strictly consecutive)
 NUM_POSES = 4      # max people tracked per camera at once -- see detect_v3_fall_multi
 
@@ -95,6 +101,14 @@ def _normalize_and_velocity(raw_window):
     return np.concatenate([norm_seq, vel], axis=-1)
 
 
+def _autodetect_device():
+    try:
+        import torch
+        return "cuda" if torch.cuda.is_available() else "cpu"
+    except Exception:
+        return "cpu"
+
+
 class V3PoseFallDetector:
     """Loads the pose extractor + ONNX classifier. One instance shared across all cameras.
 
@@ -107,15 +121,31 @@ class V3PoseFallDetector:
     involving a mobility cane and torso rotation -- matching or exceeding the prior
     MediaPipe-trained model's numbers on both GMDCSA24 held-out test sets."""
 
-    def __init__(self, model_dir, device="cpu"):
+    def __init__(self, model_dir, device=None):
+        """device: "cuda", "cpu", or None to auto-detect.
+
+        Pose extraction is the whole cost of this pipeline and it runs on every frame with
+        no stride, so the device choice decides whether the loop keeps up with a camera at
+        all: measured ~2 fps on 2 CPU cores versus ~26 fps on this machine's GPU
+        (training/bench_deployed_v3.py). At ~2 fps a live camera's frames are dropped faster
+        than the 30-frame window can span a fall and recall collapses -- see
+        training/eval_v3_frame_drop.py. Auto-detect rather than defaulting to CPU so a host
+        that has a GPU actually uses it; V3_DEVICE overrides when that is not wanted."""
         onnx_path = os.path.join(model_dir, "fall_classifier_v3.onnx")
         yolopose_path = os.path.join(model_dir, "yolo26s-pose.pt")
 
+        if device is None:
+            device = os.environ.get("V3_DEVICE") or _autodetect_device()
+        self.device = device
+
         providers = ["CPUExecutionProvider"]
-        if device == "cuda":
+        if device == "cuda" and "CUDAExecutionProvider" in ort.get_available_providers():
+            # The classifier is tiny, so this is a nice-to-have; the CPU-only onnxruntime
+            # build has no CUDA provider and asking for it anyway is a hard error.
             providers.insert(0, "CUDAExecutionProvider")
         self.session = ort.InferenceSession(onnx_path, providers=providers)
         self.pose_model = YOLO(yolopose_path)
+        print(f"[V3] pose backend on {device}")
 
     def extract_keypoints(self, frame_bgr):
         """-> ((17, 3) COCO17 [x, y, confidence], person_found: bool) for the FIRST
@@ -133,7 +163,8 @@ class V3PoseFallDetector:
         person detected this frame, up to NUM_POSES, sorted by detection confidence
         (highest first). Empty list if nobody detected."""
         h, w = frame_bgr.shape[:2]
-        result = self.pose_model.predict(frame_bgr, verbose=False, conf=0.5, classes=[0])[0]
+        result = self.pose_model.predict(frame_bgr, verbose=False, conf=0.5, classes=[0],
+                                         device=self.device)[0]
         people = []
         if result.keypoints is None or len(result.keypoints.xy) == 0:
             return people
@@ -172,6 +203,32 @@ COLLAPSE_CONFIDENCE = 0.6
 # If the model was this confident right before person-detection collapsed to ~zero,
 # treat the collapse itself as a fall signal (see detect_v3_fall).
 # 0.2 still rejects the empty-room case while letting spotty-but-real detections through.
+# Env-overridable so its effect can be measured by A/B rather than assumed (set very high
+# to reproduce the pre-guard behaviour of holding the last pose indefinitely).
+MAX_HELD_RUN = int(os.environ.get("V3_MAX_HELD_RUN", 5))
+# How many CONSECUTIVE undetected frames may be back-filled with the last real keypoints
+# before this stops writing to the window entirely. Holding is what SS18 validated as the
+# fix for short (1-2 frame) dropouts, but SS24 traced two high-confidence false alerts
+# (0.92-0.96 with person_found=False) to the opposite extreme: person_found flickering for
+# ~1-2s fills the 30-frame window with mostly repeated copies of one earlier pose, and the
+# classifier scores that frozen-then-jump pattern as fall-like. A plain person_fraction
+# gate can't separate those cases -- a genuine CAUCAFall forward fall sits at 40% detected,
+# inside the same band -- so this caps the RUN LENGTH instead of the total fraction. Past
+# the cap the window is frozen (nothing appended) rather than padded further, so the
+# classifier keeps re-scoring the last genuinely observed frames instead of a synthetic
+# pattern, which also preserves a real fall's pre-dropout signal (the case
+# MIN_PERSON_FRACTION exists to protect). person_flags still records every miss, so the
+# fraction gates above keep responding normally.
+#
+# MEASURED EFFECT ON CURRENT DATA: none, on any clip available here. GMDCSA24 held-out is
+# bit-identical with and without it (15/15 falls, 9/16 ADL clean, eval_v3_on_gmdcsa24_val.py),
+# and on the Test/ clips with the worst dropouts -- 10/11/6.mp4, where check_held_run.py
+# measures runs of 122-359 consecutive misses -- both settings fire zero alerts, because the
+# person_fraction gates already suppress everything there (ab_held_run_on_test.py). SS24's
+# mechanism was observed under MediaPipe; YOLO-pose detects the hard prone frames far more
+# reliably (81.2% vs 71.7%, SS34), so the flicker pattern that produced it no longer appears
+# in this data. Kept as a cheap guard against that documented failure mode returning, NOT
+# because it was shown to fix anything -- do not cite it as an accuracy improvement.
 
 
 class V3FallDetectionState:
@@ -187,6 +244,7 @@ class V3FallDetectionState:
         self.last_detected = False
         self.collapse_fired = False
         self.last_good_kpts = None
+        self.held_run = 0
 
     def is_ready(self):
         return len(self.raw_buffer) == WINDOW_SIZE
@@ -201,7 +259,8 @@ def _step_person(kpts, person_found, state: V3FallDetectionState,
     apart. Returns (detected, probability, label)."""
     if person_found:
         state.last_good_kpts = kpts
-        buffered_kpts = kpts
+        state.held_run = 0
+        state.raw_buffer.append(kpts)
     else:
         # A momentary tracking dropout (1-2 frames, common mid-fall/near occlusion --
         # see MIN_PERSON_FRACTION above) makes extract_keypoints return an all-zero
@@ -210,8 +269,13 @@ def _step_person(kpts, person_found, state: V3FallDetectionState,
         # mechanism in SKILL.md SS18 (alongside plain frame-to-frame jitter, which
         # _smooth_keypoints handles separately). Hold the last real detection instead
         # of zero-filling; person_flags still records the true miss for MIN_PERSON_FRACTION.
-        buffered_kpts = state.last_good_kpts if state.last_good_kpts is not None else kpts
-    state.raw_buffer.append(buffered_kpts)
+        state.held_run += 1
+        if state.last_good_kpts is None:
+            state.raw_buffer.append(kpts)  # nothing real seen yet -- zeros are all there is
+        elif state.held_run <= MAX_HELD_RUN:
+            state.raw_buffer.append(state.last_good_kpts)
+        # Past MAX_HELD_RUN: append nothing, freezing the window on the last genuinely
+        # observed frames instead of packing it with more copies of one pose (SS24).
     state.person_flags.append(person_found)
     state.frames_since_infer += 1
 
