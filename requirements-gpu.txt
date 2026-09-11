@@ -21,8 +21,8 @@ ultralytics
 # ENCODER (licensing), so cv2.VideoWriter silently falls back to mp4v, which LINE
 # and iOS refuse to play -- and the alert clip exists to be watched on a phone.
 imageio-ffmpeg
---extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.6.0+cpu
-torchvision==0.21.0+cpu
+--extra-index-url https://download.pytorch.org/whl/cu124
+torch==2.6.0+cu124
+torchvision==0.21.0+cu124
 tqdm
 rfdetr
