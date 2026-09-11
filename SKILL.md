@@ -1958,3 +1958,90 @@ labels) at meaningfully larger scale than 349 frames -- a bigger undertaking, no
 pass. New files: `gt_sample_frames.py`, `gt_gemini_count.py`, `gt_run_yolo_variants.py`, `gt_compare.py`,
 `gt_compare_binary.py`, `gt_threshold_sweep.py`, `gt_threshold_sweep2.py`, `gt_show_errors.py`,
 `gt_show_errors2.py`, `ft_sample_frames.py`, `ft_make_pseudolabels.py`, `ft_train.py`, `ft_eval.py`.
+
+## 38. The frame rate the pipeline actually achieves -- the accuracy numbers above were all measured at a rate no CPU deployment can sustain
+
+**Every accuracy number earlier in this file was produced offline**, reading a video file frame by frame,
+so the detector saw all ~25-30 fps. A live camera does not work that way. `process_v2_fall_detection`
+has no stride, and `CAP_PROP_BUFFERSIZE=1` (added in SS15) makes every `cap.read()` return the *newest*
+frame -- so whatever the pipeline cannot keep up with is silently dropped, never queued.
+
+**Measured per-frame cost of the deployed pipeline** (`training/bench_deployed_v3.py`, new; run in a
+dedicated container with nothing else in it, since a busy `celery_worker` inflates every number):
+
+| configuration | ms/frame | fps |
+|---|---|---|
+| 2 CPU cores (the `docker-compose.yml` limit), 1 thread | 786 | 1.3 |
+| 4 cores | 228 | 4.4 |
+| 8 cores | 134 | 7.5 |
+| 16 cores | 127 | 7.9 (saturates ~8 cores) |
+| **GPU (RTX 4070 Ti SUPER), in-container** | **18.6** | **53.8** |
+
+Pose extraction is essentially all of it (~357ms of ~410ms measured separately), and it runs on every
+frame. Thread count barely matters, consistent with SS9/SS13.
+
+**Why that matters, measured rather than argued** (`training/eval_v3_frame_drop.py`, new -- runs the real
+`detect_v3_fall` / `detect_v3_fall_multi` over the same GMDCSA24 held-out clips as
+`eval_v3_on_gmdcsa24_val.py`, but feeding only every Nth frame):
+
+| frames fed | approx fps | falls caught | ADL clean |
+|---|---|---|---|
+| every frame | 25.0 | 15/15 | 9/16 |
+| every 2nd | 12.5 | 14/15 | 13/16 |
+| every 3rd | 8.3 | 13/15 | 13/16 |
+| every 6th | 4.2 | **2/15** | 13/16 |
+| every 12th | 2.1 | **0/15** | 16/16 |
+
+(multi-person path, the one `camera_manager` actually calls; the single-person path matches within one clip.)
+
+**At the ~2 fps a 2-core CPU deployment achieves, this system detects nothing.** The 16/16 "ADL clean" at
+that rate is not a win -- it is clean because it never fires at all. The cause is structural: the
+classifier reads a 30-frame window, which spans ~1.2s at 25 fps (about the duration of a fall, which is
+what it was trained on) but ~12s at 2 fps, so the event is stretched an order of magnitude and the
+velocity features are computed across gaps 12x wider than in training.
+
+### Two independent fixes, both measured
+
+**1. GPU (the one now in use).** The dev machine has an RTX 4070 Ti SUPER. `V3PoseFallDetector` now
+auto-detects the device (`V3_DEVICE` overrides) and passes it explicitly to `YOLO.predict`, instead of
+defaulting to `"cpu"` and leaving ultralytics to guess. Verified the GPU changes speed only, not results:
+the val eval returns exactly 15/15 and 9/16 on CUDA, identical to CPU. The Docker image needed rebuilding
+-- it pinned `torch==2.6.0+cpu` -- so `Dockerfile` now takes `ARG TORCH_VARIANT` (default `cpu`, so the
+AVX-less target server keeps building exactly as before and keeps its disk quota) with a new
+`requirements-gpu.txt`, and `docker-compose.gpu.yml` is an opt-in overlay:
+`docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d`.
+**Live, in the running system**: 13.2 fps with `cpus: 6.0`, 16.8 fps at `cpus: 12.0` (GPU ~58%) -- lower
+than the 53.8 fps standalone benchmark because the fall and alone-detection tasks share the container.
+At 16.8 fps the frame-drop table above puts recall at 14-15/15.
+
+**2. Retrain at the deployment frame rate (kept as the no-GPU fallback, NOT deployed).**
+`training/dataset.py` gained `TEMPORAL_STRIDE` (keep every k-th frame) and an env-overridable
+`WINDOW_SIZE`. Subsampling happens in `load_all_videos` *before* `normalize/add_velocity` -- not in
+`make_windows` -- because velocity is a per-frame delta, and computing it at 30fps then subsampling would
+train the model on a feature the runtime can never reproduce. Trained with `TEMPORAL_STRIDE=6`,
+`WINDOW_SIZE=15`, same `AUGMENT=1`/seed42/YOLO-pose recipe as SS35.
+
+The second half of the fix was the alert-smoothing rule, and it mattered more than the retraining:
+`SMOOTH_NEED=2` of `SMOOTH_OF=3` means "2 positive windows out of 3", which is a 0.07s wait at 30fps but a
+multi-second wait at 4fps. Made env-overridable (`V3_SMOOTH_NEED`) and measured:
+
+| model | fps | SMOOTH_NEED | thr | falls | ADL clean |
+|---|---|---|---|---|---|
+| deployed (30fps-trained) | 4.2 | 2 | 0.50 | 2/15 | 13/16 |
+| deployed | 5.0 | **1** | 0.50 | **12/15** | 12/16 |
+| ts6/w15 retrained | 4.2 | 2 | 0.50 | 5/15 | 15/16 |
+| **ts6/w15 retrained** | **4.2** | **1** | **0.35** | **15/15** | **12/16** |
+
+Re-checked the winning configuration on the train50 clips it was never selected against (the same
+held-out discipline as SS29/SS30): **23/25 falls, 23/25 ADL clean at 4.2 fps**, versus the deployed
+model's 23/25 and 22/25 at 25 fps. Equal recall, one better on false alarms, at a sixth of the frame rate.
+
+Checkpoints are in `training/data/` (`yolopose_aug_seed42_ts6_w15.pt`, `yp_ts6_w{20,30}.pt`,
+`yp_ts{4,5}_w15_s42.pt`) with their ONNX exports. **Nothing was deployed** -- `models/fall_classifier_v3.onnx`
+is still SS35's `yolopose_aug_seed42` export (md5 `194614047877dc8e9ff896e5331170f7`), because with the GPU
+the 30fps-trained model runs at the rate it was designed for. Revisit this only if the system has to move
+back to a machine without a GPU.
+
+**A trap worth naming**: `WINDOW_SIZE=30` at `TEMPORAL_STRIDE=6` had the *best* offline val F1 (0.778) and
+the *worst* live result (3/15). Windowed F1 continues to be a poor predictor of live behaviour in this
+project -- same lesson as SS17 and SS28, now with a third instance.

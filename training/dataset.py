@@ -33,8 +33,13 @@ MEDIAPIPE33_TO_COCO17 = [0, 2, 5, 7, 8, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 
 LEFT_SHOULDER, RIGHT_SHOULDER = 5, 6
 LEFT_HIP, RIGHT_HIP = 11, 12
 
-WINDOW_SIZE = 30
+WINDOW_SIZE = int(os.environ.get("WINDOW_SIZE", 30))
 STRIDE = 10
+
+# TEMPORAL_STRIDE: keep every k-th frame, to match the frame rate the live pipeline can
+# actually sustain (see this module's git history / SKILL.md -- offline eval sees 30fps,
+# a real camera loop sees ~1-5fps). 1 = original behaviour, every frame.
+TEMPORAL_STRIDE = int(os.environ.get("TEMPORAL_STRIDE", 1))
 
 # Index to swap with for a left-right mirror flip (self-pairs for Nose, which has no
 # left/right counterpart). Used by flip_horizontal_window() below.
@@ -105,6 +110,10 @@ def load_all_videos(pose_dirs):
         for path in sorted(glob.glob(os.path.join(pose_dir, "*.npz"))):
             data = np.load(path, allow_pickle=True)
             raw = to_coco17(data["keypoints"].astype(np.float32))
+            if TEMPORAL_STRIDE > 1:
+                # Before velocity: vx/vy must be the delta between two frames the runtime
+                # actually sees in sequence, not between two 30fps neighbours.
+                raw = raw[::TEMPORAL_STRIDE]
             motion = compute_motion_energy(raw)
             seq = add_velocity(normalize_sequence(raw))
             video = {
