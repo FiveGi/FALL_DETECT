@@ -2045,3 +2045,85 @@ back to a machine without a GPU.
 **A trap worth naming**: `WINDOW_SIZE=30` at `TEMPORAL_STRIDE=6` had the *best* offline val F1 (0.778) and
 the *worst* live result (3/15). Windowed F1 continues to be a poor predictor of live behaviour in this
 project -- same lesson as SS17 and SS28, now with a third instance.
+
+## 39. Multi-person mode investigated properly -- the tracking is fine, resolution was the real limiter (imgsz 640 -> 960 deployed)
+
+**User reported multi-person detection as inaccurate.** Three findings, in the order they
+changed the conclusion.
+
+### The four features that do NOT separate false alarms from real falls
+
+`training/diagnose_multi_person.py` (new) attributes every alert to a mechanism. On the 17
+`Test/` clips: 59 alerts, of which 38 fired from windows that were mostly *held* copies of
+the last good pose rather than genuinely observed frames, 20 from tracks younger than two
+window lengths, and **0 duplicates** -- the "extra pose slots produce two tracks for one
+person" mechanism SS25 suspected does not occur at all with YOLO-pose.
+
+Raising `MIN_PERSON_FRACTION` (now env-overridable) from 0.2 to 0.7 cuts those Test/ alerts
+59 -> 39. **That looked like a fix and is not one**: SS36 had Gemini verify 51 of 64
+multi-person Test/ alerts as *genuine* falls, so fewer alerts on fall-compilation footage is
+as likely to mean lost detections as fewer false alarms. Re-measured on ground truth
+instead, 0.4 and above costs a real fall (val 15/15 -> 14/15, train50 22/25 -> 21/25) while
+leaving ADL-clean untouched at 9/16. **Not taken.**
+
+Against the 9 ADL false alarms and 16 fall-clip alerts on GMDCSA24 val, measured per alert:
+
+| feature | alerts on fall clips | alerts on ADL clips (all wrong) |
+|---|---|---|
+| probability | 0.51 - 0.89 | 0.59 - 0.81 |
+| mean keypoint confidence | median 0.736 | median 0.790 (**higher**) |
+| body span (fraction of frame height) | median 0.224 | median 0.211 |
+| genuinely observed frames in window | 16 - 30 | 7 - 30 |
+
+No threshold on any combination removes even two ADL false alarms while keeping all 15 fall
+clips. **Add pose confidence, body span, observed-frame count and track age to SS33's list of
+signals that overlap genuine falls.** The remaining lever for those false alarms is still
+training data, not a decision rule.
+
+### A two-person test set with real ground truth
+
+Nothing here had ever tested `detect_v3_fall_multi` on footage with two people AND labels:
+GMDCSA24 is single-person, `Test/` has no labels. `training/make_multiperson_testset.py`
+(new) composites one Fall clip beside one ADL clip side by side, so both halves are real
+footage with known labels, plus `adl+adl` pairs (any alert is wrong, using only ADL clips
+that do not false-alarm alone) and a **fall+blank control** -- the same 2x-wide frame with
+nobody in the other half, which separates "the bystander broke detection" from "the person is
+now rendered at half the pixels".
+
+`training/eval_multiperson_composite.py` (new), at the then-current imgsz 640:
+
+| | fall caught | attributed to the falling person |
+|---|---|---|
+| multi-person path | **12/15** | 12/12 |
+| single-person path | **7/15** | n/a |
+| multi, blank-half control | 10/15 | - |
+
+**Multi-person tracking is clearly earning its keep** -- without it a bystander masks the
+fall in nearly half of these clips -- and every alert it raised was attributed to the person
+who actually fell, not the bystander. Two people with nobody falling: 0 alerts, 4/4 clean.
+And the control settles the apparent 3/15 loss: the blank half does *worse* (10/15) than a
+real bystander (12/15), so the loss is resolution, not the second person.
+
+### The actual fix: input resolution
+
+Pose input size was ultralytics' default 640, which is where recall was going. Made
+configurable (`V3_IMGSZ`) and swept on every ground-truth surface:
+
+| imgsz | val falls | val ADL clean | train50 falls | train50 ADL clean | 2-person composite | blank control | ms/frame |
+|---|---|---|---|---|---|---|---|
+| 640 | 15/15 | 9/16 | 22/25 | 22/25 | 12/15 | 10/15 | 18.8 |
+| **960** | **15/15** | **10/16** | **22/25** | **22/25** | **13/15** | **14/15** | **21.8** |
+| 1280 | 14/15 | 14/16 | 20/25 | 22/25 | 14/15 | 14/15 | 22.4 |
+
+**960 is better than 640 on every surface and worse on none** -- rare in this project, where
+almost every change so far has been a trade. Deployed as the default. 1280 is a genuinely
+different operating point (val ADL-clean 14/16, a large false-alarm reduction) but it starts
+losing falls on both fall sets, so it was not taken; revisit it only if false alarms become a
+bigger problem than misses. val re-run twice for determinism, identical both times. Test/
+alert count moves 59 -> 62, consistent with slightly better recall on fall-compilation
+footage rather than a regression.
+
+**Live check**: 20.1 fps in the running system at 960 (was 16.8 at 640 -- the difference is
+within the variation from sharing the container with alone-detection, not a speedup), GPU at
+10%. Deployed only because the GPU work in SS38 made the headroom available; on CPU this
+change would not be affordable.

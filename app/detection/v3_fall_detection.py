@@ -101,6 +101,23 @@ def _normalize_and_velocity(raw_window):
     return np.concatenate([norm_seq, vel], axis=-1)
 
 
+# Input resolution handed to YOLO-pose. Ultralytics' default is 640, which downsamples a
+# 1080p camera frame ~3x and is measured to be where recall is lost: a fall composited into a
+# 2x-wide frame (same person, half the pixels) drops from 15/15 to 10/15 with nobody else in
+# shot (training/eval_multiperson_composite.py), matching SS6's finding that errors cluster
+# where the person is far from the camera. Raising it costs GPU time, which the GPU now has
+# (53 fps standalone versus the ~25 fps a camera needs).
+# 960, not ultralytics' default 640. Measured across every ground-truth surface this project
+# uses, 960 is better or equal on all of them and worse on none -- val 15/15 falls with
+# ADL-clean 9/16 -> 10/16, train50 unchanged at 22/25 and 22/25, and on the two-person
+# composites the fall is caught 13/15 instead of 12/15 (14/15 vs 10/15 in the blank-half
+# control that isolates resolution from the second person). 1280 trades differently: far
+# fewer false alarms (val ADL-clean 14/16) but it starts losing falls (14/15 val, 20/25
+# train50), so it is not taken. Costs 18.8 -> 21.8 ms/frame on the GPU, which still leaves
+# roughly twice the throughput a 25 fps camera needs.
+IMGSZ = int(os.environ.get("V3_IMGSZ", 960))
+
+
 def _autodetect_device():
     try:
         import torch
@@ -164,7 +181,7 @@ class V3PoseFallDetector:
         (highest first). Empty list if nobody detected."""
         h, w = frame_bgr.shape[:2]
         result = self.pose_model.predict(frame_bgr, verbose=False, conf=0.5, classes=[0],
-                                         device=self.device)[0]
+                                         device=self.device, imgsz=IMGSZ)[0]
         people = []
         if result.keypoints is None or len(result.keypoints.xy) == 0:
             return people
@@ -189,7 +206,10 @@ class V3PoseFallDetector:
         return float(1.0 / (1.0 + np.exp(-logit.reshape(-1)[0])))
 
 
-MIN_PERSON_FRACTION = 0.2
+# Env-overridable so the multi-person false-positive sweep can A/B it (see
+# training/diagnose_multi_person.py: most multi-person alerts fire from windows that are
+# mostly held copies rather than genuinely observed frames).
+MIN_PERSON_FRACTION = float(os.environ.get("V3_MIN_PERSON_FRACTION", 0.2))
 # Fraction of frames in a window that must have a detected person before trusting the
 # classifier's output. Deliberately low: MediaPipe's per-frame pose detection is much
 # less reliable once someone is on the ground (prone/occluded bodies aren't what it was
