@@ -30,6 +30,9 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+  celery_maintenance:
+    # Same image so it does not need a second build; it does no inference, so no GPU.
+    image: elderly-surveillance-app:gpu
   celery_beat:
     image: elderly-surveillance-app:gpu
   flower:

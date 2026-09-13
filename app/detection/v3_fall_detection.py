@@ -117,6 +117,26 @@ def _normalize_and_velocity(raw_window):
 # roughly twice the throughput a 25 fps camera needs.
 IMGSZ = int(os.environ.get("V3_IMGSZ", 960))
 
+# Which tracker assigns a person their identity across frames. "hip" is the original
+# nearest-hip-centre matcher in PersonTracker below; "bytetrack" uses ultralytics' own
+# tracker (Kalman motion prediction + IoU), which exists because the hip matcher loses
+# people constantly: measured on Test/1,12,16,17, between 68% and 91% of the track ids it
+# creates are re-detections of someone it already had, not new people. Each of those resets
+# that person's 30-frame window, so the classifier keeps scoring half-filled windows.
+TRACKER = os.environ.get("V3_TRACKER", "hip")
+
+# Confidence YOLO-pose must have in a person before their pose is used. Ultralytics' own
+# default is 0.25; 0.5 was chosen here before any of it was measured. It decides detection
+# CONTINUITY, which is what actually breaks multi-person tracking: on Test/1 the detector
+# averages 0.83 people per frame, so tracks keep expiring and restarting their 30-frame
+# window regardless of which tracker is used.
+# 0.3, measured. Raising detection continuity is what actually helps multi-person accuracy:
+# at 0.5 the held-out train50 set catches 22/25 falls, at 0.3 it catches 24/25, with ADL-clean
+# unchanged on both sets (val 10/16, train50 22/25) and the two-person composites identical
+# (13/15, 4/4 clean). 0.25 measures the same as 0.3 but keeps more marginal detections, so 0.3
+# is taken as the smaller change from the previous 0.5.
+POSE_CONF = float(os.environ.get("V3_POSE_CONF", 0.3))
+
 
 def _autodetect_device():
     try:
@@ -180,7 +200,7 @@ class V3PoseFallDetector:
         person detected this frame, up to NUM_POSES, sorted by detection confidence
         (highest first). Empty list if nobody detected."""
         h, w = frame_bgr.shape[:2]
-        result = self.pose_model.predict(frame_bgr, verbose=False, conf=0.5, classes=[0],
+        result = self.pose_model.predict(frame_bgr, verbose=False, conf=POSE_CONF, classes=[0],
                                          device=self.device, imgsz=IMGSZ)[0]
         people = []
         if result.keypoints is None or len(result.keypoints.xy) == 0:
@@ -197,6 +217,35 @@ class V3PoseFallDetector:
             kpts17[:, 2] = kconf
             hip_center = (kpts17[LEFT_HIP, :2] + kpts17[RIGHT_HIP, :2]) / 2.0
             people.append((kpts17, hip_center))
+        return people
+
+    def extract_tracked_keypoints(self, frame_bgr):
+        """-> list of (track_id, kpts17, hip_center), ids assigned by ultralytics' tracker.
+
+        persist=True keeps the tracker's state between calls, which means this detector
+        instance is tied to ONE video stream -- model_manager hands out a detector per camera
+        for exactly that reason. Detections without an id (ByteTrack emits those on the first
+        frames of a new track) are skipped rather than given a synthetic id, so a person only
+        enters a window once their identity is stable.
+        """
+        h, w = frame_bgr.shape[:2]
+        result = self.pose_model.track(
+            frame_bgr, persist=True, tracker="bytetrack.yaml", verbose=False,
+            conf=POSE_CONF, classes=[0], device=self.device, imgsz=IMGSZ)[0]
+        people = []
+        if result.keypoints is None or result.boxes is None or result.boxes.id is None:
+            return people
+        ids = result.boxes.id.int().cpu().numpy()
+        for i, track_id in enumerate(ids[:NUM_POSES]):
+            kxy = result.keypoints.xy[i].cpu().numpy()
+            kconf = (result.keypoints.conf[i].cpu().numpy()
+                     if result.keypoints.conf is not None else np.ones(NUM_KEYPOINTS, dtype=np.float32))
+            kpts17 = np.zeros((NUM_KEYPOINTS, 3), dtype=np.float32)
+            kpts17[:, 0] = kxy[:, 0] / w
+            kpts17[:, 1] = kxy[:, 1] / h
+            kpts17[:, 2] = kconf
+            hip = (kpts17[LEFT_HIP, :2] + kpts17[RIGHT_HIP, :2]) / 2.0
+            people.append((int(track_id), kpts17, hip))
         return people
 
     def predict_window(self, raw_window):
@@ -437,6 +486,14 @@ class V3MultiPersonFallState:
     def __init__(self):
         self.tracker = PersonTracker()
         self.person_states = {}  # track_id -> V3FallDetectionState
+        # Used only by the bytetrack path: ByteTrack keeps its own identities, so this
+        # side only has to remember where each id was last seen and for how long it has
+        # been missing.
+        self.missed = {}
+        self.last_centroid = {}
+        # People actually detected in the most recent frame, as opposed to tracks being held
+        # through a dropout -- the number to report to a human.
+        self.seen_count = 0
 
 
 def detect_v3_fall_multi(frame, multi_state: V3MultiPersonFallState,
@@ -447,16 +504,48 @@ def detect_v3_fall_multi(frame, multi_state: V3MultiPersonFallState,
     frame but still within MAX_MISSED_FRAMES, matching single-person's tolerance for
     momentary tracking dropouts)."""
     threshold = threshold if threshold is not None else THRESHOLD
-    detections = fall_detector.extract_all_keypoints(frame)
-    tracked = multi_state.tracker.update(detections)
+
+    if TRACKER == "bytetrack":
+        # ByteTrack owns the identities, so there is no separate matching step to fail. It
+        # reports only people it can see this frame; tracks it is holding through an
+        # occlusion are stepped as "not seen" below, the same way the hip tracker's misses
+        # are, so _step_person's hold/freeze behaviour is unchanged.
+        seen_people = fall_detector.extract_tracked_keypoints(frame)
+        seen_now = {tid: (kpts, hip) for tid, kpts, hip in seen_people}
+        for tid, (_, hip) in seen_now.items():
+            multi_state.last_centroid[tid] = hip
+            multi_state.missed[tid] = 0
+        for tid in list(multi_state.person_states):
+            if tid not in seen_now:
+                multi_state.missed[tid] = multi_state.missed.get(tid, 0) + 1
+        tracked = [(tid, seen_now[tid][0], True) for tid in seen_now]
+        tracked += [(tid, None, False) for tid in multi_state.person_states
+                    if tid not in seen_now
+                    and multi_state.missed.get(tid, 0) <= MAX_MISSED_FRAMES]
+    else:
+        detections = fall_detector.extract_all_keypoints(frame)
+        tracked = multi_state.tracker.update(detections)
+
+    multi_state.seen_count = sum(1 for _, _, seen in tracked if seen)
 
     results = []
     for track_id, kpts, seen in tracked:
         state = multi_state.person_states.setdefault(track_id, V3FallDetectionState())
         step_kpts = kpts if seen else np.zeros((NUM_KEYPOINTS, 3), dtype=np.float32)
         detected, probability, label = _step_person(step_kpts, seen, state, fall_detector, threshold)
-        centroid = multi_state.tracker.tracks[track_id]["centroid"]
+        if TRACKER == "bytetrack":
+            centroid = multi_state.last_centroid.get(track_id, np.zeros(2, dtype=np.float32))
+        else:
+            centroid = multi_state.tracker.tracks[track_id]["centroid"]
         results.append((track_id, detected, probability, label, centroid))
+
+    if TRACKER == "bytetrack":
+        for track_id in list(multi_state.person_states):
+            if multi_state.missed.get(track_id, 0) > MAX_MISSED_FRAMES:
+                multi_state.person_states.pop(track_id, None)
+                multi_state.missed.pop(track_id, None)
+                multi_state.last_centroid.pop(track_id, None)
+        return results
 
     # Drop state for any track the tracker has expired, so memory doesn't grow
     # unbounded over a long-running camera session.

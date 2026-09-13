@@ -6,6 +6,16 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev')
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@db:5432/postgres')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    # Bounded and pre-pinged. The default pool plus one engine per create_app() call is what
+    # exhausted postgres' 100 connection slots; with the app now cached per process
+    # (app.get_worker_app), a handful of connections per process is plenty, and pre_ping
+    # recycles a connection the server has already closed instead of raising on first use.
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': int(os.getenv('DB_POOL_SIZE', 5)),
+        'max_overflow': int(os.getenv('DB_MAX_OVERFLOW', 5)),
+        'pool_recycle': 1800,
+        'pool_pre_ping': True,
+    }
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'jwt-secret')
     
     # JWT Configuration

@@ -99,8 +99,8 @@ def detect_alone_with_state(frame, state: AloneDetectionState, person_detector: 
 
 @celery.task
 def process_fall_detection(camera_id, config):
-    from app import create_app
-    app = create_app()
+    from app import get_worker_app
+    app = get_worker_app()
     with app.app_context():
         try:
             camera = Camera.query.get(camera_id)
@@ -248,8 +248,8 @@ def process_fall_detection(camera_id, config):
 
 @celery.task
 def process_alone_detection(camera_id, config):
-    from app import create_app
-    app = create_app()
+    from app import get_worker_app
+    app = get_worker_app()
     with app.app_context():
         try:
             camera = Camera.query.get(camera_id)
@@ -384,8 +384,8 @@ def process_alone_detection(camera_id, config):
             raise
 @celery.task
 def process_bed_exit_detection(camera_id, config):
-    from app import create_app
-    app = create_app()
+    from app import get_worker_app
+    app = get_worker_app()
     with app.app_context():
         try:
             camera = Camera.query.get(camera_id)
@@ -539,8 +539,8 @@ def process_bed_exit_detection(camera_id, config):
 @celery.task
 def process_v2_fall_detection(camera_id, config):
     """Process V2 fall detection for a camera"""
-    from app import create_app
-    app = create_app()
+    from app import get_worker_app
+    app = get_worker_app()
     with app.app_context():
         # Active pipeline is v3 (pose-based, CPU-friendly, already trained) not v4 (RF-DETR).
         # v4 needs a GPU to run at usable speed (confirmed too slow even on a good desktop CPU,
@@ -630,9 +630,9 @@ def process_v2_fall_detection(camera_id, config):
                         detection_result=detection_result,
                         confidence_score=probability,
                         risk_level=risk_level,
-                        person_count=len(results)
+                        person_count=fall_state.seen_count
                     )
-                    print(f"[Camera {camera_id}] V2 Fall Log: {detection_result}, Confidence: {probability:.2f}, People tracked: {len(results)}")
+                    print(f"[Camera {camera_id}] V2 Fall Log: {detection_result}, Confidence: {probability:.2f}, People seen: {fall_state.seen_count}")
                     last_log_time = now
 
                 if any_detected:
@@ -667,7 +667,7 @@ def process_v2_fall_detection(camera_id, config):
                             notification_id=getattr(notification, 'id', None)
                         )
 
-                        print(f"[Camera {camera_id}] V2 FALL ALERT: {label}, Confidence: {probability:.2f}, People tracked: {len(results)}")
+                        print(f"[Camera {camera_id}] V2 FALL ALERT: {label}, Confidence: {probability:.2f}, People seen: {fall_state.seen_count}")
                         camera._last_fall_v2_alert_time = now
                 
                 db.session.refresh(camera)
@@ -690,8 +690,8 @@ def process_v2_fall_detection(camera_id, config):
 @celery.task
 def process_v2_alone_detection(camera_id, config):
     """Process V2 alone detection for a camera"""
-    from app import create_app
-    app = create_app()
+    from app import get_worker_app
+    app = get_worker_app()
     with app.app_context():
         from app.detection.v2_fall_detection_onnx import (
             detect_v2_alone_only_onnx

@@ -43,7 +43,10 @@ services:
       - redis
   celery_worker:
     image: elderly-surveillance-app:latest
-    command: sh -c "celery -A app.celery worker --concurrency=${CAMERA_MAX_PARALLEL:-4} --loglevel=info"
+    # -Q celery: this worker takes camera tasks only. Its slots are all held by infinite
+    # detection loops, so maintenance tasks get their own worker below rather than queueing
+    # behind cameras that never finish.
+    command: sh -c "celery -A app.celery worker -Q celery --concurrency=${CAMERA_MAX_PARALLEL:-4} --loglevel=info"
     volumes:
       - .:/app
     env_file:
@@ -63,6 +66,27 @@ services:
     depends_on:
       - backend
       - redis
+  celery_maintenance:
+    # Serves the queue beat schedules onto (escalation re-alerts). Separate from
+    # celery_worker because that one's slots are permanently occupied by camera loops --
+    # measured: 11 escalation sweeps sent, 1 executed, before this existed.
+    image: elderly-surveillance-app:latest
+    command: sh -c "celery -A app.celery worker -Q maintenance --concurrency=1 --loglevel=info"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      - TZ=Asia/Bangkok
+      - CUDA_VISIBLE_DEVICES=""
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+    depends_on:
+      - backend
+      - redis
+
   celery_beat:
     image: elderly-surveillance-app:latest
     command: sh -c "celery -A app.celery beat --loglevel=info"

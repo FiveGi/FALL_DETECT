@@ -30,10 +30,17 @@ from app.config import Config as _Config
 celery.conf.broker_url = _Config.CELERY_BROKER_URL
 celery.conf.result_backend = _Config.CELERY_RESULT_BACKEND
 celery.conf.timezone = 'Asia/Bangkok'
+# Camera tasks are infinite loops that hold a prefork slot for as long as the camera is
+# active, so anything sharing their queue waits forever behind them. Maintenance work gets
+# its own queue, served by the celery_maintenance container.
+celery.conf.task_routes = {
+    'app.services.escalation_service.*': {'queue': 'maintenance'},
+}
 celery.conf.beat_schedule = {
     'check-pending-acknowledgements': {
         'task': 'app.services.escalation_service.check_pending_acknowledgements',
         'schedule': float(_Config.ESCALATION_CHECK_SECONDS),
+        'options': {'queue': 'maintenance'},
     },
 }
 
@@ -42,6 +49,25 @@ import app.services.camera_manager
 # Imported for its @celery.task side effect, same as camera_manager above: without this
 # the worker never registers the task and beat's messages die as "unregistered task".
 import app.services.escalation_service
+
+
+_worker_app = None
+
+
+def get_worker_app():
+    """The one Flask app for this process. Use this, not create_app(), from celery tasks and
+    notification threads.
+
+    create_app() builds a new SQLAlchemy engine -- and therefore a new connection pool --
+    every time it is called, and nothing disposes the old one. Called per task, per alert and
+    once a minute from the escalation sweep, that exhausted postgres' connection slots and
+    took the database down entirely. Caching is safe here because a celery prefork process
+    runs one task at a time and the app holds no per-camera state.
+    """
+    global _worker_app
+    if _worker_app is None:
+        _worker_app = create_app()
+    return _worker_app
 
 
 def create_app():

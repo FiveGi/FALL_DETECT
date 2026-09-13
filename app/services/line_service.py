@@ -14,8 +14,8 @@ def send_line_message_async(camera_id, camera_name, room_name, detection_type, t
                             image_path, tier="confirmed", confidence=None, escalation_level=0,
                             notification_id=None):
     def _send():
-        from app import create_app
-        app = create_app()
+        from app import get_worker_app
+        app = get_worker_app()
 
         with app.app_context():
             camera = Camera.query.get(camera_id)

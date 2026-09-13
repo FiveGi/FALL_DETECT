@@ -28,10 +28,12 @@ def check_pending_acknowledgements():
     Returns a small summary dict instead of None so the result backend / flower shows what
     a run actually did, which is the difference between "beat is healthy but idle" and
     "beat stopped firing" when someone asks why no escalation arrived."""
-    from app import create_app
+    from app import get_worker_app
     from app.services.notification_service import notify_alert
 
-    app = create_app()
+    # Cached app, not create_app(): this runs every ESCALATION_CHECK_SECONDS, and a new
+    # engine per run exhausted postgres' connection slots until it refused every client.
+    app = get_worker_app()
     with app.app_context():
         now = datetime.now(tz).replace(tzinfo=None)
         cutoff = now - timedelta(minutes=Config.ESCALATION_DELAY_MINUTES)
