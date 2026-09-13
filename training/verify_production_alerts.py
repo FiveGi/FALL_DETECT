@@ -17,7 +17,12 @@ FRAMES_DIR = os.path.join(DATA_DIR, "verify_frames_prod")
 os.makedirs(FRAMES_DIR, exist_ok=True)
 
 which = sys.argv[1] if len(sys.argv) > 1 else "single"
-alerts_by_clip = json.load(open(os.path.join(DATA_DIR, f"prod_{which}_alerts.json")))
+# ALERTS_FILE lets the same verification run against alert sets collected under different
+# inference settings, so old and new can be compared on identical methodology rather than
+# each being verified by a different pass.
+alerts_file = os.environ.get("ALERTS_FILE", f"prod_{which}_alerts.json")
+tag = os.environ.get("VERIFY_TAG", which)
+alerts_by_clip = json.load(open(os.path.join(DATA_DIR, alerts_file)))
 
 client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 prompt = (
@@ -35,7 +40,7 @@ for clip_id, alerts in sorted(alerts_by_clip.items(), key=lambda x: int(x[0])):
     cap = cv2.VideoCapture(video_path)
     for t, p in alerts:
         key = f"{clip_id}/t={t:.1f}s_p={p:.2f}"
-        frame_path = os.path.join(FRAMES_DIR, f"{which}_{clip_id}_{t:.1f}.jpg")
+        frame_path = os.path.join(FRAMES_DIR, f"{tag}_{clip_id}_{t:.1f}.jpg")
         cap.set(cv2.CAP_PROP_POS_MSEC, t * 1000)
         ok, frame = cap.read()
         if not ok:
@@ -57,5 +62,5 @@ for clip_id, alerts in sorted(alerts_by_clip.items(), key=lambda x: int(x[0])):
             results[key] = "ERROR: all retries failed"
     cap.release()
 
-json.dump(results, open(os.path.join(DATA_DIR, f"prod_{which}_verify_results.json"), "w"), indent=2)
+json.dump(results, open(os.path.join(DATA_DIR, f"prod_{tag}_verify_results.json"), "w"), indent=2)
 print(f"\nDone. {len(results)} checked ({which}).")

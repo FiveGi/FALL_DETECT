@@ -2206,3 +2206,39 @@ cameras run.
 
 Both were invisible to every offline eval in this file -- they only appear when the real
 system runs with cameras active, which is an argument for doing that more often.
+
+## 41. Gemini + direct frame reading on the new settings -- the extra alerts are all real falls
+
+**Standing instruction from the user as of 2026-09-14: every test round is verified by both
+Claude reading the frames and Gemini judging them, never by summary counts alone.** SS40's
+numbers were dataset-label counts, which only say whether a clip contains a fall.
+
+All alerts from both configurations, all 17 `Test/` clips, re-extracted fresh from source and
+judged one by one (`verify_production_alerts.py`, now parameterised by `ALERTS_FILE`/
+`VERIFY_TAG` so two settings can be verified on identical methodology; summarised by the new
+`summarize_gemini_verification.py`):
+
+| | old (imgsz 640 / conf 0.50) | new (960 / 0.30) |
+|---|---|---|
+| alerts | 59 | 70 |
+| Gemini: real fall | 46 | **57** |
+| Gemini: not a fall | 13 | **13** |
+| verified precision | 78.0% | **81.4%** |
+
+**All 11 extra alerts are Gemini-confirmed real falls; the false-alarm count is unchanged at
+13.** This is exactly the check SS39/SS40 could not do: the Test/ alert count rising 59 -> 70
+was ambiguous on its own, and it turns out to be 11 more catches with no extra noise.
+
+24 alerts fire only under the new settings. Two were read directly rather than taken on
+Gemini's word: `clip4 t=17.7s` is an elderly person on the ground beside a walker with a
+second person bending over them -- two people in frame, the target scenario, missed entirely
+by the old settings -- and `clip9 t=36.5s` is an empty deck at night with no person in it,
+confirming Gemini's NOT_A_FALL and matching the night-vision/furniture pattern from SS21/SS27.
+
+The 13 false alarms group as: 6 sitting/leaning/standing still, 4 walking (mostly on stairs),
+3 with **no person in frame at all** (night scenes, an empty deck, a text-overlay card). The
+last group is the most tractable lead left -- those are not classification errors about a
+pose, they are alerts on frames containing nobody.
+
+`docs/model_comparison.md` carries the same table plus the full false-alarm list, regenerable
+via `compare_old_vs_new.py` + the two verification scripts.
