@@ -2242,3 +2242,46 @@ pose, they are alerts on frames containing nobody.
 
 `docs/model_comparison.md` carries the same table plus the full false-alarm list, regenerable
 via `compare_old_vs_new.py` + the two verification scripts.
+
+## 42. Verification redone as CLIPS -- stills were the wrong instrument all along
+
+**User: "เราเป็นคลิปนะไม่ใช่ภาพ อย่าลืมว่างานเราคือตรวจจับการล้ม".** Correct, and it applies to
+every verification pass in this file: SS36 and SS41 both judged one still per alert. A fall is
+a motion, and a still cannot separate a fall from someone who lay down, nor a real fall caught
+mid-motion from ordinary walking. `training/verify_alerts_with_clips.py` (new) cuts a window
+around each alert, sends the video to Gemini, and adds a verdict a still cannot express:
+ALREADY_DOWN (someone is on the ground throughout, no fall happens).
+
+| | old (imgsz 640 / conf 0.50) | new (960 / 0.30) |
+|---|---|---|
+| alerts | 59 | 70 |
+| a real fall happens | 53 | **60** |
+| already on the ground, no fall | 1 | 3 |
+| nobody falls | 5 | 6 |
+| unusable (shot < 1s) | 0 | 1 |
+| precision | 89.8% | 87.0% |
+
+**The new settings catch 7 more real falls**; precision dips slightly because the extra alerts
+also include two more ALREADY_DOWN and one more NOT_A_FALL. Both configurations score higher
+here than in SS41's still-based pass (78% / 81%) -- because stills were calling genuine
+mid-motion falls "not a fall".
+
+**A trap that invalidated the first attempt, worth remembering.** The first clip run returned
+FALL for 68 of 70 alerts, including one on an empty night deck already confirmed by eye to
+contain no person. `Test/` clips are social-media compilations that cut between unrelated
+incidents every few seconds, so a 7s window routinely spanned two or three scenes and Gemini
+answered about somebody else's fall. The script now detects hard cuts (mean absolute frame
+difference on a 64x36 thumbnail) and trims the window to the alert's own shot; the empty-deck
+alert then correctly returns NOT_A_FALL. **Clip-based verification on compilation footage is
+invalid without shot trimming.**
+
+Contact sheets (15 frames across the window, alert frame outlined) are written next to each
+clip so the motion can be read by eye. Reading them changed one earlier claim: SS41 reported
+`clip4 t=17.7s` as a fall the new settings caught and the old missed. The sheet shows the
+person was **already on the ground** at the alert moment, with a second person bending over
+them -- the fall itself happened before the window. The alert is still correct and useful
+(someone is down and being helped) but it is aftermath detection, not fall detection, and the
+still could not show that.
+
+**Standing rule from here (also saved to memory): every test round is verified by Claude
+reading the frames AND by Gemini, on clips rather than stills.**

@@ -74,3 +74,42 @@ frame at all, matching the night-vision/furniture pattern already documented in 
 All of them are outdoor doorbell footage, which is not the indoor care setting this system
 targets -- but the categories are the same ones SKILL.md has been tracking since SS20, and the
 first group is the clearest lead: alerts fired on frames with no person in them at all.
+
+## Verified again as CLIPS, not stills
+
+A fall is a motion. A single frame cannot tell a fall from someone who lay down, and it
+cannot tell a real fall caught mid-motion from ordinary walking -- so the still-based numbers
+above are measuring the wrong thing in both directions. Redone with
+`training/verify_alerts_with_clips.py`: each alert becomes a short video around the moment,
+Gemini judges the motion, and a third verdict is available that a still cannot express --
+ALREADY_DOWN, meaning someone is on the ground the whole time without falling.
+
+| | old (640 / 0.50) | new (960 / 0.30) |
+|---|---|---|
+| alerts | 59 | 70 |
+| a real fall happens | 53 | **60** |
+| already on the ground, no fall in the clip | 1 | 3 |
+| nobody falls | 5 | 6 |
+| unusable (shot shorter than 1s) | 0 | 1 |
+| precision | 89.8% | 87.0% |
+
+**The new settings catch 7 more real falls.** Precision moves from
+89.8% to 87.0% -- slightly
+down, because the extra alerts include two more ALREADY_DOWN and one more NOT_A_FALL. Alerting
+on a person who is already on the floor is not useless (they may still need help) but it is
+not fall detection, so it is counted separately rather than folded into either column.
+
+Both columns score *higher* here than the still-based pass (90% and
+86% versus 78% and 81%), because several alerts a still called "not a fall"
+are genuine falls caught mid-motion, where one frame looks like walking.
+
+### One methodological trap worth knowing about
+
+The first clip-based attempt returned "FALL" for 68 of 70 alerts, including an alert on an
+empty night-time deck that had already been confirmed by eye to contain no person. The cause
+is the source material: the `Test/` clips are social-media compilations that cut between
+unrelated incidents every few seconds, so a 7-second window around an alert often contained
+two or three different scenes -- and someone else's fall. `verify_alerts_with_clips.py` now
+detects hard cuts and trims each window to the shot the alert is actually in; the empty-deck
+alert then correctly comes back NOT_A_FALL. **Any future clip-based verification on
+compilation footage has to do this, or it measures the wrong scene.**
