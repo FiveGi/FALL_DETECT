@@ -1135,6 +1135,9 @@ async function fetchAllNotifications() {
           confidence: notification.confidence,
           tier: getAlertTier(notification.detection_type, notification.confidence),
           notification_id: notification.id,
+          clip_url: notification.clip_path
+            ? `${import.meta.env.VITE_API_BASE_URL}/alert-images/${encodeURIComponent(String(notification.clip_path).split('/').pop())}`
+            : null,
           acknowledged_at: notification.acknowledged_at,
           escalation_count: notification.escalation_count || 0,
           detection_type: notification.detection_type,
@@ -1607,7 +1610,12 @@ function getUserCameraCount(userId) {
                     {{ acknowledging.has(activity.notification_id) ? 'กำลังบันทึก...' : 'รับทราบ' }}
                   </button>
                 </div>
-                <div v-if="activity.image_url" class="log-image">
+                <div v-if="activity.clip_url" class="log-clip">
+                  <video :src="activity.clip_url" controls preload="none"
+                         :poster="activity.image_url || undefined" class="alert-clip"></video>
+                  <span class="clip-hint">60 วินาทีก่อนเกิดเหตุ</span>
+                </div>
+                <div v-if="activity.image_url && !activity.clip_url" class="log-image">
                   <a :href="activity.image_url" target="_blank" rel="noopener noreferrer">
                     <img :src="activity.image_url" alt="Alert image" class="alert-image" />
                   </a>
@@ -2476,6 +2484,28 @@ function getUserCameraCount(userId) {
   font-size: 0.75rem;
   font-weight: 700;
   color: #15803d;
+}
+
+/* The clip replaces the still when one exists: a fall is a motion, and a single frame
+   cannot show whether the person fell or was already on the floor. preload="none" keeps the
+   alert list cheap to open -- the video is only fetched if someone presses play. */
+.log-clip {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.alert-clip {
+  max-width: 260px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #000;
+}
+
+.clip-hint {
+  font-size: 0.7rem;
+  color: #6b7280;
 }
 
 .log-image {

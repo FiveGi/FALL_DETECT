@@ -112,7 +112,10 @@ def get_notifications():
             'image_path': n.image_path,
             'confidence': n.confidence,
             'acknowledged_at': n.acknowledged_at.isoformat() if n.acknowledged_at else None,
-            'escalation_count': n.escalation_count or 0
+            'escalation_count': n.escalation_count or 0,
+            # The 60s of footage leading up to the alert. Only the filename is useful to the
+            # browser -- it fetches it from /api/alert-images/<name>, same as the still.
+            'clip_path': n.clip_path
         } for n in notifications
     ])
 
@@ -143,7 +146,10 @@ def get_notifications_for_camera(camera_id):
             'image_path': n.image_path,
             'confidence': n.confidence,
             'acknowledged_at': n.acknowledged_at.isoformat() if n.acknowledged_at else None,
-            'escalation_count': n.escalation_count or 0
+            'escalation_count': n.escalation_count or 0,
+            # The 60s of footage leading up to the alert. Only the filename is useful to the
+            # browser -- it fetches it from /api/alert-images/<name>, same as the still.
+            'clip_path': n.clip_path
         } for n in notifications
     ]) 
 
