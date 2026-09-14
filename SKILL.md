@@ -2285,3 +2285,41 @@ still could not show that.
 
 **Standing rule from here (also saved to memory): every test round is verified by Claude
 reading the frames AND by Gemini, on clips rather than stills.**
+
+## 43. Two hypotheses tested and both wrong -- the collapse rule earns its keep, and the "no person in frame" false alarms do not exist
+
+Following SS42's lead that three alerts fired on frames with nobody in them, the suspect was
+the collapse rule: when person detection drops to ~zero right after a high score, it reports
+a fall at **probability 1.0** -- which under the two-tier rule (SS39/notification_service) is
+the *confirmed* tier, the highest-urgency wording. Firing that on a person merely vanishing
+from a night scene would be the worst kind of false alarm. `V3_COLLAPSE_ENABLED` was added to
+measure it instead of arguing about it.
+
+**Hypothesis 1: the collapse rule causes false alarms. Wrong.**
+
+| | val falls | val ADL clean | train50 falls | train50 ADL clean | Test/ alerts |
+|---|---|---|---|---|---|
+| collapse on (deployed) | 15/15 | 10/16 | 24/25 | 22/25 | 70 |
+| collapse off | 15/15 | 10/16 | 24/25 | 22/25 | 69 |
+
+It changes **nothing** on either ground-truth set and fires exactly **once** across all 17
+`Test/` clips -- and that one alert (clip4 t=79.9s, the only alert in the whole set at
+probability 1.00, from a window with 1/30 genuinely observed frames) is Gemini-verified on the
+clip as *"A person loses balance and falls to the ground"*. It is a real catch that nothing
+else in the pipeline produces. **Kept enabled.** The env flag stays as an instrument.
+
+**Hypothesis 2: three alerts fire with no person in frame. Also wrong -- it was an artefact of
+still-based verification.** Re-judged as clips with shot trimming, `9/t=36.5s` is *"a person
+walks across the deck safely"* and `9/t=66.7s` is *"a person walks away from the camera and
+enters the house"*. Both contain a person; the single frame the still-based pass sampled was
+dark and empty-looking, and SS41 recorded "no person in frame at all" on that basis. The third
+(`7/t=5.7s`) sits within a second of a scene cut and has no usable continuous footage at all.
+
+So the remaining false alarms are not a separate, more tractable category. They are the same
+walking/standing/sitting family SKILL.md has tracked since SS20, and the only lever still
+untried against them is training data -- consistent with SS33 and SS40, where eight different
+decision signals were each measured and each overlapped genuine falls.
+
+**Method note worth keeping**: both of these wrong hypotheses came from reading stills, and
+both were corrected by clips. Any claim about *why* an alert fired should be made from the
+clip, not the frame.
