@@ -197,6 +197,9 @@ watch(
               <RouterLink :to="'/notification-settings'" :class="{ active: currentRoutePath === '/notification-settings' }">
                 ตั้งค่าการแจ้งเตือน
               </RouterLink>
+              <RouterLink :to="'/system-logs'" :class="{ active: currentRoutePath === '/system-logs' }">
+                บันทึกระบบ
+              </RouterLink>
             </template>
 
             <!-- ข้อมูลทั่วไป -->

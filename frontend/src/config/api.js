@@ -73,6 +73,13 @@ export const API_ENDPOINTS = {
     ACKNOWLEDGE: (id) => `/detection-logs/notifications/${id}/acknowledge`,
   },
 
+  // system logs
+  SYSTEM_LOGS: {
+    BASE: '/system-logs',
+    LEVELS: '/system-logs/levels',
+    COMPONENTS: '/system-logs/components',
+  },
+
   // line
   LINE: {
     SETTINGS: '/line/settings',
