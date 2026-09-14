@@ -269,6 +269,12 @@ RESET_PERSON_FRACTION = 0.05
 # Below this, treat it as a genuinely empty scene and fully reset state. Between this and
 # MIN_PERSON_FRACTION, hold the last known state instead of resetting -- see below.
 COLLAPSE_CONFIDENCE = 0.6
+# Whether the collapse rule fires at all. It was added for MediaPipe, which lost people
+# entirely once they were prone; YOLO-pose detects prone frames far more reliably (81.2% vs
+# 71.7%, SS34), so the rule may now cost more than it earns -- it reports probability 1.0 on
+# a person VANISHING, which is also what a night scene or a spurious detection looks like.
+# Env-overridable so that is measured rather than argued.
+COLLAPSE_ENABLED = os.environ.get("V3_COLLAPSE_ENABLED", "1") != "0"
 # If the model was this confident right before person-detection collapsed to ~zero,
 # treat the collapse itself as a fall signal (see detect_v3_fall).
 # 0.2 still rejects the empty-room case while letting spotty-but-real detections through.
@@ -360,7 +366,8 @@ def _step_person(kpts, person_found, state: V3FallDetectionState,
         # not someone calmly walking off -- confirmed via batch testing, where two real
         # falls peaked at 0.73/0.69 then MediaPipe lost the person entirely for the rest
         # of the clip. Fire one alert on that transition instead of silently discarding it.
-        was_collapse = state.last_probability > COLLAPSE_CONFIDENCE and not state.collapse_fired
+        was_collapse = (COLLAPSE_ENABLED and state.last_probability > COLLAPSE_CONFIDENCE
+                        and not state.collapse_fired)
         state.recent_flags.clear()
         state.last_probability = 0.0
         state.last_detected = False

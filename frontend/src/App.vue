@@ -19,6 +19,12 @@ const cameraStore = useCameraStore()
 const notificationStore = useNotificationStore()
 const leftNotificationStore = useLeftNotificationStore()
 
+// Mobile nav state. Closed on every navigation so a tap both moves and dismisses --
+// on a phone the menu otherwise covers the page you just asked for.
+const mobileNavOpen = ref(false)
+
+// Close the menu on navigation: on a phone it covers the page the tap just asked for.
+watch(() => route.path, () => { mobileNavOpen.value = false })
 const currentRoutePath = computed(() => route.path)
 
 // Global notification polling
@@ -170,7 +176,11 @@ watch(
           <div class="app-logo">
             <RouterLink to="/dashboard" class="logo-link">V89 Fall Management System</RouterLink>
           </div>
-          <nav class="app-nav">
+          <button class="nav-toggle" type="button" @click="mobileNavOpen = !mobileNavOpen"
+                  :aria-expanded="mobileNavOpen ? 'true' : 'false'" aria-label="เมนู">
+            <span></span><span></span><span></span>
+          </button>
+          <nav class="app-nav" :class="{ open: mobileNavOpen }">
             <!-- หน้าหลัก/Dashboard มาก่อน -->
             <RouterLink :to="'/dashboard'" :class="{ active: currentRoutePath === '/dashboard' }">
               แดชบอร์ด
@@ -471,6 +481,61 @@ watch(
     bottom: 10px;
     right: 10px;
     left: 10px;
+  }
+}
+
+/* --- mobile ------------------------------------------------------------------------ */
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 44px;
+  height: 44px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.nav-toggle span {
+  display: block;
+  height: 2px;
+  background: #fff;
+  border-radius: 2px;
+}
+
+@media (max-width: 768px) {
+  .nav-toggle {
+    display: flex;
+  }
+
+  /* The nav is hidden until the button is pressed: eight links plus the account controls
+     took about a third of a phone screen, pushing the camera cards out of view. */
+  .app-nav {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.25rem;
+    width: 100%;
+  }
+
+  .app-nav.open {
+    display: flex;
+  }
+
+  .app-nav a {
+    padding: 0.75rem 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .app-nav .user-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
   }
 }
 </style>

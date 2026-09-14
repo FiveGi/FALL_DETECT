@@ -1514,11 +1514,6 @@ function getUserCameraCount(userId) {
                 <IconAlert /> ตรวจพบการเคลื่อนไหว
               </div>
 
-              <!-- ซ่อนปุ่มลบและแก้ไขเมื่ออยู่ในโหมดเต็มจอ หรือเมื่อกำลังตรวจจับ หรือไม่ใช่ Admin -->
-              <div v-if="isAdmin && !fullscreenCamera && !activeMonitors[camera.id]" class="camera-action-buttons" @click.stop>
-                  <button class="btn btn-danger btn-sm" @click="removeCamera(camera)">ลบ</button>
-                  <button class="btn btn-secondary btn-sm" @click="startEditCamera(camera)">แก้ไข</button>
-              </div>
             </div>
 
             <div class="camera-controls">
@@ -1561,6 +1556,15 @@ function getUserCameraCount(userId) {
               >
                 {{ operationInProgress[camera.id] ? 'กำลังหยุด...' : 'หยุดการตรวจจับ' }}
               </button>
+            
+              <!-- Edit/delete live here rather than on top of the video: a destructive
+                   control over a live feed is a mis-tap waiting to happen, and it covered
+                   part of what is being watched. Hidden while detection is running or in
+                   fullscreen, as before. -->
+              <div v-if="isAdmin && !fullscreenCamera && !activeMonitors[camera.id]" class="camera-action-buttons" @click.stop>
+                <button class="btn btn-secondary btn-sm" @click="startEditCamera(camera)">แก้ไข</button>
+                <button class="btn btn-danger btn-sm" @click="removeCamera(camera)">ลบ</button>
+              </div>
             </div>
           </div>
         </div>
@@ -2788,16 +2792,10 @@ function getUserCameraCount(userId) {
 }
 
 .camera-action-buttons {
-  position: absolute;
-  top: 8px;
-  right: 8px;
   display: flex;
   gap: 0.5rem;
-  z-index: 10;
-  background: rgba(0, 0, 0, 0.7);
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  backdrop-filter: blur(4px);
+  justify-content: flex-end;
+  margin-top: 0.5rem;
 }
 
 .camera-action-buttons .btn {
@@ -3134,5 +3132,32 @@ function getUserCameraCount(userId) {
   font-style: italic;
   align-self: center;
   margin-left: 0.5rem;
+}
+
+/* --- mobile ------------------------------------------------------------------------ */
+@media (max-width: 768px) {
+  /* Stacked, not overlapping: at 390px the title and the toolbar buttons were drawn on top
+     of each other, and a long button caption collapsed into a column of single words. */
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .page-header-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .page-header-controls > * {
+    flex: 1 1 auto;
+    white-space: nowrap;
+  }
+
+  .alert-clip,
+  .alert-image {
+    max-width: 100%;
+  }
 }
 </style>
