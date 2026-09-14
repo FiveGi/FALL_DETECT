@@ -13,6 +13,7 @@ import cv2
 import time
 from datetime import datetime
 import os
+import re
 import tempfile
 import pytz
 from datetime import time as dtime
@@ -97,6 +98,26 @@ def detect_alone_with_state(frame, state: AloneDetectionState, person_detector: 
     state.last_result = (risk_level, person_count, detection_result, processed_frame, should_alert_alone)
     return state.last_result
 
+
+def camera_still_active(camera_id, default=True):
+    """-> whether the camera is still marked active, without touching a possibly-detached
+    instance.
+
+    The loops used db.session.refresh(camera), which raises if the session was rolled back
+    earlier (observed in the system log as "Could not refresh instance <Camera>"), killing the
+    detection task outright. A fresh query by id cannot be detached, and on any database error
+    this returns `default` -- keep running -- because dropping fall detection is worse than
+    briefly missing a stop request, which the next iteration will pick up anyway.
+    """
+    try:
+        db.session.rollback()  # clear any failed transaction so the query below can run
+        row = Camera.query.get(camera_id)
+        return bool(row.is_active) if row else False
+    except Exception as e:
+        print(f"[Camera {camera_id}] active-check failed, continuing: {e}")
+        return default
+
+
 @celery.task
 def process_fall_detection(camera_id, config):
     from app import get_worker_app
@@ -126,6 +147,14 @@ def process_fall_detection(camera_id, config):
             
             cap = cv2.VideoCapture(camera.url)
             if not cap.isOpened():
+                # A Windows path can never resolve inside the container; say that instead of
+                # the generic open failure, which sent people looking at the camera hardware.
+                if re.match(r'^[A-Za-z]:[\\/]', camera.url or ''):
+                    save_system_log('ERROR',
+                                    f'Camera {camera.name}: "{camera.url}" is a Windows path; '
+                                    f'inside the container it must be a container path such as '
+                                    f'/app/Test/1.mp4, or an rtsp:// URL',
+                                    'DETECTION', camera.user_id)
                 save_system_log('ERROR', f'Fall detection: Failed to open camera URL: {camera.url}', 'DETECTION', camera.user_id)
                 return
             cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # avoid processing a growing backlog of stale frames on live RTSP sources -- see stream_service.py, which already does this
@@ -230,8 +259,7 @@ def process_fall_detection(camera_id, config):
                     print(f"[Camera {camera_id}] FALL ALERT: {label}, Confidence: {confidence:.2f}")
                     camera._last_fall_alert_time = now
                 
-                db.session.refresh(camera)
-                if not camera.is_active:
+                if not camera_still_active(camera_id):
                     break
                 
                 if is_video_file and fps > 0:
@@ -275,6 +303,14 @@ def process_alone_detection(camera_id, config):
             
             cap = cv2.VideoCapture(camera.url)
             if not cap.isOpened():
+                # A Windows path can never resolve inside the container; say that instead of
+                # the generic open failure, which sent people looking at the camera hardware.
+                if re.match(r'^[A-Za-z]:[\\/]', camera.url or ''):
+                    save_system_log('ERROR',
+                                    f'Camera {camera.name}: "{camera.url}" is a Windows path; '
+                                    f'inside the container it must be a container path such as '
+                                    f'/app/Test/1.mp4, or an rtsp:// URL',
+                                    'DETECTION', camera.user_id)
                 save_system_log('ERROR', f'Alone detection: Failed to open camera URL: {camera.url}', 'DETECTION', camera.user_id)
                 return
             cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # avoid processing a growing backlog of stale frames on live RTSP sources -- see stream_service.py, which already does this
@@ -367,8 +403,7 @@ def process_alone_detection(camera_id, config):
                     print(f"[Camera {camera_id}] ALONE DETECTED (No notification sent): {detection_result}, Risk: {risk_level}")
                     camera._last_alone_alert_time = now
                 
-                db.session.refresh(camera)
-                if not camera.is_active:
+                if not camera_still_active(camera_id):
                     break
                 
                 if is_video_file and fps > 0:
@@ -411,6 +446,14 @@ def process_bed_exit_detection(camera_id, config):
             
             cap = cv2.VideoCapture(camera.url)
             if not cap.isOpened():
+                # A Windows path can never resolve inside the container; say that instead of
+                # the generic open failure, which sent people looking at the camera hardware.
+                if re.match(r'^[A-Za-z]:[\\/]', camera.url or ''):
+                    save_system_log('ERROR',
+                                    f'Camera {camera.name}: "{camera.url}" is a Windows path; '
+                                    f'inside the container it must be a container path such as '
+                                    f'/app/Test/1.mp4, or an rtsp:// URL',
+                                    'DETECTION', camera.user_id)
                 save_system_log('ERROR', f'Bed exit detection: Failed to open camera URL: {camera.url}', 'DETECTION', camera.user_id)
                 return
             cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # avoid processing a growing backlog of stale frames on live RTSP sources -- see stream_service.py, which already does this
@@ -519,8 +562,7 @@ def process_bed_exit_detection(camera_id, config):
                     print(f"[Camera {camera_id}] BED EXIT ALERT: {label}, Confidence: {confidence:.2f}")
                     camera._last_bed_alert_time = now
                 
-                db.session.refresh(camera)
-                if not camera.is_active:
+                if not camera_still_active(camera_id):
                     break
                 
                 if is_video_file and fps > 0:
@@ -579,6 +621,14 @@ def process_v2_fall_detection(camera_id, config):
             # Initialize camera capture
             cap = cv2.VideoCapture(camera.url)
             if not cap.isOpened():
+                # A Windows path can never resolve inside the container; say that instead of
+                # the generic open failure, which sent people looking at the camera hardware.
+                if re.match(r'^[A-Za-z]:[\\/]', camera.url or ''):
+                    save_system_log('ERROR',
+                                    f'Camera {camera.name}: "{camera.url}" is a Windows path; '
+                                    f'inside the container it must be a container path such as '
+                                    f'/app/Test/1.mp4, or an rtsp:// URL',
+                                    'DETECTION', camera.user_id)
                 save_system_log('ERROR', f'Failed to open camera {camera.name} for V2 fall detection', 'DETECTION', camera.user_id)
                 return
             cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # avoid processing a growing backlog of stale frames on live RTSP sources -- see stream_service.py, which already does this
@@ -670,8 +720,7 @@ def process_v2_fall_detection(camera_id, config):
                         print(f"[Camera {camera_id}] V2 FALL ALERT: {label}, Confidence: {probability:.2f}, People seen: {fall_state.seen_count}")
                         camera._last_fall_v2_alert_time = now
                 
-                db.session.refresh(camera)
-                if not camera.is_active:
+                if not camera_still_active(camera_id):
                     break
                 
                 if is_video_file and fps > 0:
@@ -723,6 +772,14 @@ def process_v2_alone_detection(camera_id, config):
             
             cap = cv2.VideoCapture(camera.url)
             if not cap.isOpened():
+                # A Windows path can never resolve inside the container; say that instead of
+                # the generic open failure, which sent people looking at the camera hardware.
+                if re.match(r'^[A-Za-z]:[\\/]', camera.url or ''):
+                    save_system_log('ERROR',
+                                    f'Camera {camera.name}: "{camera.url}" is a Windows path; '
+                                    f'inside the container it must be a container path such as '
+                                    f'/app/Test/1.mp4, or an rtsp:// URL',
+                                    'DETECTION', camera.user_id)
                 save_system_log('ERROR', f'Failed to open camera {camera.name} for V2 alone detection', 'DETECTION', camera.user_id)
                 return
             cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # avoid processing a growing backlog of stale frames on live RTSP sources -- see stream_service.py, which already does this
@@ -794,8 +851,7 @@ def process_v2_alone_detection(camera_id, config):
                         print(f"[Camera {camera_id}] V2 ALONE ALERT: {detection_result}, Count: {person_count}")
                         camera._last_alone_v2_alert_time = now
                 
-                db.session.refresh(camera)
-                if not camera.is_active:
+                if not camera_still_active(camera_id):
                     break
                 
                 if is_video_file and fps > 0:
