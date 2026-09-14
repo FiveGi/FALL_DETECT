@@ -8,7 +8,7 @@ tz = pytz.timezone('Asia/Bangkok')
 
 
 class LineSettings(db.Model):
-    """Per-user LINE Messaging API credentials, mirroring TelegramSettings.
+    """Per-user LINE Messaging API credentials.
 
     Before this, LINE was configured only through environment variables, which meant a
     caregiver could not point alerts at their own LINE account without editing .env and

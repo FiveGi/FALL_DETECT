@@ -34,8 +34,6 @@ class Config:
     task_acks_late = True  # Acknowledge tasks after completion
     worker_max_tasks_per_child = 1000  # Restart worker after 1000 tasks to prevent memory leaks
 
-    TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '')
-    TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID', '')
 
     # LINE Messaging API push notifications (app/services/line_service.py). LINE requires alert
     # images to be served from a real public HTTPS URL (no direct file upload like Telegram), so

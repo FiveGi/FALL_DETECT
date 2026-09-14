@@ -118,7 +118,7 @@ def create_app():
             return False
 
 
-    from .models import user, camera, detection_log, system_log, notification_history, telegram_settings, line_settings, token_blocklist, thai_frat_assessment
+    from .models import user, camera, detection_log, system_log, notification_history, line_settings, token_blocklist, thai_frat_assessment
    
     with app.app_context():
         try:

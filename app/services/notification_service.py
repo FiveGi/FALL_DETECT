@@ -1,4 +1,3 @@
-from app.services.telegram_service import send_telegram_message_async
 from app.services.line_service import send_line_message_async
 
 # Confidence at or above which a fall is announced as confirmed rather than as something
@@ -26,7 +25,7 @@ def alert_tier(detection_type, confidence):
 
 def notify_alert(camera_id, camera_name, room_name, detection_type, timestamp, image_path,
                  confidence=None, escalation_level=0, notification_id=None):
-    """Single entry point for every outbound alert channel. Detection loops call this
+    """Single entry point for every outbound alert channel (currently LINE). Detection loops call this
     instead of each channel's sender directly, so adding/removing a channel or changing
     the tier rule is a one-line change here rather than an edit repeated at every alert
     call site.
@@ -38,9 +37,6 @@ def notify_alert(camera_id, camera_name, room_name, detection_type, timestamp, i
     tier = alert_tier(detection_type, confidence)
     if escalation_level > 0:
         tier = "confirmed"
-    send_telegram_message_async(camera_id, camera_name, room_name, detection_type, timestamp,
-                                image_path, tier=tier, confidence=confidence,
-                                escalation_level=escalation_level)
     # notification_id only reaches LINE: it is what the "รับทราบ" button posts back, so the
     # webhook can mark that exact alert acknowledged and reply with its clip.
     send_line_message_async(camera_id, camera_name, room_name, detection_type, timestamp,

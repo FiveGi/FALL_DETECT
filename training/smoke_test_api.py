@@ -5,8 +5,8 @@ route could be broken -- wrong status, 500, missing field -- and the only way to
 a user hitting it. This logs in as admin, calls every GET endpoint, and exercises the
 non-destructive POSTs, checking status codes and the shape of what comes back.
 
-Deliberately does NOT call anything that would send a message to a real person (LINE/Telegram
-test endpoints) or delete data -- those are listed as skipped rather than silently omitted.
+Deliberately does NOT call anything that would send a message to a real person (the LINE test
+endpoint) or delete data -- those are listed as skipped rather than silently omitted.
 
 Usage:
     python training/smoke_test_api.py            # against localhost:8932
@@ -27,7 +27,6 @@ TIMEOUT = float(os.environ.get('SMOKE_TIMEOUT', 30))
 # what was not covered instead of quietly leaving gaps.
 SKIPPED = {
     '/api/line/test': 'would push a real LINE message',
-    '/api/telegram/test': 'would push a real Telegram message',
     '/api/line/webhook': 'called by LINE, needs a signed body',
     '/api/auth/logout': 'would invalidate the token this run is using',
     '/api/auth/logout-all': 'would invalidate every session',
@@ -137,7 +136,6 @@ def main():
     check('GET  /api/admin/dashboard', 'GET', '/api/admin/dashboard', token)
     check('GET  /api/admin/users', 'GET', '/api/admin/users', token)
 
-    check('GET  /api/telegram/settings', 'GET', '/api/telegram/settings', token)
     line = check('GET  /api/line/settings', 'GET', '/api/line/settings', token)
     if isinstance(line, dict) and isinstance(line.get('data'), dict):
         d = line['data']

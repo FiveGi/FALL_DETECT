@@ -86,12 +86,6 @@ export const API_ENDPOINTS = {
     TEST: '/line/test',
   },
 
-  // telegram
-  TELEGRAM: {
-    SETTINGS: '/telegram/settings',
-    TEST: '/telegram/test',
-  },
-
   // assignments
   ASSIGNMENTS: {
     BASE: '/thai-frat/assessments',

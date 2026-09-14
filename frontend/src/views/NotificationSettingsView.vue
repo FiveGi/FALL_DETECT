@@ -57,117 +57,6 @@
         </div>
       </div>-->
 
-      <!-- การตั้งค่า Telegram Bot -->
-      <div class="card">
-        <h2 class="card-title">การตั้งค่า Telegram Bot</h2>
-
-        <div v-if="telegramSaveSuccess" class="alert alert-success">
-          บันทึกการตั้งค่า Telegram สำเร็จแล้ว
-        </div>
-
-        <div v-if="telegramErrorMessage" class="alert alert-error">
-          {{ telegramErrorMessage }}
-        </div>
-
-        <div class="info-section">
-          <p class="info-text">
-            กรุณากรอก Bot Token ของ Telegram เพื่อเปิดใช้งานการแจ้งเตือนผ่าน Telegram
-          </p>
-
-          <div class="setup-instructions">
-            <h3>วิธีการตั้งค่า:</h3>
-            <ol>
-              <li>สร้าง Bot ใหม่โดยส่งข้อความ <code>/newbot</code> ไปยัง <strong>@BotFather</strong> บน Telegram</li>
-              <li>ตั้งชื่อ Bot และรับ Bot Token</li>
-              <li>คัดลอก Bot Token มาใส่ในช่องด้านล่าง</li>
-            </ol>
-          </div>
-        </div>
-
-        <div class="telegram-form">
-          <div class="form-group">
-            <label for="bot-token" class="form-label">
-              รหัส Bot Token ของ Telegram
-              <span class="required">*</span>
-            </label>
-            <input
-              type="password"
-              id="bot-token"
-              v-model="telegramSettings.bot_token"
-              class="form-input"
-              placeholder="กรอก Bot Token ที่ได้จาก @BotFather"
-              :disabled="isTelegramLoading"
-            />
-            <small class="form-help">
-              รหัสลับของ Bot ที่ได้จาก @BotFather ตัวอย่าง: 123456789:ABCdefGHIjklMNOpqrsTUVwxyz
-            </small>
-
-                        <label for="bot-token" class="form-label">
-              รหัส Chat ID ของ Telegram
-              <span class="required">*</span>
-            </label>
-            <input
-              type="password"
-              id="bot-token"
-              v-model="telegramSettings.chat_id"
-              class="form-input"
-              placeholder="กรอก Chat ID ที่ได้จาก @BotFather"
-              :disabled="isTelegramLoading"
-            />
-          </div>
-
-          <div class="telegram-actions">
-            <button
-              @click="saveTelegramSettings"
-              type="button"
-              class="btn btn-primary"
-              :disabled="isTelegramLoading || !isTelegramFormValid"
-              :class="{ 'loading': isTelegramLoading }"
-            >
-              <span v-if="!isTelegramLoading">บันทึกการตั้งค่า Telegram</span>
-              <span v-else>กำลังบันทึก...</span>
-            </button>
-
-            <button
-              @click="testTelegramSettings"
-              type="button"
-              class="btn btn-secondary"
-              :disabled="isTelegramLoading || !isTelegramFormValid || isTelegramTesting"
-              :class="{ 'loading': isTelegramTesting }"
-            >
-              <span v-if="!isTelegramTesting">ทดสอบการส่งข้อความ</span>
-              <span v-else>กำลังทดสอบ...</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Current Telegram Settings Display -->
-        <div v-if="currentTelegramSettings" class="current-telegram-settings">
-          <h3 class="sub-title">การตั้งค่าปัจจุบัน</h3>
-
-          <div class="setting-item">
-            <span class="setting-label">Bot Token:</span>
-            <span class="setting-value">
-              {{ currentTelegramSettings.bot_token ? '••••••••••' + currentTelegramSettings.bot_token.slice(-8) : 'ยังไม่ได้ตั้งค่า' }}
-            </span>
-          </div>
-
-          <div class="setting-item">
-            <span class="setting-label">สถานะ:</span>
-            <span class="setting-value" :class="telegramSettingsStatusClass">
-              {{ telegramSettingsStatus }}
-            </span>
-          </div>
-
-          <div class="setting-item">
-            <span class="setting-label">อัปเดตล่าสุด:</span>
-            <span class="setting-value">
-              {{ formatDateTime(currentTelegramSettings.updated_at) }}
-            </span>
-          </div>
-        </div>
-      </div>
-
       <!-- การตั้งค่า LINE Messaging API -->
       <div class="card">
         <h2 class="card-title">การตั้งค่าแจ้งเตือนผ่าน LINE</h2>
@@ -196,7 +85,7 @@
           </div>
         </div>
 
-        <div class="telegram-form">
+        <div class="line-form">
           <div class="form-group">
             <label class="toggle-row">
               <input type="checkbox" v-model="lineSettings.enabled" :disabled="isLineLoading" />
@@ -235,7 +124,7 @@
             />
           </div>
 
-          <div class="telegram-actions">
+          <div class="line-actions">
             <button
               @click="saveLineSettings"
               type="button"
@@ -260,7 +149,7 @@
           </div>
         </div>
 
-        <div v-if="currentLineSettings" class="current-telegram-settings">
+        <div v-if="currentLineSettings" class="current-line-settings">
           <h3 class="sub-title">การตั้งค่าปัจจุบัน</h3>
 
           <div class="setting-item">
@@ -298,7 +187,6 @@ import { useNotificationStore } from '@/stores/notification'
 import { useCameraStore } from '@/stores/camera'
 import { useAuthStore } from '@/stores/auth'
 import cameraService from '@/services/cameraService'
-import telegramService from '@/services/telegramService'
 import lineService from '@/services/lineService'
 
 const notificationStore = useNotificationStore()
@@ -311,48 +199,12 @@ const isSaving = ref(false)
 // ตรวจสอบสิทธิ์ admin
 const isAdmin = computed(() => authStore.isAdmin)
 
-// Telegram settings - เฉพาะ bot_token
-const telegramSettings = ref({
-  bot_token: '',
-  chat_id: ''
-})
-const currentTelegramSettings = ref(null)
-const isTelegramLoading = ref(false)
-const isTelegramTesting = ref(false)
-const telegramSaveSuccess = ref(false)
-const telegramErrorMessage = ref('')
-
 const settings = ref({
   timeRange: {
     start: '21:00',
     end: '05:00',
   }
 })
-
-// Computed properties for Telegram
-const isTelegramFormValid = computed(() => {
-  return telegramSettings.value.bot_token.trim() !== '' && telegramSettings.value.chat_id.trim() !== ''
-})
-
-const telegramSettingsStatus = computed(() => {
-  if (!currentTelegramSettings.value) return 'ไม่มีข้อมูล'
-
-  const hasToken = currentTelegramSettings.value.bot_token && currentTelegramSettings.value.bot_token.trim() !== ''
-
-  if (hasToken) {
-    return 'พร้อมใช้งาน'
-  } else {
-    return 'ยังไม่ได้ตั้งค่า'
-  }
-})
-
-const telegramSettingsStatusClass = computed(() => {
-  const status = telegramSettingsStatus.value
-  if (status === 'พร้อมใช้งาน') return 'status-ready'
-  return 'status-not-set'
-})
-
-// Telegram methods
 // LINE settings. The token is never sent back from the server, so the input starts blank
 // and an empty value on save means "keep what is stored" (see the route's comment).
 const lineSettings = ref({
@@ -422,127 +274,11 @@ async function testLineSettings() {
   }
 }
 
-async function loadTelegramSettings() {
-  try {
-    isTelegramLoading.value = true
-    telegramErrorMessage.value = ''
 
-    const response = await telegramService.fetchTelegramSettings()
 
-    if (response.success && response.data) {
-      currentTelegramSettings.value = response.data
 
-      // Auto-fill form if settings exist
-      if (response.data.bot_token) {
-        telegramSettings.value.bot_token = response.data.bot_token
-      }
-      if (response.data.chat_id) {
-        telegramSettings.value.chat_id = response.data.chat_id
-      }
 
-    }
-  } catch (error) {
-    console.error('Error loading telegram settings:', error)
-    telegramErrorMessage.value = 'ไม่สามารถโหลดการตั้งค่า Telegram ได้'
-  } finally {
-    isTelegramLoading.value = false
-  }
-}
 
-async function saveTelegramSettings() {
-  if (!isTelegramFormValid.value) {
-    telegramErrorMessage.value = 'กรุณากรอก Bot Token'
-    return
-  }
-
-  try {
-    isTelegramLoading.value = true
-    telegramErrorMessage.value = ''
-    telegramSaveSuccess.value = false
-
-    const response = await telegramService.updateTelegramSettings({
-      bot_token: telegramSettings.value.bot_token.trim(),
-      chat_id: telegramSettings.value.chat_id.trim()
-    })
-
-    if (response.success) {
-      currentTelegramSettings.value = response.data
-      telegramSaveSuccess.value = true
-
-      notificationStore.sendNotification({
-        title: 'บันทึกสำเร็จ',
-        message: 'การตั้งค่า Telegram ได้รับการบันทึกแล้ว',
-        type: 'success'
-      })
-
-      // Hide success message after 3 seconds
-      setTimeout(() => {
-        telegramSaveSuccess.value = false
-      }, 3000)
-    } else {
-      throw new Error(response.message || 'การบันทึกล้มเหลว')
-    }
-  } catch (error) {
-    console.error('Error saving telegram settings:', error)
-    telegramErrorMessage.value = error.message || 'ไม่สามารถบันทึกการตั้งค่า Telegram ได้'
-
-    notificationStore.sendNotification({
-      title: 'เกิดข้อผิดพลาด',
-      message: 'ไม่สามารถบันทึกการตั้งค่า Telegram ได้',
-      type: 'error'
-    })
-  } finally {
-    isTelegramLoading.value = false
-  }
-}
-
-async function testTelegramSettings() {
-  if (!isTelegramFormValid.value) {
-    telegramErrorMessage.value = 'กรุณากรอก Bot Token ก่อนทดสอบ'
-    return
-  }
-
-  try {
-    isTelegramTesting.value = true
-    telegramErrorMessage.value = ''
-
-    // First save the settings
-    await saveTelegramSettings()
-
-    if (telegramSaveSuccess.value) {
-      // Show loading notification
-      notificationStore.sendNotification({
-        title: 'ทดสอบ Telegram',
-        message: 'กำลังส่งข้อความทดสอบไปยัง Telegram...',
-        type: 'info'
-      })
-
-      // Call the actual test API endpoint
-      const testResponse = await telegramService.testTelegramSettings()
-
-      if (testResponse.success) {
-        notificationStore.sendNotification({
-          title: 'ทดสอบสำเร็จ',
-          message: testResponse.message || 'ส่งข้อความทดสอบไปยัง Telegram แล้ว',
-          type: 'success'
-        })
-      } else {
-        throw new Error(testResponse.message || 'การทดสอบล้มเหลว')
-      }
-    }
-  } catch (error) {
-    console.error('Error testing telegram settings:', error)
-    telegramErrorMessage.value = error.message || 'ไม่สามารถทดสอบการตั้งค่า Telegram ได้'
-
-    notificationStore.sendNotification({
-      title: 'การทดสอบล้มเหลว',
-      message: error.message || 'ไม่สามารถส่งข้อความทดสอบได้',
-      type: 'error'
-    })
-  } finally {
-    isTelegramTesting.value = false
-  }
-}
 
 function formatDateTime(dateTimeString) {
   if (!dateTimeString) return 'ไม่มีข้อมูล'
@@ -591,9 +327,6 @@ onMounted(() => {
   if (isAdmin.value) {
     cameraStore.loadCameras()
   }
-
-  // Load Telegram settings
-  loadTelegramSettings()
   loadLineSettings()
 })
 
@@ -750,7 +483,7 @@ function resetTimeSettings() {
   background-color: #9ca3af;
 }
 
-/* Telegram Settings Styles */
+/* LINE settings styles */
 .info-section {
   margin-bottom: 2rem;
   padding: 1rem;
@@ -799,7 +532,7 @@ function resetTimeSettings() {
   font-weight: 600;
 }
 
-.telegram-form {
+.line-form {
   margin-top: 2rem;
 }
 
@@ -815,7 +548,7 @@ function resetTimeSettings() {
   color: #6b7280;
 }
 
-.telegram-actions {
+.line-actions {
   display: flex;
   gap: 1rem;
   margin-top: 1.5rem;
@@ -826,7 +559,7 @@ function resetTimeSettings() {
   background-color: #9ca3af;
 }
 
-.current-telegram-settings {
+.current-line-settings {
   margin-top: 2rem;
   padding-top: 1.5rem;
   border-top: 1px solid #e5e7eb;
@@ -920,11 +653,11 @@ function resetTimeSettings() {
     width: 100%;
   }
 
-  .telegram-actions {
+  .line-actions {
     flex-direction: column;
   }
 
-  .telegram-actions .btn {
+  .line-actions .btn {
     width: 100%;
   }
 

@@ -65,23 +65,8 @@
                   <span>ใช้งาน: {{ user.stats.active_cameras || 0 }}</span>
                   <span>ประเมิน: {{ user.stats.total_assessments || 0 }}</span>
                 </div>
-<div
-  class="telegram-info"
-  v-if="(user.role === 'admin' && telegramSettings?.chat_id) || user.telegram_chat_id"
->
-  <span class="telegram-label">Telegram Chat ID:</span>
 
-  <span class="telegram-id">
-    {{
-      user.role === 'admin'
-        ? telegramSettings?.chat_id
-        : user.telegram_chat_id
-    }}
-  </span>
-</div>
-                <div class="telegram-info no-telegram" v-else>
-                  <span class="telegram-label">ยังไม่ได้ตั้งค่า Telegram</span>
-                </div>
+                
               </div>
             </div>
             <div class="user-actions">
@@ -165,21 +150,7 @@
               </select>
             </div>
 
-            <div class="form-group">
-              <label for="new-telegram-chat-id" class="form-label">
-                Telegram Chat ID
-              </label>
-              <input
-                type="text"
-                id="new-telegram-chat-id"
-                v-model="newUser.telegram_chat_id"
-                class="form-input"
-                placeholder="เช่น 123456789"
-              />
-              <small class="form-help">
-                Chat ID ของ Telegram สำหรับส่งการแจ้งเตือน (ไม่บังคับ)
-              </small>
-            </div>
+            
 
             <div class="form-actions">
               <button type="button" @click="closeCreateModal" class="btn btn-secondary">
@@ -250,21 +221,7 @@
               </small>
             </div>
 
-            <div class="form-group">
-              <label for="edit-telegram-chat-id" class="form-label">
-                Telegram Chat ID
-              </label>
-              <input
-                type="text"
-                id="edit-telegram-chat-id"
-                v-model="editingUser.telegram_chat_id"
-                class="form-input"
-                placeholder="เช่น 123456789"
-              />
-              <small class="form-help">
-                Chat ID ของ Telegram สำหรับส่งการแจ้งเตือน (ไม่บังคับ)
-              </small>
-            </div>
+            
 
             <div class="form-actions">
               <button type="button" @click="closeEditModal" class="btn btn-secondary">
@@ -287,7 +244,6 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import adminService from '@/services/adminService'
 import SearchFilter from '@/components/common/SearchFilter.vue'
-import telegramService from '@/services/telegramService'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -309,7 +265,6 @@ const messageType = ref('')
 const isLoading = ref(false)
 const isSubmitting = ref(false)
 const searchQuery = ref('')
-const telegramSettings = ref(null)
 
 // Modal states
 const showCreateModal = ref(false)
@@ -320,7 +275,6 @@ const newUser = ref({
   username: '',
   password: '',
   role: 'user',
-  telegram_chat_id: ''
 })
 
 const editingUser = ref({
@@ -328,7 +282,6 @@ const editingUser = ref({
   username: '',
   password: '',
   role: 'user',
-  telegram_chat_id: ''
 })
 
 // Computed
@@ -395,7 +348,6 @@ async function updateUser() {
     const updateData = {
       username: editingUser.value.username,
       role: editingUser.value.role,
-      telegram_chat_id: editingUser.value.telegram_chat_id || null
     }
 
     // เพิ่มรหัสผ่านถ้ามีการกรอก
@@ -438,16 +390,6 @@ async function deleteUser(user) {
   }
 }
 
-async function loadTelegramSettings() {
-  try {
-    const res = await telegramService.fetchTelegramSettings()
-    if (res.success) {
-      telegramSettings.value = res.data
-    }
-  } catch (err) {
-    console.error('โหลด telegram ไม่ได้', err)
-  }
-}
 
 function startEditUser(user) {
   editingUser.value = {
@@ -455,7 +397,6 @@ function startEditUser(user) {
     username: user.username,
     password: '',
     role: user.role,
-    telegram_chat_id: user.telegram_chat_id || ''
   }
   showEditModal.value = true
 }
@@ -466,7 +407,6 @@ function closeCreateModal() {
     username: '',
     password: '',
     role: 'user',
-    telegram_chat_id: ''
   }
 }
 
@@ -477,7 +417,6 @@ function closeEditModal() {
     username: '',
     password: '',
     role: 'user',
-    telegram_chat_id: ''
   }
 }
 
@@ -530,7 +469,6 @@ watch(searchQuery, () => {
 onMounted(() => {
   loadUserManagementState()
   loadData()
-  loadTelegramSettings()
 })
 </script>
 
@@ -646,31 +584,9 @@ onMounted(() => {
   margin-right: 1rem;
 }
 
-.telegram-info {
-  font-size: 0.875rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
 
-.telegram-label {
-  color: #6b7280;
-  font-weight: 500;
-}
 
-.telegram-id {
-  background: #f0f9ff;
-  color: #0369a1;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-family: monospace;
-  font-weight: 600;
-}
 
-.telegram-info.no-telegram .telegram-label {
-  color: #ef4444;
-  font-style: italic;
-}
 
 .user-details {
   display: flex;
