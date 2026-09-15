@@ -90,6 +90,30 @@ def create_app():
     })
 
 
+    # Paths a request arriving over the public tunnel is allowed to reach. Everything LINE
+    # needs, nothing else.
+    PUBLIC_EDGE_PREFIXES = ('/api/alert-images/', '/api/line/webhook')
+
+    @app.before_request
+    def _restrict_public_edge():
+        """404 anything on the public hostname that LINE does not need.
+
+        The host is derived from PUBLIC_BASE_URL, so this only engages once a tunnel is
+        actually configured; with it empty (the default) nothing changes. X-Forwarded-Host is
+        checked too because cloudflared and similar proxies rewrite Host.
+        """
+        public_base = (app.config.get('PUBLIC_BASE_URL') or '').strip()
+        if not public_base:
+            return None
+        public_host = public_base.split('//')[-1].split('/')[0].lower()
+        seen = (request.headers.get('X-Forwarded-Host') or request.host or '').lower()
+        if not seen or public_host not in seen:
+            return None  # local/LAN request -- untouched
+        if request.path.startswith(PUBLIC_EDGE_PREFIXES):
+            return None
+        from flask import abort
+        abort(404)
+
     @app.before_request
     def _handle_options_requests():
         if request.method == 'OPTIONS':

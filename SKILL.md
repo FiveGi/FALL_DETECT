@@ -2323,3 +2323,41 @@ decision signals were each measured and each overlapped genuine falls.
 **Method note worth keeping**: both of these wrong hypotheses came from reading stills, and
 both were corrected by clips. Any claim about *why* an alert fired should be made from the
 clip, not the frame.
+
+## 44. Public exposure for LINE, limited to what LINE needs
+
+LINE cannot send an image or a video from a local file: it fetches them over a public HTTPS
+URL, and it delivers the "รับทราบ" button press to a public webhook. So the alert features
+built in SS38-SS42 only work once this machine is reachable from the internet.
+
+**The risk that came with that, stated plainly**: the admin account still has its default
+password (`admin/admin123`, created by `create_app()` on first run) and there is no login rate
+limiting -- both verified by direct request. A plain tunnel to port 8932 would put camera
+control, user management and the live streams one guess away from anyone who found the URL.
+
+So the tunnel hostname is treated as a public edge. `_restrict_public_edge` in `create_app()`
+compares the request's Host/X-Forwarded-Host against the host in `PUBLIC_BASE_URL`, and on a
+match allows only `/api/alert-images/` and `/api/line/webhook`; everything else returns 404
+rather than 403, since there is no reason to confirm to a stranger that the rest of the app
+exists. Requests over localhost or the LAN never match and are untouched, so the web app is
+unaffected. With `PUBLIC_BASE_URL` empty -- still the default for anyone cloning this -- the
+guard does nothing at all.
+
+Measured through a live `cloudflared` tunnel from outside:
+
+| request over the public URL | result |
+|---|---|
+| alert image | **200 image/jpeg** |
+| 60s alert clip | **200 video/mp4, 2.7 MB** |
+| `/api/line/webhook` unsigned | **403** (reachable, signature rejected) |
+| `/api/auth/login` with the default password | **404** |
+| `/api/detection-logs/notifications` | **404** |
+| camera stream | **404** |
+
+LAN behaviour re-checked after the change: API smoke test 28/28, browser smoke test all 8
+pages.
+
+**Still not done, and deliberately**: `LINE_ENABLED` remains false and `LINE_CHANNEL_SECRET`
+is unset, so no message has been sent. Turning it on is the user's call. **Before leaving a
+tunnel running for real, change the admin password** -- the guard limits the blast radius, it
+does not fix the credential.
