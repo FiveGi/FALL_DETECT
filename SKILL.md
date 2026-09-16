@@ -2361,3 +2361,38 @@ pages.
 is unset, so no message has been sent. Turning it on is the user's call. **Before leaving a
 tunnel running for real, change the admin password** -- the guard limits the blast radius, it
 does not fix the credential.
+
+## 45. URFD: the first fully independent measurement, and it is much worse than GMDCSA24 says
+
+Downloaded UR Fall Detection (100 clips, 116 MB) to test SS44's "does the person get back up"
+idea. **It cannot**: URFD's fall clips average 3.3 seconds, shorter than GMDCSA24's 5.6s, so
+there is no post-event footage there either. The recovery idea remains untested. Recorded so
+nobody downloads it again for that reason.
+
+It is worth something else though. Every number in this file comes from GMDCSA24, which has
+been used to pick settings repeatedly (SS29 thresholds, SS39 imgsz, SS40 pose confidence) and
+is therefore no longer neutral. URFD is a different lab, room, camera and actor, and nothing
+here has ever been tuned on it. `training/eval_urfd.py` (new) runs the deployed pipeline on
+the RGB half of each composite frame (left half is a depth map; usable frame is 320x240).
+
+| | GMDCSA24 (tuned against) | URFD (never seen) |
+|---|---|---|
+| falls caught | 15/15 val, 24/25 train50 | **38/60 (63%)** |
+| clips with no false alarm | 10/16 val, 22/25 train50 | **28/40 (70%)** |
+
+**This is the most important number in this file right now.** Recall on genuinely unseen
+footage is 63%, not the 96-100% GMDCSA24 reports. Some of the gap is explainable -- the usable
+frame is 320x240, and SS39 measured input resolution as the largest single lever on recall, so
+a small frame is the worst case for this pipeline -- but "explainable" is not "not real": a
+camera placed far from the subject produces exactly this.
+
+The peaks show two distinct failure modes rather than one. Of the 22 missed falls, several
+never register at all (`fall-13-cam1`, `fall-15-cam1`, `fall-17-cam1` peak at 0.00 -- the
+person is never usefully detected) while others come close and stop short (`fall-16` at 0.71
+and 0.65, above threshold yet not producing an alert, which points at the 2-of-3 smoothing
+rather than the classifier). On the ADL side the median peak is 0.28, comfortably quiet, but
+12 clips alert and one reaches 1.00.
+
+**What this changes**: numbers quoted from GMDCSA24 alone should not be presented as the
+system's accuracy. Any future tuning should report URFD alongside, precisely because nothing
+has been fitted to it.
