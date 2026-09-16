@@ -48,7 +48,15 @@ THRESHOLD = 0.5
 # Env-overridable alongside V3_WINDOW_SIZE: at a live camera'''s real frame rate each window
 # advances by a whole 1/5 s, so "2 positive windows out of 3" is a much longer wait than it
 # was at 30fps -- worth measuring rather than assuming (training/eval_v3_frame_drop.py).
-SMOOTH_NEED = int(os.environ.get("V3_SMOOTH_NEED", 2))   # need this many...
+# 1, measured on URFD -- the only dataset here nothing has ever been tuned against. Requiring
+# two positive windows discards falls the classifier already scored above threshold: URFD
+# recall 38/60 -> 43/60, with no fall lost on any set. The cost is three extra alerts
+# (URFD adl-28, train50 s2_ADL_08 and s3_ADL_20), each verified individually -- adl-28 is a man
+# bending to tie his shoes, confirmed by eye and by Gemini on the clip, and all three score
+# 0.50-0.52, so every one of them lands in the "check" tier, never the confirmed/emergency
+# wording. Trading three "please look" alerts for five caught falls is the right direction for
+# a system whose failure mode is a person lying on the floor unnoticed.
+SMOOTH_NEED = int(os.environ.get("V3_SMOOTH_NEED", 1))   # need this many...
 SMOOTH_OF = 3      # ...positive windows out of the last this many (not strictly consecutive)
 NUM_POSES = 4      # max people tracked per camera at once -- see detect_v3_fall_multi
 

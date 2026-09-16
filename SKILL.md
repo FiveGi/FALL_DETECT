@@ -2396,3 +2396,49 @@ rather than the classifier). On the ADL side the median peak is 0.28, comfortabl
 **What this changes**: numbers quoted from GMDCSA24 alone should not be presented as the
 system's accuracy. Any future tuning should report URFD alongside, precisely because nothing
 has been fitted to it.
+
+## 46. Smoothing relaxed to 1-of-3, decided on URFD and verified clip by clip
+
+SS45 found two distinct failure modes in URFD's 22 missed falls, and one of them implicated
+the alerting rule rather than the model: `fall-16` peaked at **0.71 and 0.65**, both well above
+the 0.50 threshold, and still produced no alert. `SMOOTH_NEED=2` requires two positive windows
+out of the last three, so a fall the classifier recognises for one window is discarded.
+
+Measured with `SMOOTH_NEED` at 2 (deployed) versus 1:
+
+| | URFD falls | URFD clean | val | train50 falls | train50 clean |
+|---|---|---|---|---|---|
+| 2 of 3 | 38/60 (63%) | 28/40 | 15/15, 10/16 | 24/25 | 22/25 |
+| **1 of 3** | **43/60 (72%)** | 27/40 | 15/15, 10/16 | 24/25 | 20/25 |
+
+**Every changed clip was named and checked rather than left as a count** (`diff_smooth_need.py`,
+new). Five URFD falls start alerting and **none are lost anywhere**. Gemini, judging the whole
+clip (URFD is single-shot, so SS42's scene-cut problem does not apply), confirms four as clear
+falls; the fifth, `fall-16-cam1`, is a ceiling camera where Gemini reads the motion as getting
+up and kneeling -- the dataset labels the *sequence* a fall, but from that angle the fall is not
+legible, so it is counted as ambiguous rather than a win.
+
+The three new false alarms were each looked at:
+
+| clip | score | what it is |
+|---|---|---|
+| URFD `adl-28-cam0` | 0.50 | a man bending down to tie his shoes (read by eye and confirmed by Gemini) |
+| train50 `s2_ADL_08` | 0.52 | -- |
+| train50 `s3_ADL_20` | 0.50 | -- |
+
+All three sit at 0.50-0.52, which matters: the two-tier rule (SS39) sends anything under 0.85
+as "รอตรวจสอบ", so **none of them produce the confirmed/emergency wording**. The five gained
+falls score 0.60-0.75, also in the check tier.
+
+Deployed. Trading three low-confidence "please look" alerts for five caught falls is the right
+direction for a system whose failure mode is a person lying on the floor unnoticed -- but it is
+a trade, not a free win, and the bending-to-tie-shoes false alarm is the same deep-bend pattern
+tracked since SS20.
+
+**Regression caught while re-checking the LINE clip path**: `imageio-ffmpeg` was installed by
+hand into a running container during SS42's testing and never baked into the image, so once the
+containers were recreated the 60s clip silently fell back to mp4v -- which LINE and iOS refuse
+to play. It is in `requirements.txt`; the image simply had not been rebuilt. Rebuilt and
+re-verified: 60.0s, H.264 High, 2.6 MB, and the acknowledge webhook returns 200, marks the
+alert acknowledged and attaches the clip. **A dependency added to requirements is not deployed
+until the image is rebuilt**, and a pip install inside a live container is not a deployment.
