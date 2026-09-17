@@ -1,5 +1,5 @@
 """Run every ground-truth surface under the old and new inference settings and write the
-comparison to docs/model_comparison.md.
+comparison to docs/settings_comparison.md.
 
 What changed is the INFERENCE CONFIG, not the trained weights: `models/fall_classifier_v3.onnx`
 is still SS35's `yolopose_aug_seed42` export (md5 194614047877dc8e9ff896e5331170f7) and the
@@ -194,7 +194,9 @@ def main():
            'in `training/data/` and the composites from',
            '`python training/make_multiperson_testset.py`).', '']
 
-    dest = os.path.join(ROOT, 'docs', 'model_comparison.md')
+    # Its own file: docs/model_comparison.md carries hand-written sections (the trained
+    # model has changed since, SKILL.md SS47) that regenerating this would erase.
+    dest = os.path.join(ROOT, 'docs', 'settings_comparison.md')
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     with open(dest, 'w', encoding='utf-8') as f:
         f.write('\n'.join(md))

@@ -1,26 +1,37 @@
 from app.services.line_service import send_line_message_async
 
-# Confidence at or above which a fall is announced as confirmed rather than as something
-# for staff to go check. Chosen from the measured GMDCSA24 held-out run (training/
-# eval_v3_on_gmdcsa24_val.py): real falls there alert at 0.72-0.89 and false alarms at
-# 0.60-0.81, so no cut cleanly separates them -- but nothing above 0.85 was a false alarm,
-# which makes 0.85 a defensible bar for "say this is a fall" versus "ask someone to look".
-# Both tiers still notify; this only changes how the alert is worded and prioritised, so a
-# real fall landing in the lower tier is delayed by a human glance, never dropped. That
-# trade is deliberate: SKILL.md SS33 tested four geometric/kinematic signals meant to
-# auto-suppress the bed-lying false positives and all four overlapped genuine falls, so
-# routing the ambiguous band to a person is the honest alternative to guessing.
-CONFIRMED_CONFIDENCE = 0.85
+# The alert score does NOT decide how an alert is worded, and the measurement that once
+# said it could has been redone properly. `camera_manager` passes the score at the instant
+# the alert fires, so the bar has to be judged on alert scores -- the earlier 0.85 was
+# derived from clip peaks on GMDCSA24 val alone. Swept across all four labelled surfaces
+# (GMDCSA24 val + train50, URFD falls, URFD held-out ADL; 147 alerts) with the deployed
+# model:
+#
+#     bar    real-fall alerts above it    false alarms above it
+#     0.70          77/133 (58%)                8/14 (57%)
+#     0.85          20/133 (15%)                3/14 (21%)
+#     0.95           3/133 ( 2%)                1/14 ( 7%)
+#
+# A false alarm is *more* likely to clear a high bar than a real fall is. Alerts overall
+# are 90% real; the ones that used to be worded "ยืนยันการล้ม" were 87% real. The tier was
+# telling families the opposite of the truth, and the previous model behaved the same way
+# (85% overall, 87% above the bar), so this was never a regression -- the bar never worked.
+# Reproduce with training/measure_alert_tier.py.
+#
+# So urgency now comes from the one signal that does mean something: nobody answered.
+# A fresh fall alert asks a human to look; escalation_service promotes it once it goes
+# unacknowledged (see notify_alert). This is the honest version of the SS33/SS40 result
+# that no measured signal separates a fall from a deep bend -- routing the ambiguity to a
+# person is the alternative to guessing, and asserting a guess was the bug.
 
 
-def alert_tier(detection_type, confidence):
-    """-> 'confirmed' | 'check' . Non-fall events (bed exit, alone) are advisory by nature
-    and always land in the lower tier; a fall only counts as confirmed above the bar."""
+def alert_tier(detection_type, escalation_level=0):
+    """-> 'confirmed' | 'check'. Falls ask a human to look; an alert nobody acknowledged is
+    escalated to the urgent wording. Non-fall events (bed exit, alone) are advisory by
+    nature and always land in the lower tier."""
     if "fall" not in detection_type:
         return "check"
-    if confidence is None:
-        return "confirmed"  # caller has no score to judge by -- don't silently downgrade
-    return "confirmed" if confidence >= CONFIRMED_CONFIDENCE else "check"
+    return "confirmed" if escalation_level > 0 else "check"
 
 
 def notify_alert(camera_id, camera_name, room_name, detection_type, timestamp, image_path,
@@ -31,12 +42,10 @@ def notify_alert(camera_id, camera_name, room_name, detection_type, timestamp, i
     call site.
 
     escalation_level > 0 marks a re-send of an alert nobody acknowledged (see
-    escalation_service); an escalated fall is always announced at the confirmed tier
-    regardless of score, because by then the point is that it went unanswered, not how
-    sure the model was."""
-    tier = alert_tier(detection_type, confidence)
-    if escalation_level > 0:
-        tier = "confirmed"
+    escalation_service), and that is the only thing that raises the tier: by then the point
+    is that it went unanswered, which is a fact, rather than how sure the model was, which
+    the measurement above shows is not usable."""
+    tier = alert_tier(detection_type, escalation_level)
     # notification_id only reaches LINE: it is what the "รับทราบ" button posts back, so the
     # webhook can mark that exact alert acknowledged and reply with its clip.
     send_line_message_async(camera_id, camera_name, room_name, detection_type, timestamp,

@@ -2442,3 +2442,97 @@ to play. It is in `requirements.txt`; the image simply had not been rebuilt. Reb
 re-verified: 60.0s, H.264 High, 2.6 MB, and the acknowledge webhook returns 200, marks the
 alert acknowledged and attaches the clip. **A dependency added to requirements is not deployed
 until the image is rebuilt**, and a pip install inside a live container is not a deployment.
+
+## 47. URFD ADL as hard negatives, and the alert tier turns out to be backwards
+
+Two things landed here. The model swap is the small one.
+
+### The model
+
+SS46 left the deep-bend false alarm untouched (`adl-28`, a man tying his shoes), and SS33/SS40
+had already shown that no decision rule separates it -- eight signals tried, none separating.
+The one thing that has ever worked on this project is targeted hard negatives (SS28), and
+URFD's ADL clips are exactly that material: indoor, fixed camera, ordinary activity, no falls.
+
+The split matters more than usual, because URFD is the only dataset nothing has been tuned
+against and it is where the honest accuracy number comes from. `extract_urfd_poses.py` (new)
+takes **even-numbered ADL clips as training negatives and never touches the odd ones**, whose
+list is written to `training/data/urfd_heldout_adl.txt`. Fall clips are never extracted, so
+recall stays measurable on all 60. Trained with `USE_URFD_ADL=1`.
+
+| surface | deployed (`yolopose_aug_seed42`) | new (`..._urfdadl`) |
+|---|---|---|
+| URFD falls (never trained on) | 43/60 | **44/60** |
+| URFD ADL, held-out half | 14/20 clean | **15/20** clean |
+| GMDCSA24 val | 15/15 falls, 10/16 clean | 15/15, **9/16** |
+| GMDCSA24 train50 | 24/25 falls, 20/25 clean | 24/25, **22/25** |
+| two people, one falls | 13/15 | 13/15 |
+| two people, nobody falls | 4/4 clean | 4/4 clean |
+| FallVision bed falls (windows) | 69.8% | **75.9%** |
+| FallVision normal bed activity | 63.2% | 60.9% |
+
+**Eight clips change outcome and all eight were named and looked at** -- Gemini on the whole
+clip plus a contact sheet read by eye:
+
+| clip | what it actually is | was | now |
+|---|---|---|---|
+| URFD `fall-20-cam0` | falls sideways out of a chair | miss 0.34 | **catch 0.79** |
+| URFD `fall-25-cam0` | pitches forward, hands out to brace | miss 0.43 | **catch 0.51** |
+| URFD `adl-19-cam0` | sits into an armchair, dark room | FP 0.52 | clean 0.31 |
+| URFD `adl-33-cam0` | deep crouch to the floor | FP 0.76 | clean 0.24 |
+| train50 `s2_ADL_08` | repeated deep bending | FP 0.52 | clean 0.23 |
+| train50 `s3_ADL_20` | sits on a bed, talks on the phone | FP 0.50 | clean 0.48 |
+| URFD `fall-16-cam1` | falls to knees, **ceiling camera** | catch 0.65 | miss 0.39 |
+| URFD `adl-37-cam0` | lies down on a bed | clean | **FP 0.59** |
+| val `s1_ADL_05` | bends over a bed to pick up a book | clean | **FP 0.55** |
+
+Six better, three worse. Two notes on the losses: `fall-16-cam1` is the overhead view SS46
+already recorded as not legible as a fall from that angle, and `s1_ADL_05` is the *same*
+deep-bend class the hard negatives were meant to fix -- so the fix generalised to URFD's rooms
+and not to GMDCSA24's. `adl-37` prompted a check of the whole bed class rather than the one
+clip: falls out of bed improve by six points and the mean score on normal bed activity moves
+*down* (0.417 -> 0.406), so it is one clip crossing the line, not a bedroom regression.
+
+**Gemini disagreed with the dataset on both gained falls**, calling them deliberate moves to
+the floor. Reading the sheets says otherwise -- `fall-20` goes from seated to prone in one
+blurred step, `fall-25` puts both hands out to break the fall. URFD's falls are performed, and
+performed falls read as controlled to a model asked "did someone fall". On acted datasets the
+contact sheet outranks the Gemini verdict; on real footage it is the other way round.
+
+Deployed (`models/fall_classifier_v3_seed42_backup.onnx` keeps the old export).
+
+### The alert tier was telling families the opposite of the truth
+
+Checking the tier of the changed clips turned up something much worse than the swap.
+`notification_service.CONFIRMED_CONFIDENCE = 0.85` was documented as "nothing above 0.85 was a
+false alarm" -- but that was measured from **clip peaks on GMDCSA24 val alone**, and the system
+passes the score **at the instant the alert fires**. Measuring the right quantity across every
+labelled surface at once (`training/measure_alert_tier.py`, new; 147 alerts):
+
+| bar | real-fall alerts above it | false alarms above it | precision above it |
+|---|---|---|---|
+| 0.50 | 133/133 (100%) | 14/14 (100%) | 90% |
+| 0.70 | 77/133 (58%) | 8/14 (57%) | 91% |
+| **0.85** | 20/133 (15%) | **3/14 (21%)** | **87%** |
+| 0.90 | 8/133 (6%) | 2/14 (14%) | 80% |
+| 0.95 | 3/133 (2%) | 1/14 (7%) | 75% |
+
+**Precision goes down as the bar goes up.** A false alarm is more likely to clear a high score
+than a real fall is, so the alerts that got the emergency wording (87% real) were *less*
+trustworthy than alerts in general (90%). The previous model behaved the same way (85% overall,
+87% above the bar), so this is not a regression introduced here -- the bar never worked, and one
+surface measured with the wrong quantity had hidden it. A man doing push-ups (`s4_ADL_07`) and a
+man lying down on a bed (`s1_ADL_01`) both alert at 0.84-0.85.
+
+So the tier no longer keys off the score. A fresh fall alert always asks a human to look;
+`escalation_service` promotes it to the urgent wording once it goes **unacknowledged**, which is
+a fact rather than a guess. The escalated LINE text stops asserting a fall too
+("ยังไม่มีใครตรวจสอบการแจ้งเตือนล้ม — กรุณาไปดูด่วน"). `getAlertTier` in the frontend mirrors the new rule
+off `escalation_count`, and the badge is suppressed when the escalation badge already says it.
+
+The confidence percentage is still shown next to each alert in the web UI. That is fine -- it
+describes the model's output. Turning it into a claim about reality was the bug.
+
+**A threshold justified on one surface is not justified.** The 0.85 bar survived from SS39 to
+SS46 because nobody re-derived it after the model, the input size, the pose confidence and the
+smoothing rule all changed underneath it.

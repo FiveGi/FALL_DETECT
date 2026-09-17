@@ -49,27 +49,28 @@ export function getAlertTypeText(alertDetectionType) {
     return ALERT_TYPE_LABELS[alertDetectionType] || 'ตรวจจับการล้ม'
 }
 
-// Must match CONFIRMED_CONFIDENCE in app/services/notification_service.py -- the backend
-// decides the wording of the Telegram/LINE message with that number, and this decides the
-// badge shown for the same alert in the web UI. If one moves and the other doesn't, the
-// same event reads as urgent in chat and "please check" on screen.
-export const CONFIRMED_CONFIDENCE = 0.85
+// Must match alert_tier() in app/services/notification_service.py -- the backend decides the
+// wording of the LINE message with that rule, and this decides the badge shown for the same
+// alert in the web UI. If one moves and the other doesn't, the same event reads as urgent in
+// chat and "please check" on screen.
+//
+// The confidence score deliberately plays no part. Measured across 147 alerts on four
+// labelled surfaces, a false alarm is more likely to clear a high score than a real fall is,
+// so a score-based "confirmed" badge was worse than no badge (see the backend comment for
+// the table). Urgency comes from nobody having acknowledged the alert instead.
 
 /**
- * 'confirmed' -> the model was confident enough to state a fall.
- * 'check'     -> ambiguous; staff are asked to look rather than told what happened.
+ * 'check'     -> a fall alert: staff are asked to look rather than told what happened.
+ * 'confirmed' -> nobody acknowledged it and escalation_service re-sent it.
  * Non-fall alerts (bed exit, alone) are advisory by nature and always 'check'.
- * A null confidence means the record predates the confidence column, so it keeps the
- * old behaviour of being shown as a plain alert rather than being labelled uncertain.
  */
-export function getAlertTier(alertDetectionType, confidence) {
+export function getAlertTier(alertDetectionType, escalationCount = 0) {
     if (!alertDetectionType || !alertDetectionType.includes('fall')) return 'check'
-    if (confidence === null || confidence === undefined) return 'confirmed'
-    return confidence >= CONFIRMED_CONFIDENCE ? 'confirmed' : 'check'
+    return escalationCount > 0 ? 'confirmed' : 'check'
 }
 
 const ALERT_TIER_LABELS = {
-    confirmed: 'ยืนยันการล้ม',
+    confirmed: 'ยังไม่มีใครรับทราบ',
     check: 'รอตรวจสอบ',
 }
 

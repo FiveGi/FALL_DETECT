@@ -37,6 +37,13 @@ if os.environ.get("USE_REALTEST_V1") == "1":
 # misfiring on, sourced from ~100 different OOPS subjects/rooms instead of GMDCSA24's 4.
 if os.environ.get("USE_OMNIFALL_ADL") == "1":
     POSE_DIRS.append(os.path.join(os.path.dirname(__file__), "data", "poses_omnifall_adl"))
+# USE_URFD_ADL: 20 of URFD's 40 ADL clips (the even-numbered half; the odd half is never
+# trained on and stays the held-out measure). Indoor, fixed camera, ordinary activity -- aimed
+# at the deep-bend false alarm that survived every decision-rule attempt (SS33, SS40), and the
+# same targeted-hard-negative approach that worked in SS28. Fall clips are never included, so
+# URFD recall remains a clean measurement.
+if os.environ.get("USE_URFD_ADL") == "1":
+    POSE_DIRS.append(os.path.join(os.path.dirname(__file__), "data", "poses_urfd_adl_train"))
 CKPT_PATH = os.environ.get(
     "CKPT_PATH", os.path.join(os.path.dirname(__file__), "data", "best_model.pt")
 )

@@ -1,9 +1,69 @@
-# Old vs new detection settings
+# What is deployed, and what each change bought
 
-Same trained model in both columns -- `models/fall_classifier_v3.onnx`
-(md5 `194614047877dc8e9ff896e5331170f7`) on the `yolo26s-pose` backbone. What
-changed is the inference configuration, both of which were previously unmeasured
-library defaults:
+Two separate things have been measured on this system and they are easy to confuse: the
+**inference settings** (input size, pose confidence, smoothing) and the **trained model**.
+What follows first is the current state, where both have changed; the settings comparison,
+which holds the model fixed, is kept below it as history.
+
+## Deployed now
+
+| piece | value |
+|---|---|
+| pose backbone | `yolo26s-pose`, input 960, pose confidence 0.30 |
+| classifier | `models/fall_classifier_v3.onnx` (md5 `46cb5a6202558390709ce17d20def060`) |
+| trained from | `yolopose_aug_seed42_urfdadl.pt` -- SS35's recipe plus URFD ADL hard negatives |
+| alerting | one positive window out of the last three |
+| alert wording | never decided by the score; see "The alert tier" below |
+
+Accuracy on the dataset nothing here has been tuned against (**URFD**, 60 falls and the 20 ADL
+clips held out of training) alongside GMDCSA24, which has been used for tuning repeatedly and
+therefore reads high:
+
+| | previous model | **deployed** |
+|---|---|---|
+| URFD falls caught | 43/60 (72%) | **44/60 (73%)** |
+| URFD held-out ADL, no false alarm | 14/20 | **15/20** |
+| GMDCSA24 val falls | 15/15 | 15/15 |
+| GMDCSA24 val ADL clean | 10/16 | 9/16 |
+| GMDCSA24 train50 falls | 24/25 | 24/25 |
+| GMDCSA24 train50 ADL clean | 20/25 | **22/25** |
+| two people, one falls | 13/15 | 13/15 |
+| two people, nobody falls | 4/4 | 4/4 |
+| FallVision falls out of bed (windows) | 69.8% | **75.9%** |
+
+Nine clips change outcome between the two columns; each is named and described in SKILL.md
+SS47, having been watched individually rather than counted.
+
+**Quote the URFD number.** GMDCSA24 overstates this system by roughly 25 points of recall
+because its clips have been used to pick thresholds, input size and pose confidence.
+
+## The alert tier
+
+Alerts used to be worded two ways, split at a confidence of 0.85: above it the message stated a
+fall, below it asked someone to look. Re-measured on the quantity the system actually uses --
+the score at the instant the alert fires, across 147 alerts on four labelled surfaces
+(`training/measure_alert_tier.py`) -- that split was **inverted**:
+
+| bar | real-fall alerts above it | false alarms above it | precision above it |
+|---|---|---|---|
+| 0.50 | 100% | 100% | 90% |
+| 0.85 | 15% | 21% | 87% |
+| 0.95 | 2% | 7% | 75% |
+
+A false alarm is more likely to clear a high score than a real fall is, so the confident-sounding
+alerts were the less reliable ones. Both the current and the previous model behave this way.
+
+Every fall alert now asks a human to look. The urgent wording is reserved for an alert nobody
+acknowledged, which is a fact about the response rather than a guess about the footage.
+
+---
+
+# Old vs new inference settings (historical)
+
+This half holds the trained model fixed at the SS35 export and varies only the inference
+configuration, both of which were previously unmeasured library defaults. It predates the model
+change above; regenerate the equivalent for the current model with
+`python training/compare_old_vs_new.py`, which writes `docs/settings_comparison.md`.
 
 | setting | old | new |
 |---|---|---|
@@ -37,7 +97,7 @@ The control is the same fall in the same widened frame with *nobody* beside it:
 it separates "a bystander broke detection" from "the person is now rendered at
 half the pixels", which the composite changes at the same time.
 
-Reproduce with `python training/compare_old_vs_new.py` (needs the GMDCSA24 clips
+Reproduce with `python training/compare_old_vs_new.py` (writes `settings_comparison.md`; needs the GMDCSA24 clips
 in `training/data/` and the composites from
 `python training/make_multiperson_testset.py`).
 

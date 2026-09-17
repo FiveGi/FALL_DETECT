@@ -1133,7 +1133,7 @@ async function fetchAllNotifications() {
           activityType: 'notification',
           risk_level: riskLevel,
           confidence: notification.confidence,
-          tier: getAlertTier(notification.detection_type, notification.confidence),
+          tier: getAlertTier(notification.detection_type, notification.escalation_count || 0),
           notification_id: notification.id,
           clip_url: notification.clip_path
             ? `${import.meta.env.VITE_API_BASE_URL}/alert-images/${encodeURIComponent(String(notification.clip_path).split('/').pop())}`
@@ -1591,7 +1591,7 @@ function getUserCameraCount(userId) {
               <div class="log-content">
                 <span class="log-message">{{ activity.message }}</span>
                 <span
-                  v-if="activity.activityType === 'notification' && activity.tier"
+                  v-if="activity.activityType === 'notification' && activity.tier && !activity.escalation_count"
                   class="tier-badge"
                   :class="activity.tier"
                 >
@@ -2423,8 +2423,9 @@ function getUserCameraCount(userId) {
   line-height: 1.25rem;
 }
 
-/* Mirrors the two tiers the backend sends to Telegram/LINE: 'confirmed' states a fall,
-   'check' asks staff to verify. Same wording either way -- the alert is never hidden. */
+/* Mirrors the two tiers the backend sends to LINE: 'check' asks staff to verify, which is
+   every fresh fall alert; 'confirmed' means nobody acknowledged it and it was re-sent. The
+   alert is never hidden either way. */
 .tier-badge {
   display: inline-block;
   margin-left: 0.5rem;

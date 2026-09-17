@@ -26,11 +26,13 @@ def send_line_message_async(camera_id, camera_name, room_name, detection_type, t
 
             if "fall" in detection_type:
                 risk_level = "red"
-                # Two tiers, same channel: above the confidence bar this states a fall,
-                # below it this asks a human to look instead of asserting something the
-                # model can't reliably tell apart (see notification_service.alert_tier).
+                # Two tiers, same channel: a fresh fall alert asks a human to look, because
+                # the score cannot tell a fall from a deep bend; the urgent wording is
+                # reserved for an alert nobody answered (see notification_service.alert_tier).
                 if tier == "confirmed":
-                    event_text = "🚨 ตรวจพบการล้ม ต้องการความช่วยเหลือด่วน!"
+                    # Urgent, but still doesn't assert a fall: what is certain at this point
+                    # is that an alert has gone unanswered, not what the camera saw.
+                    event_text = "🚨 ยังไม่มีใครตรวจสอบการแจ้งเตือนล้ม — กรุณาไปดูด่วน!"
                 else:
                     risk_level = "yellow"
                     event_text = "❓ อาจมีการล้ม — รบกวนตรวจสอบกล้องด้วยครับ"
