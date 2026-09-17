@@ -2536,3 +2536,35 @@ describes the model's output. Turning it into a claim about reality was the bug.
 **A threshold justified on one surface is not justified.** The 0.85 bar survived from SS39 to
 SS46 because nobody re-derived it after the model, the input size, the pose confidence and the
 smoothing rule all changed underneath it.
+
+## 48. A tenth of the missed falls are unreachable by any classifier: the pose model never sees enough person
+
+Of the 16 URFD falls the deployed model misses, **six score exactly 0.00**, and all six are
+`cam1` -- URFD's ceiling-mounted camera. A flat zero has two possible meanings that need
+opposite fixes, so they were told apart by counting the frames that produce a score at all:
+
+| clip | frames | frames with a person | frames the classifier scored | peak |
+|---|---|---|---|---|
+| `fall-13-cam1` | 85 | 25 | **0** | 0.00 |
+| `fall-15-cam1` | 71 | 25 | **0** | 0.00 |
+| `fall-17-cam1` | 95 | 21 | **0** | 0.00 |
+| `fall-21-cam1` | 55 | 11 | **0** | 0.00 |
+| `fall-25-cam1` | 85 | 11 | **0** | 0.00 |
+| `fall-27-cam1` | 92 | 10 | **0** | 0.00 |
+| `fall-13-cam0` (control) | 85 | 73 | 56 | 0.23 |
+| `fall-25-cam0` (control) | 85 | 66 | 56 | 0.51 |
+
+**The classifier never runs once on those six.** YOLO-pose finds a person in only 12-29% of
+frames from directly overhead, so the 30-frame window never fills. No amount of training data,
+threshold tuning or smoothing can reach them -- 10% of URFD's falls are a *pose detection*
+failure, not a classification one. `MAX_HELD_RUN` cannot bridge it either: it holds a lost
+person for at most 5 frames, and these clips lose them for 70-88%.
+
+Two things follow. First, when reading a peak of 0.00 anywhere in this project, check whether
+the classifier ran before concluding it said "not a fall". Second, and this is the deployment
+advice: **mount the camera on a wall, not the ceiling.** Overhead views are not what
+`yolo26s-pose` is good at, and the gap is at the pose stage where this project has no leverage.
+
+Aggregate recall is the same from both angles (8 misses of 30 each), so the ceiling camera is
+not worse overall -- it fails differently, and in a way that looks like a model problem in the
+numbers while being nothing of the kind.
