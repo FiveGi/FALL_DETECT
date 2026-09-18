@@ -643,7 +643,29 @@ def process_v2_fall_detection(camera_id, config):
             frame_count = 0
             last_log_time = 0
             log_interval = config.get("LOGGING_INTERVAL", 60)  # Default 60 seconds
-            
+
+            # How often a frame is actually classified, in frames per second.
+            #
+            # This loop has no stride and CAP_PROP_BUFFERSIZE=1 hands back the newest frame,
+            # so without a cap the sampling rate is simply however fast the machine happens to
+            # be -- and the classifier's window is a fixed number of FRAMES, so the amount of
+            # real time it covers changes with the hardware. Measured on URFD, that is not a
+            # detail: the same model catches 43/60 falls when fed 30 fps, 34/60 at 18 fps and
+            # 17/60 at 10 fps. A faster machine was silently running a different detector.
+            #
+            # Pinning the rate makes the deployment match what the model was trained for and
+            # behave the same everywhere. It only ever caps: a machine too slow to reach the
+            # target still runs as fast as it can, and says so in the log.
+            #
+            # Default 0 = no cap, i.e. exactly the previous behaviour. The right value is a
+            # property of the deployed model -- the current 30-frame model wants every frame
+            # the machine can give it, so capping it would only lose falls. Set this together
+            # with V3_WINDOW_SIZE when shipping a model trained for a specific rate.
+            target_fps = float(os.environ.get('V3_TARGET_FPS', 0))
+            min_period = 1.0 / target_fps if target_fps > 0 else 0.0
+            next_due = 0.0
+            processed, rate_since = 0, time.time()
+
             while camera.is_active:
                 ret, frame = cap.read()
                 if not ret:
@@ -660,7 +682,17 @@ def process_v2_fall_detection(camera_id, config):
                 
                 # Retain this frame before classifying it: the clip an alert ships is the
                 # minute BEFORE the fall, which only exists if it was being kept all along.
+                # This happens for every frame read, not only classified ones -- the clip
+                # should be as smooth as the camera allows regardless of the detection rate.
                 clip_buffer.add_frame(camera_id, frame)
+
+                now_mono = time.monotonic()
+                if min_period and now_mono < next_due:
+                    continue
+                # Schedule from now rather than adding a period to the previous slot, so a
+                # stall does not leave a backlog of "due" frames to burn through at full rate.
+                next_due = now_mono + min_period
+                processed += 1
 
                 # Perform V3 pose-based fall detection -- one result per tracked person
                 results = detect_v3_fall_multi(frame, fall_state, fall_detector, config, camera)
@@ -682,8 +714,21 @@ def process_v2_fall_detection(camera_id, config):
                         risk_level=risk_level,
                         person_count=fall_state.seen_count
                     )
-                    print(f"[Camera {camera_id}] V2 Fall Log: {detection_result}, Confidence: {probability:.2f}, People seen: {fall_state.seen_count}")
+                    # Achieved detection rate, not frames read: if this sits below the target
+                    # the model is being fed a slower motion than it was trained on, which is
+                    # the failure documented at the governor above. Worth seeing in the log
+                    # rather than discovering as missed falls.
+                    achieved = processed / max(1e-6, now - rate_since)
+                    if target_fps:
+                        rate = (f"{achieved:.1f}/{target_fps:.0f} fps"
+                                + ('' if achieved >= target_fps * 0.9 else '  <-- BELOW TARGET'))
+                    else:
+                        rate = f"{achieved:.1f} fps (uncapped)"
+                    print(f"[Camera {camera_id}] V2 Fall Log: {detection_result}, "
+                          f"Confidence: {probability:.2f}, People seen: {fall_state.seen_count}, "
+                          f"Detection rate: {rate}")
                     last_log_time = now
+                    processed, rate_since = 0, now
 
                 if any_detected:
 

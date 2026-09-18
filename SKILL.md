@@ -2653,3 +2653,96 @@ a bed), `s4_ADL_10` (lies down on a bed), `s1_ADL_05` (bends over a bed to pick 
 limit from SS31 stated precisely: pose-only input cannot tell lying on a bed from lying on the
 floor, and after hip-normalization it cannot tell arriving there fast from arriving slowly
 either.
+
+## 50. The frame rate is the biggest single factor in accuracy, and it was never a declared setting
+
+Every accuracy number this project has ever quoted -- including SS45's honest 72% on URFD -- is
+measured by reading every frame of a 30fps file. The live loop does not do that. It has no
+stride and `CAP_PROP_BUFFERSIZE=1` hands back the newest frame, so **the achieved frame rate
+*is* the sampling rate**, and the classifier's window is a fixed number of frames. The amount
+of real time that window covers therefore changes with the hardware.
+
+SS38 measured this for the CPU case (2-4 fps) on GMDCSA24 val, where the system scores 15/15
+and there is almost no headroom for damage to show. Measured on URFD instead
+(`training/eval_urfd_framerate.py`, new), with the deployed model:
+
+| camera fps | falls caught | clips with no false alarm |
+|---|---|---|
+| 30 (the offline number everything is quoted at) | 43/60 (72%) | 27/40 (68%) |
+| 20 | 36/60 (60%) | 30/40 |
+| **18 (what the GPU deployment actually achieves)** | **34/60 (57%)** | 30/40 |
+| 15 | 27/60 (45%) | 30/40 |
+| 10 | 17/60 (28%) | 31/40 |
+
+**Real recall at the rate this system runs is 57-60%, not 72%.** A faster machine and a slower
+machine were silently running different detectors, and nobody had declared which one was
+intended.
+
+A bug worth naming, because it nearly published a wrong table: the first version dropped frames
+by comparing a float "next due time", which silently discarded ~9% of frames *even at target ==
+source* when the equality landed on the wrong side of the rounding. It showed up as 39/60 in the
+30fps row against a known 43/60. The fix is integer slot arithmetic, `int(i * target / source)`.
+**A resampler that is not exact at target == source is not a resampler.**
+
+### Two fixes, one shipped
+
+**A frame-rate governor** (`V3_TARGET_FPS` in `camera_manager`): the loop still reads every
+frame -- the clip buffer wants them -- but classifies at a declared rate. It only ever caps, and
+the periodic log now prints the achieved detection rate against the target, so a machine that
+cannot keep up says so instead of quietly losing falls. **Defaults to 0, meaning no cap and
+exactly the previous behaviour**, because the right value is a property of the deployed model:
+the current 30-frame model wants every frame it can get.
+
+`V3_THRESHOLD` and `V3_SMOOTH_OF` joined `V3_SMOOTH_NEED` as env knobs, because the alerting
+rule is not independent of the window size or the frame rate and has to be swept when either
+changes.
+
+**A model trained for the deployment rate** (`TEMPORAL_STRIDE=2`, `WINDOW_SIZE=15`, so a window
+covers 1.0s of real time at 15fps instead of 1.0s at 30fps), three seeds, measured at 18 fps:
+
+| model | URFD falls | URFD clean | GMDCSA falls | val clean | train50 clean |
+|---|---|---|---|---|---|
+| deployed, 30-frame | 34/60 | 30/40 | 78/79 | 11/16 | 20/25 |
+| ts2/w15 seed 42 | 45/60 | 29/40 | 75/79 | 7/16 | 17/25 |
+| ts2/w15 seed 7 | 45/60 | 27/40 | -- | -- | -- |
+| ts2/w15 seed 123 | 49/60 | 27/40 | -- | -- | -- |
+
+Recall on the untuned dataset goes up by 11-15 clips and the three seeds do not overlap the
+baseline, so unlike SS47 this is not seed noise. But it is **not a free win**: on GMDCSA24 it
+loses 3 falls and 7 clean clips, and totalled across every surface it is +8 falls for +8 false
+alarms at the inherited rule.
+
+Re-tuning the rule for the shorter window changes that picture (seed 42, 18 fps):
+
+| rule | URFD falls | URFD clean | total falls | total clean |
+|---|---|---|---|---|
+| deployed 30-frame, 1 of 3, thr 0.50 | 34/60 | 30/40 | 112/139 | 61/81 |
+| w15, 1 of 3, thr 0.50 | 45 | 29 | 120 | 53 |
+| **w15, 2 of 3, thr 0.50** | **39** | **35** | 112 | 61 |
+| w15, 1 of 3, thr 0.65 | 45 | 32 | 113 | 59 |
+| w15, 1 of 3, thr 0.80 | 34 | 37 | 96 | 69 |
+
+`2 of 3` reaches **exactly the baseline totals** while being better on URFD on *both* axes
+(+5 falls, +5 clean) -- it moves performance from the dataset the project tuned on to the one it
+did not, which is what a genuine generalisation gain looks like.
+
+**Not deployed yet, deliberately.** Picking a rule by reading that table would burn URFD as an
+independent measure -- the identical error that cost SS47. URFD is being split by clip index:
+the even half may be used to choose, the odd half only to confirm afterwards, across all three
+seeds. Until that is done, this section reports a measurement, not a decision.
+
+### A dead end, measured cheaply first
+
+Since SS48 blamed pose detection, a larger pose backbone looked promising -- and had never been
+tested for accuracy here, only for CPU speed. Screened on detection continuity before paying for
+a re-extraction and retrain:
+
+| backbone | ceiling cam | wall cam, missed falls | wall cam, caught falls | speed |
+|---|---|---|---|---|
+| `yolo26s-pose` (deployed) | **21.3%** | **77.8%** | 88.1% | 14.1 ms |
+| `yolo26m-pose` | 11.2% | 73.4% | 87.6% | 13.7 ms |
+| `yolo26l-pose` | 20.9% | 76.4% | **90.0%** | 20.2 ms |
+
+Bigger is not better: the medium model is worse everywhere, and the large one is better only on
+clips already caught, at 43% more compute. Capacity is not what these frames lack. Screening on
+the cheap intermediate signal killed this in twenty minutes instead of a day.

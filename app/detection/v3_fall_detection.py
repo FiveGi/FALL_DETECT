@@ -44,7 +44,9 @@ NUM_KEYPOINTS = 17
 # through this exact production code path instead of a parallel copy of it.
 WINDOW_SIZE = int(os.environ.get("V3_WINDOW_SIZE", 30))
 STRIDE = 10
-THRESHOLD = 0.5
+# Env-overridable so it can be swept against a change of window size or frame rate without
+# editing code -- the right value is not independent of those (SS38, SS50).
+THRESHOLD = float(os.environ.get("V3_THRESHOLD", 0.5))
 # Env-overridable alongside V3_WINDOW_SIZE: at a live camera'''s real frame rate each window
 # advances by a whole 1/5 s, so "2 positive windows out of 3" is a much longer wait than it
 # was at 30fps -- worth measuring rather than assuming (training/eval_v3_frame_drop.py).
@@ -57,7 +59,7 @@ THRESHOLD = 0.5
 # wording. Trading three "please look" alerts for five caught falls is the right direction for
 # a system whose failure mode is a person lying on the floor unnoticed.
 SMOOTH_NEED = int(os.environ.get("V3_SMOOTH_NEED", 1))   # need this many...
-SMOOTH_OF = 3      # ...positive windows out of the last this many (not strictly consecutive)
+SMOOTH_OF = int(os.environ.get("V3_SMOOTH_OF", 3))   # ...positive windows out of the last this many (not strictly consecutive)
 NUM_POSES = 4      # max people tracked per camera at once -- see detect_v3_fall_multi
 
 MEDIAPIPE33_TO_COCO17 = [0, 2, 5, 7, 8, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28]
