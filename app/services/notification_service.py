@@ -4,21 +4,20 @@ from app.services.line_service import send_line_message_async
 # said it could has been redone properly. `camera_manager` passes the score at the instant
 # the alert fires, so the bar has to be judged on alert scores -- the earlier 0.85 was
 # derived from clip peaks on GMDCSA24 val alone. Swept across all four labelled surfaces
-# (GMDCSA24 val + train50, URFD falls, URFD held-out ADL; 147 alerts) with the deployed
-# model:
+# (GMDCSA24 val + train50, URFD falls, URFD ADL; 154 alerts):
 #
-#     bar    real-fall alerts above it    false alarms above it
-#     0.70          77/133 (58%)                8/14 (57%)
-#     0.85          20/133 (15%)                3/14 (21%)
-#     0.95           3/133 ( 2%)                1/14 ( 7%)
+#     bar    real-fall alerts above it    false alarms above it    precision above it
+#     0.50         131/131 (100%)               23/23 (100%)              85%
+#     0.70          60/131 ( 46%)                6/23 ( 26%)              91%
+#     0.85          13/131 ( 10%)                2/23 (  9%)              87%
 #
-# A false alarm is *more* likely to clear a high bar than a real fall is. Alerts overall
-# are 90% real; the ones that used to be worded "ยืนยันการล้ม" were 87% real. The tier was
-# telling families the opposite of the truth, and the previous model behaved the same way
-# (85% overall, 87% above the bar), so this was never a regression -- the bar never worked.
+# At 0.85 the bar lets through 10% of genuine-fall alerts and 9% of false alarms: it is not
+# separating the two. Precision above it (87%) is within noise of precision overall (85%) and
+# rests on two clips. The justification written here previously -- "nothing above 0.85 was a
+# false alarm" -- is false: s4_ADL_08 (a man getting up from a bed) alerts at 0.88.
 # Reproduce with training/measure_alert_tier.py.
 #
-# So urgency now comes from the one signal that does mean something: nobody answered.
+# So urgency comes from the one signal that does mean something: nobody answered.
 # A fresh fall alert asks a human to look; escalation_service promotes it once it goes
 # unacknowledged (see notify_alert). This is the honest version of the SS33/SS40 result
 # that no measured signal separates a fall from a deep bend -- routing the ambiguity to a

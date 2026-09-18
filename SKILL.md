@@ -2511,18 +2511,29 @@ labelled surface at once (`training/measure_alert_tier.py`, new; 147 alerts):
 
 | bar | real-fall alerts above it | false alarms above it | precision above it |
 |---|---|---|---|
-| 0.50 | 133/133 (100%) | 14/14 (100%) | 90% |
-| 0.70 | 77/133 (58%) | 8/14 (57%) | 91% |
-| **0.85** | 20/133 (15%) | **3/14 (21%)** | **87%** |
-| 0.90 | 8/133 (6%) | 2/14 (14%) | 80% |
-| 0.95 | 3/133 (2%) | 1/14 (7%) | 75% |
+| 0.50 | 131/131 (100%) | 23/23 (100%) | 85% |
+| 0.70 | 60/131 (46%) | 6/23 (26%) | 91% |
+| 0.80 | 23/131 (18%) | 2/23 (9%) | 92% |
+| **0.85** | **13/131 (10%)** | **2/23 (9%)** | 87% |
+| 0.90 | 5/131 (4%) | 0/23 (0%) | 100% |
 
-**Precision goes down as the bar goes up.** A false alarm is more likely to clear a high score
-than a real fall is, so the alerts that got the emergency wording (87% real) were *less*
-trustworthy than alerts in general (90%). The previous model behaved the same way (85% overall,
-87% above the bar), so this is not a regression introduced here -- the bar never worked, and one
-surface measured with the wrong quantity had hidden it. A man doing push-ups (`s4_ADL_07`) and a
-man lying down on a bed (`s1_ADL_01`) both alert at 0.84-0.85.
+**At the bar the system actually used, 10% of genuine-fall alerts and 9% of false alarms clear
+it — that is not a separation.** Precision above 0.85 (87%) is within noise of precision
+overall (85%), and rests on two false alarms, so it cannot support a claim either way. The
+specific justification in the code was simply false: `s4_ADL_08` (a man getting up from a bed)
+alerts at **0.88** and `s4_ADL_15` at **0.85**, both at or above the bar that was chosen
+because "nothing above 0.85 was a false alarm".
+
+What the score does carry is weak and lives lower down: precision rises from 85% at 0.50 to
+92% at 0.80. Nothing there justifies telling a family a fall is confirmed — at 0.85 the bar
+also demotes 90% of genuine falls to "please check", so it is mostly relabelling real falls as
+uncertain in exchange for no reliable gain.
+
+**Correction, 2026-09-18:** this table first ran against the SS47 model, where the pattern was
+much starker -- precision *fell* from 90% to 75% as the bar rose, with false alarms clearing
+high bars more often than real falls. That model was reverted (SS49), and the numbers above are
+the deployed one. The conclusion is unchanged but the evidence is weaker than first written:
+"the bar does not separate" rather than "the bar is backwards".
 
 So the tier no longer keys off the score. A fresh fall alert always asks a human to look;
 `escalation_service` promotes it to the urgent wording once it goes **unacknowledged**, which is
@@ -2568,3 +2579,77 @@ advice: **mount the camera on a wall, not the ceiling.** Overhead views are not 
 Aggregate recall is the same from both angles (8 misses of 30 each), so the ceiling camera is
 not worse overall -- it fails differently, and in a way that looks like a model problem in the
 numbers while being nothing of the kind.
+
+## 49. SS47's model gain was seed noise — reverted, and two ideas measured as dead ends
+
+SS47 deployed a model on the strength of a **single seed**, which is below the standard this
+project set for itself: SS22, SS28, SS29 and SS34 all decided on three. Ran the check that
+should have come first — seeds 42, 7 and 123, each trained with and without `USE_URFD_ADL`,
+each then run through the deployed pipeline (`seed_sweep.py`, scratchpad):
+
+| seed | | URFD falls /60 | URFD ADL clean /20 | GMDCSA falls /79 | val ADL clean /16 |
+|---|---|---|---|---|---|
+| 42 | baseline | 43 | 14 | 78 | 10 |
+| 42 | +urfd | **44** | **15** | 77 | 10 |
+| 7 | baseline | 44 | **16** | 76 | 7 |
+| 7 | +urfd | 44 | 15 | 76 | **9** |
+| 123 | baseline | **45** | 14 | 78 | 8 |
+| 123 | +urfd | 44 | **12** | 76 | **9** |
+| | **mean baseline** | **44.0** | **14.7** | **77.3** | **8.3** |
+| | **mean +urfd** | **44.0** | **14.0** | **76.3** | **9.3** |
+
+**URFD recall is identical on average (44.0 vs 44.0)**, held-out ADL is slightly worse, GMDCSA
+recall is a clip worse, and val ADL is a clip better. Seed-to-seed spread on every column is
+1-3 clips — the same size as the effect SS47 reported. Seed 42 simply drew the favourable
+side of the noise on the two columns SS47 led with.
+
+Every clip-by-clip verification in SS47 was honest about what those clips do; the error was
+concluding that a one-clip difference on one seed meant the model was better.
+
+**Reverted** to `yolopose_aug_seed42` (`models/fall_classifier_v3_seed42_backup.onnx`, md5
+`194614047877dc8e9ff896e5331170f7`). The deciding argument is not that the new model is worse
+— it is within noise — but that it **costs something real for nothing measurable**: training on
+half of URFD's ADL clips permanently halves the only untuned dataset this project has. Keeping
+a model that buys no accuracy with half of the independent measure is a bad trade. The
+extraction script, the held-out split and the `USE_URFD_ADL` flag all stay, documented as
+measured-neutral, so nobody re-runs the experiment expecting a win.
+
+### The classifier never sees the body move through the frame — and giving it that hurts
+
+`normalize_sequence()` pins the hip to the origin every frame, and `add_velocity()` then
+differences the *normalized* coordinates. So the model sees limbs moving relative to the hip
+and nothing else: **a fall's defining feature, the whole body dropping fast, is normalized
+away.** `compute_motion_energy()` in `dataset.py` even documents this, but its output only
+picks the labelling peak and is never fed to the classifier.
+
+SS33 tested hip drop and velocity spikes as standalone decision *rules* and found the
+distributions overlap. Feeding the signal to the classifier is a different experiment — it can
+combine "torso horizontal" with "the body dropped fast" instead of separating the classes on
+one number. Added as `USE_HIP_MOTION` (two extra channels per joint, torso-scaled, so every
+existing reshape and the flip/occlusion augmentations keep working), seed 42, same config:
+
+| feature | val F1 | final loss |
+|---|---|---|
+| none (deployed) | **0.596** | 0.719 |
+| hip displacement, x and y per frame | 0.528 | 1.007 |
+| hip displacement, vertical only, smoothed over ~0.3s | 0.521 | 1.021 |
+
+Both variants are clearly worse, and the loss says the model cannot use the channel rather
+than merely being indifferent to it. The likely reason is the training material: FallVision
+and OOPS are hand-held and panning, so hip displacement there measures the camera, not the
+person. Smoothing and dropping the horizontal component — the variant designed to survive
+panning — did not help either.
+
+The flag stays, defaulted off, with the numbers in `dataset.py`. **A feature that is obviously
+missing is not obviously useful**, and the fix if this is ever revisited is camera-stable
+training footage, not a better-shaped version of the same channel.
+
+### What the remaining false alarms actually are
+
+Every GMDCSA24 val clip that false-alarms was watched: `s1_ADL_01` (lies down on a bed),
+`s2_ADL_03` (lies down on a bed), `s2_ADL_16` (lies down on a bed), `s4_ADL_08` (gets up from
+a bed), `s4_ADL_10` (lies down on a bed), `s1_ADL_05` (bends over a bed to pick up a book),
+`s4_ADL_07` (press-ups on the floor). **Six of the seven are a bed.** That is the structural
+limit from SS31 stated precisely: pose-only input cannot tell lying on a bed from lying on the
+floor, and after hip-normalization it cannot tell arriving there fast from arriving slowly
+either.

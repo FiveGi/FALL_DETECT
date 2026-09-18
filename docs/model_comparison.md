@@ -10,48 +10,58 @@ which holds the model fixed, is kept below it as history.
 | piece | value |
 |---|---|
 | pose backbone | `yolo26s-pose`, input 960, pose confidence 0.30 |
-| classifier | `models/fall_classifier_v3.onnx` (md5 `46cb5a6202558390709ce17d20def060`) |
-| trained from | `yolopose_aug_seed42_urfdadl.pt` -- SS35's recipe plus URFD ADL hard negatives |
+| classifier | `models/fall_classifier_v3.onnx` (md5 `194614047877dc8e9ff896e5331170f7`) |
+| trained from | `yolopose_aug_seed42.pt` -- SS35's recipe |
 | alerting | one positive window out of the last three |
 | alert wording | never decided by the score; see "The alert tier" below |
 
-Accuracy on the dataset nothing here has been tuned against (**URFD**, 60 falls and the 20 ADL
-clips held out of training) alongside GMDCSA24, which has been used for tuning repeatedly and
-therefore reads high:
+Accuracy on the dataset nothing here has been tuned against (**URFD**, 60 fall clips and 40
+normal-activity clips, none of them used in training) alongside GMDCSA24, which has been used
+for tuning repeatedly and therefore reads high:
 
-| | previous model | **deployed** |
-|---|---|---|
-| URFD falls caught | 43/60 (72%) | **44/60 (73%)** |
-| URFD held-out ADL, no false alarm | 14/20 | **15/20** |
-| GMDCSA24 val falls | 15/15 | 15/15 |
-| GMDCSA24 val ADL clean | 10/16 | 9/16 |
-| GMDCSA24 train50 falls | 24/25 | 24/25 |
-| GMDCSA24 train50 ADL clean | 20/25 | **22/25** |
-| two people, one falls | 13/15 | 13/15 |
-| two people, nobody falls | 4/4 | 4/4 |
-| FallVision falls out of bed (windows) | 69.8% | **75.9%** |
-
-Nine clips change outcome between the two columns; each is named and described in SKILL.md
-SS47, having been watched individually rather than counted.
+| what is measured | deployed |
+|---|---|
+| URFD falls caught | **43/60 (72%)** |
+| URFD normal clips with no false alarm | **27/40 (68%)** |
+| GMDCSA24 val falls | 15/15 |
+| GMDCSA24 val ADL clean | 10/16 |
+| GMDCSA24 train50 falls | 24/25 |
+| GMDCSA24 train50 ADL clean | 20/25 |
+| two people, one falls | 13/15 |
+| two people, nobody falls | 4/4 |
 
 **Quote the URFD number.** GMDCSA24 overstates this system by roughly 25 points of recall
 because its clips have been used to pick thresholds, input size and pose confidence.
+
+### A model change that did not survive a proper check
+
+A model trained with half of URFD's normal-activity clips added as hard negatives looked
+better on one seed (+1 fall, +1 clean clip) and was deployed. Re-run across three seeds with
+and without that data, URFD recall came out **identical on average, 44.0 versus 44.0**, with
+seed-to-seed spread of 1-3 clips on every column -- the same size as the reported gain. It was
+reverted, because it cost half of the only untuned dataset for nothing measurable. Details and
+the full table are in SKILL.md SS49.
+
+The lesson generalises: on this system a difference of one or two clips between two trained
+models is noise, and any model claim needs three seeds compared by mean.
 
 ## The alert tier
 
 Alerts used to be worded two ways, split at a confidence of 0.85: above it the message stated a
 fall, below it asked someone to look. Re-measured on the quantity the system actually uses --
-the score at the instant the alert fires, across 147 alerts on four labelled surfaces
-(`training/measure_alert_tier.py`) -- that split was **inverted**:
+the score at the instant the alert fires, across 154 alerts on four labelled surfaces
+(`training/measure_alert_tier.py`) -- that split does not separate anything:
 
 | bar | real-fall alerts above it | false alarms above it | precision above it |
 |---|---|---|---|
-| 0.50 | 100% | 100% | 90% |
-| 0.85 | 15% | 21% | 87% |
-| 0.95 | 2% | 7% | 75% |
+| 0.50 | 100% | 100% | 85% |
+| 0.70 | 46% | 26% | 91% |
+| 0.85 | 10% | 9% | 87% |
 
-A false alarm is more likely to clear a high score than a real fall is, so the confident-sounding
-alerts were the less reliable ones. Both the current and the previous model behave this way.
+At the bar the system used, a genuine-fall alert and a false alarm are about equally likely to
+clear it. The reason written in the code -- "nothing above 0.85 was a false alarm" -- is false:
+a man getting up from a bed (`s4_ADL_08`) alerts at 0.88. And the bar demoted 90% of genuine
+falls to "please check" anyway.
 
 Every fall alert now asks a human to look. The urgent wording is reserved for an alert nobody
 acknowledged, which is a fact about the response rather than a guess about the footage.

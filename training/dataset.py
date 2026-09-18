@@ -41,6 +41,33 @@ STRIDE = 10
 # a real camera loop sees ~1-5fps). 1 = original behaviour, every frame.
 TEMPORAL_STRIDE = int(os.environ.get("TEMPORAL_STRIDE", 1))
 
+# USE_HIP_MOTION: add the hip centre's own frame-to-frame displacement as two extra input
+# channels, scaled by torso size so it stays camera-distance invariant.
+#
+# Why this is worth trying: normalize_sequence() pins the hip to the origin every frame and
+# add_velocity() then differences the *normalized* coordinates, so the model never sees the
+# body travelling through the frame -- only limbs moving relative to the hip. A fall and a
+# deliberate lie-down produce nearly the same limb-relative shape change; what separates them
+# is how fast and far the whole body drops, which is exactly what the normalization removes.
+# compute_motion_energy() below already notes this, but its output is only used to pick the
+# labelling peak, never fed to the classifier.
+#
+# SS33 tested hip drop and velocity spikes as standalone decision RULES and found the
+# distributions overlap. This is a different experiment: as an input channel the classifier
+# can combine it with pose shape ("torso horizontal AND the body dropped fast") rather than
+# having to separate the classes on the signal alone.
+#
+# Channels are duplicated across all 17 joints so every existing (T, K, feat_dim) reshape --
+# the flip and occlusion augmentations especially -- keeps working unchanged.
+# "1" = raw per-frame displacement in x and y. "dy" = vertical only, averaged over a short
+# window: most training clips come from hand-held or panning footage, where per-frame hip
+# displacement largely measures the camera rather than the person, and panning is mostly
+# horizontal. A fall is a drop, so the vertical component over ~0.3s is the part with a
+# chance of surviving that noise.
+HIP_MOTION = os.environ.get("USE_HIP_MOTION", "0")
+USE_HIP_MOTION = HIP_MOTION in ("1", "dy")
+FEAT_DIM = 7 if USE_HIP_MOTION else 5
+
 # Index to swap with for a left-right mirror flip (self-pairs for Nose, which has no
 # left/right counterpart). Used by flip_horizontal_window() below.
 FLIP_PAIRS = [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15]
@@ -69,16 +96,45 @@ def normalize_sequence(seq):
     return np.concatenate([xy_norm, vis], axis=-1)
 
 
-def add_velocity(norm_seq):
+def hip_motion(raw_seq):
+    """raw_seq: (T, 17, 3) RAW keypoints -> (T, 2) hip-centre displacement per frame,
+    divided by torso size so a person far from the camera and a person near it give the same
+    number for the same real movement."""
+    xy = raw_seq[:, :, :2]
+    hip_center = (xy[:, LEFT_HIP] + xy[:, RIGHT_HIP]) / 2.0
+    shoulder_center = (xy[:, LEFT_SHOULDER] + xy[:, RIGHT_SHOULDER]) / 2.0
+    torso_size = np.clip(np.linalg.norm(shoulder_center - hip_center, axis=1), 1e-3, None)
+    delta = np.diff(hip_center, axis=0, prepend=hip_center[:1]) / torso_size[:, None]
+    if HIP_MOTION == "dy":
+        dy = delta[:, 1]
+        # ~0.3s at 30fps, shrunk to fit a short sequence: np.convolve(mode="same") returns
+        # max(len(a), len(kernel)) samples, so a kernel longer than the clip changes its length.
+        width = min(9, len(dy) if len(dy) % 2 else len(dy) - 1)
+        if width >= 3:
+            dy = np.convolve(dy, np.ones(width) / width, mode="same")
+        delta = np.stack([np.zeros_like(dy), dy], axis=1)
+    return delta
+
+
+def add_velocity(norm_seq, raw_seq=None):
     """norm_seq: (T, 17, 3) torso-normalized [x, y, confidence].
     Returns (T, 17, 5): [x, y, confidence, vx, vy] where velocity is the frame-to-frame
     change in normalized position. Giving the model velocity directly (rather than making
     it infer motion from a stack of raw positions) makes the fall-vs-calm-movement signal
     explicit instead of implicit.
+
+    With USE_HIP_MOTION, returns (T, 17, 7) with the hip centre's own displacement appended,
+    repeated across joints -- see the flag's comment above.
     """
     xy = norm_seq[:, :, :2]
     vel = np.diff(xy, axis=0, prepend=xy[:1])  # (T, 17, 2), first frame velocity = 0
-    return np.concatenate([norm_seq, vel], axis=-1)
+    out = np.concatenate([norm_seq, vel], axis=-1)
+    if USE_HIP_MOTION:
+        if raw_seq is None:
+            raise ValueError("USE_HIP_MOTION needs the raw sequence to measure hip movement")
+        hm = hip_motion(raw_seq)[:, None, :]              # (T, 1, 2)
+        out = np.concatenate([out, np.repeat(hm, out.shape[1], axis=1)], axis=-1)
+    return out
 
 
 def compute_motion_energy(raw_seq, smooth=5):
@@ -115,7 +171,7 @@ def load_all_videos(pose_dirs):
                 # actually sees in sequence, not between two 30fps neighbours.
                 raw = raw[::TEMPORAL_STRIDE]
             motion = compute_motion_energy(raw)
-            seq = add_velocity(normalize_sequence(raw))
+            seq = add_velocity(normalize_sequence(raw), raw_seq=raw)
             video = {
                 "keypoints": seq,
                 "motion": motion,
@@ -180,21 +236,24 @@ def make_windows(videos, window_size=WINDOW_SIZE, stride=STRIDE, onset_buffer=No
     return samples
 
 
-def flip_horizontal_window(feat, num_keypoints=NUM_KEYPOINTS, feat_dim=5):
+def flip_horizontal_window(feat, num_keypoints=NUM_KEYPOINTS, feat_dim=None):
     """feat: (window_size, num_keypoints*feat_dim) flat, [x,y,conf,vx,vy] per joint,
     torso-relative normalized (hip centered at x=0) -> left-right mirrored window.
     A fall is not inherently left- or right-handed, so this doubles effective training
     data for free -- standard augmentation for pose classification, not yet tried in
     any of this session's training runs (SS17-34)."""
+    feat_dim = FEAT_DIM if feat_dim is None else feat_dim
     T = feat.shape[0]
     seq = feat.reshape(T, num_keypoints, feat_dim).copy()
     seq = seq[:, FLIP_PAIRS, :]
     seq[:, :, 0] = -seq[:, :, 0]   # x
     seq[:, :, 3] = -seq[:, :, 3]   # vx
+    if feat_dim >= 7:
+        seq[:, :, 5] = -seq[:, :, 5]   # hip dx -- the body now travels the other way too
     return seq.reshape(T, -1)
 
 
-def occlude_window(feat, num_keypoints=NUM_KEYPOINTS, feat_dim=5, prob=0.3, max_joints=3, max_span=8):
+def occlude_window(feat, num_keypoints=NUM_KEYPOINTS, feat_dim=None, prob=0.3, max_joints=3, max_span=8):
     """feat: (window_size, num_keypoints*feat_dim) flat array.
     With probability `prob`, simulates a brief per-joint tracking dropout (a common real
     failure mode -- e.g. an elbow/wrist occluded by the torso during a twisting fall,
@@ -203,6 +262,7 @@ def occlude_window(feat, num_keypoints=NUM_KEYPOINTS, feat_dim=5, prob=0.3, max_
     how _step_person holds the last known state rather than zero-filling on a dropout."""
     if np.random.rand() > prob:
         return feat
+    feat_dim = FEAT_DIM if feat_dim is None else feat_dim
     T = feat.shape[0]
     seq = feat.reshape(T, num_keypoints, feat_dim).copy()
     n_joints = np.random.randint(1, max_joints + 1)

@@ -7,11 +7,19 @@ parameters -- see training notes. Reverted to this architecture as the best resu
 Input:  (batch, window_size=30, 85) -- 17 landmarks x (x, y, confidence, vx, vy), per frame
 Output: (batch,) raw logit -- pass through sigmoid for fall probability.
 """
+import os
+
 import torch
 import torch.nn as nn
 
 NUM_LANDMARKS = 17  # unified COCO-17 keypoint set (see dataset.py)
-FEATURES_PER_FRAME = NUM_LANDMARKS * 5  # x, y, confidence, vx, vy
+# 7 channels per joint with USE_HIP_MOTION, which appends the hip centre's own displacement;
+# see the flag's comment in dataset.py. Read from the environment rather than imported so
+# this module stays free of the training-only dataset code.
+# Values accepted by the flag are listed in dataset.py; anything other than "0"/unset
+# adds the two hip-motion channels.
+FEATURES_PER_FRAME = NUM_LANDMARKS * (
+    7 if os.environ.get("USE_HIP_MOTION", "0") in ("1", "dy") else 5)
 
 
 class FallClassifier(nn.Module):

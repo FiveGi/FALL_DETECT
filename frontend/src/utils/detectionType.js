@@ -54,10 +54,10 @@ export function getAlertTypeText(alertDetectionType) {
 // alert in the web UI. If one moves and the other doesn't, the same event reads as urgent in
 // chat and "please check" on screen.
 //
-// The confidence score deliberately plays no part. Measured across 147 alerts on four
-// labelled surfaces, a false alarm is more likely to clear a high score than a real fall is,
-// so a score-based "confirmed" badge was worse than no badge (see the backend comment for
-// the table). Urgency comes from nobody having acknowledged the alert instead.
+// The confidence score deliberately plays no part. Measured across 154 alerts on four
+// labelled surfaces, the 0.85 bar let through 10% of genuine-fall alerts and 9% of false
+// alarms -- it does not separate them (see the backend comment for the table). Urgency comes
+// from nobody having acknowledged the alert instead.
 
 /**
  * 'check'     -> a fall alert: staff are asked to look rather than told what happened.
