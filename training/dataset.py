@@ -33,13 +33,18 @@ MEDIAPIPE33_TO_COCO17 = [0, 2, 5, 7, 8, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 
 LEFT_SHOULDER, RIGHT_SHOULDER = 5, 6
 LEFT_HIP, RIGHT_HIP = 11, 12
 
-WINDOW_SIZE = int(os.environ.get("WINDOW_SIZE", 30))
+# 15, matching the deployed model and app/detection/v3_fall_detection.WINDOW_SIZE. With
+# TEMPORAL_STRIDE=2 below, a window covers 1.0s of real time at the 15 fps the camera
+# loop is pinned to. Window size, temporal stride, runtime window and V3_TARGET_FPS are
+# one decision; tools/check_config_coherence.py fails if they drift apart.
+WINDOW_SIZE = int(os.environ.get("WINDOW_SIZE", 15))
 STRIDE = 10
 
 # TEMPORAL_STRIDE: keep every k-th frame, to match the frame rate the live pipeline can
 # actually sustain (see this module's git history / SKILL.md -- offline eval sees 30fps,
 # a real camera loop sees ~1-5fps). 1 = original behaviour, every frame.
-TEMPORAL_STRIDE = int(os.environ.get("TEMPORAL_STRIDE", 1))
+TEMPORAL_STRIDE = int(os.environ.get("TEMPORAL_STRIDE", 2))   # train on every 2nd frame
+                                                             # of 30fps source = 15 fps
 
 # USE_HIP_MOTION: add the hip centre's own frame-to-frame displacement as two extra input
 # channels, scaled by torso size so it stays camera-distance invariant.

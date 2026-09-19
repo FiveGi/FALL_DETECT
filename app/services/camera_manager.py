@@ -657,10 +657,10 @@ def process_v2_fall_detection(camera_id, config):
             # behave the same everywhere. It only ever caps: a machine too slow to reach the
             # target still runs as fast as it can, and says so in the log.
             #
-            # Default 0 = no cap, i.e. exactly the previous behaviour. The right value is a
-            # property of the deployed model -- the current 30-frame model wants every frame
-            # the machine can give it, so capping it would only lose falls. Set this together
-            # with V3_WINDOW_SIZE when shipping a model trained for a specific rate.
+            # Default 0 = no cap, for a deployment that has not set it; docker-compose.gpu.yml
+            # pins 15, which is what the deployed model is trained for. The value is a property
+            # of the model, so it moves together with V3_WINDOW_SIZE and the training stride --
+            # tools/check_config_coherence.py fails if they drift apart.
             target_fps = float(os.environ.get('V3_TARGET_FPS', 0))
             min_period = 1.0 / target_fps if target_fps > 0 else 0.0
             next_due = 0.0

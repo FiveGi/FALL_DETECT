@@ -33,6 +33,8 @@ spec.loader.exec_module(v3)
 
 CLIP_DIR = os.path.join(ROOT, 'training', 'data', 'multiperson_composite')
 MODEL_DIR = os.environ.get('TEST_MODEL_DIR', os.path.join(ROOT, 'models'))
+# Defaults to the rate docker-compose.gpu.yml pins the live loop to.
+TARGET_FPS = float(os.environ.get('TARGET_FPS', os.environ.get('V3_TARGET_FPS', 15)))
 
 
 def run(detector, path, multi):
@@ -42,10 +44,19 @@ def run(detector, path, multi):
     idx, last = 0, None
     alerts = []
     tracks = set()
+    read, last_slot = 0, -1
     while True:
         ok, frame = cap.read()
         if not ok:
             break
+        # Feed frames at the rate the camera loop is pinned to, not every frame of the file:
+        # the window is a fixed number of frames, so measuring at 30 fps measures a detector
+        # that is not deployed (SS50). Integer slots, exact when TARGET_FPS == source.
+        slot = int(read * TARGET_FPS / fps)
+        read += 1
+        if slot == last_slot:
+            continue
+        last_slot = slot
         width = frame.shape[1]
         if multi:
             results = v3.detect_v3_fall_multi(frame, state, detector, config=None)
@@ -61,7 +72,7 @@ def run(detector, path, multi):
             side = '?'
         if label != last:
             if label == 'fall':
-                alerts.append((round(idx / fps, 1), side))
+                alerts.append((round(idx / TARGET_FPS, 1), side))
             last = label
         idx += 1
     cap.release()

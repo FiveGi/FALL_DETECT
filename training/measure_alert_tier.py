@@ -34,6 +34,10 @@ v3 = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(v3)
 
 MODEL_DIR = os.environ.get('TEST_MODEL_DIR', os.path.join(ROOT, 'models'))
+# The rate the live loop is pinned to. Reading every frame of a 30fps file measures a detector
+# that is not deployed: the window is a fixed number of frames, so the scores it produces at
+# 30 fps are not the scores it produces at 15 (SS50).
+TARGET_FPS = float(os.environ.get('TARGET_FPS', os.environ.get('V3_TARGET_FPS', 15)))
 DATA = os.path.join(ROOT, 'training', 'data')
 OUT = os.path.join(DATA, 'tier_alert_scores.json')
 BARS = [0.50, 0.60, 0.70, 0.80, 0.85, 0.90, 0.95]
@@ -46,17 +50,23 @@ def alerts(det, path, rgb_half=False):
     cap = cv2.VideoCapture(path)
     fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
     i, last, out = 0, None, []
+    read, last_slot = 0, -1
     while True:
         ok, frame = cap.read()
         if not ok:
             break
+        slot = int(read * TARGET_FPS / fps)
+        read += 1
+        if slot == last_slot:
+            continue
+        last_slot = slot
         if rgb_half:
             frame = frame[:, frame.shape[1] // 2:]
         hit = [r for r in v3.detect_v3_fall_multi(frame, state, det, config=None) if r[1]]
         label = 'fall' if hit else 'no_fall'
         if label != last:
             if hit:
-                out.append((round(i / fps, 1), round(max(float(r[2]) for r in hit), 3)))
+                out.append((round(i / TARGET_FPS, 1), round(max(float(r[2]) for r in hit), 3)))
             last = label
         i += 1
     cap.release()
@@ -85,7 +95,8 @@ def main():
 
     real = [s for r in rows if r[2] == 1 for _, s in r[3]]
     false = [s for r in rows if r[2] == 0 for _, s in r[3]]
-    print(f'model: {MODEL_DIR}')
+    print(f'model: {MODEL_DIR}   window: {v3.WINDOW_SIZE}   threshold: {v3.THRESHOLD}   '
+          f'fps: {TARGET_FPS:.0f}')
     print(f'{len(real)} alerts on fall clips, {len(false)} on no-fall clips')
     print(f'overall alert precision: {len(real) / max(1, len(real) + len(false)):.1%}\n')
     print('  bar   real-fall alerts above it    false alarms above it    precision above it')

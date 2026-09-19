@@ -19,9 +19,11 @@ longer used by this file, but training/extract_poses.py's original MediaPipe-bas
 extraction scripts still reference it).
 
 Preprocessing here must match training/dataset.py exactly: pose -> COCO-17 subset ->
-torso-relative normalization -> per-frame velocity -> 30-frame window.
+torso-relative normalization -> per-frame velocity -> WINDOW_SIZE-frame window. The deployed
+model uses 15 frames at the 15 fps the camera loop is pinned to, so a window is 1.0s of real
+time; tools/check_config_coherence.py fails if those stop agreeing.
 
-Operating point (see training/tune_threshold.py): sigmoid threshold 0.5, plus
+Operating point: sigmoid threshold THRESHOLD (0.65 for the deployed 15-frame model), plus
 requiring SMOOTH_NEED-of-last-SMOOTH_OF windows to agree before raising an alert
 (not strictly consecutive -- a 50-clip end-to-end batch test found several real
 falls where confidence spiked above threshold but dipped for a single window in

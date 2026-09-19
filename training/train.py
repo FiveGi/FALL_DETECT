@@ -10,15 +10,19 @@ from model import FallClassifier
 # GMDCSA24_DIR_NAME lets relabel_gmdcsa24_gemini.py's downstream comparison point this
 # at "poses" (original motion-peak heuristic) or "poses_gmdcsa24_v2" (Gemini-verified
 # fall onset) without editing this file, so both runs use identical code.
-GMDCSA24_DIR_NAME = os.environ.get("GMDCSA24_DIR_NAME", "poses")
+# Defaults reproduce the DEPLOYED model. They were once the MediaPipe-era directories, which
+# meant `python train.py` with no environment produced a model three generations old whose
+# ONNX export the runtime cannot even load (it expects 15x85, not 30x85). Anyone cloning this
+# repo got that silently. Every old configuration is still reachable through the variables.
+GMDCSA24_DIR_NAME = os.environ.get("GMDCSA24_DIR_NAME", "poses_yolopose")
 # CAUCAFALL_DIR_NAME/OFITW_DIR_NAME: same pattern as GMDCSA24_DIR_NAME, added so the
 # YOLO-pose-vs-MediaPipe pose-extractor comparison can point all three video-derived
 # datasets at their yolopose_extractor.py-produced siblings (poses_yolopose,
 # poses_caucafall_yolopose, poses_ofitw_yolopose_matched) without editing this file.
 # poses_fallvision is untouched either way -- it's pre-extracted external keypoints,
 # not derived from either pose backend, so it stays a shared constant across both runs.
-CAUCAFALL_DIR_NAME = os.environ.get("CAUCAFALL_DIR_NAME", "poses_caucafall")
-OFITW_DIR_NAME = os.environ.get("OFITW_DIR_NAME", "poses_ofitw")
+CAUCAFALL_DIR_NAME = os.environ.get("CAUCAFALL_DIR_NAME", "poses_caucafall_yolopose")
+OFITW_DIR_NAME = os.environ.get("OFITW_DIR_NAME", "poses_ofitw_yolopose_matched")
 POSE_DIRS = [
     os.path.join(os.path.dirname(__file__), "data", GMDCSA24_DIR_NAME),    # GMDCSA24
     os.path.join(os.path.dirname(__file__), "data", "poses_fallvision"),   # FallVision (COCO-17, heuristic labels)
@@ -94,7 +98,7 @@ def main():
     # AUGMENT (SS35): horizontal-flip + synthetic per-joint occlusion, applied only to the
     # training split (never val, which must stay a clean measure of real generalization).
     # Off by default so every prior run in this file stays exactly reproducible.
-    AUGMENT = os.environ.get("AUGMENT", "0") == "1"
+    AUGMENT = os.environ.get("AUGMENT", "1") == "1"
     train_ds = FallWindowDataset(train_samples, augment=AUGMENT)
     val_ds = FallWindowDataset(val_samples, augment=False)
     train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True)
