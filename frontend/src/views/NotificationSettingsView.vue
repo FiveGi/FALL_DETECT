@@ -176,6 +176,46 @@
             <span class="setting-value">{{ formatDateTime(currentLineSettings.updated_at) }}</span>
           </div>
         </div>
+
+        <!-- The acknowledge button and the 60-second clip need two things beyond a channel
+             token, and without them LINE alerts still arrive while the button silently does
+             nothing. Showing which piece is missing is the difference between a feature that
+             looks broken and one that tells you how to finish setting it up. -->
+        <div v-if="currentLineSettings" class="settings-section">
+          <h3 class="sub-title">ปุ่ม "รับทราบ" และคลิปย้อนหลัง 60 วินาที</h3>
+
+          <div class="setting-item">
+            <span class="setting-label">สถานะ:</span>
+            <span class="setting-value" :class="currentLineSettings.acknowledge_ready ? 'status-ready' : 'status-not-set'">
+              {{ currentLineSettings.acknowledge_ready ? 'พร้อมใช้งาน' : 'ยังใช้ไม่ได้ — ตั้งค่าตามด้านล่าง' }}
+            </span>
+          </div>
+
+          <div class="setting-item">
+            <span class="setting-label">Channel secret (ตรวจลายเซ็น):</span>
+            <span class="setting-value" :class="currentLineSettings.channel_secret_set ? 'status-ready' : 'status-not-set'">
+              {{ currentLineSettings.channel_secret_set ? 'ตั้งค่าแล้ว' : 'ยังไม่ได้ตั้ง (LINE_CHANNEL_SECRET)' }}
+            </span>
+          </div>
+
+          <div class="setting-item">
+            <span class="setting-label">ที่อยู่สาธารณะของเซิร์ฟเวอร์:</span>
+            <span class="setting-value" :class="currentLineSettings.public_base_url ? 'status-ready' : 'status-not-set'">
+              {{ currentLineSettings.public_base_url || 'ยังไม่ได้ตั้ง (PUBLIC_BASE_URL)' }}
+            </span>
+          </div>
+
+          <div class="setting-item" v-if="currentLineSettings.webhook_url">
+            <span class="setting-label">Webhook URL (ใส่ใน LINE Developers Console):</span>
+            <span class="setting-value">{{ currentLineSettings.webhook_url }}</span>
+          </div>
+
+          <p class="ack-help" v-if="!currentLineSettings.acknowledge_ready">
+            ทั้งสองค่านี้ตั้งในไฟล์ <code>.env</code> ของเซิร์ฟเวอร์ ไม่ใช่ในหน้านี้ เพราะเป็นค่าระดับเครื่อง
+            ไม่ใช่ของผู้ใช้แต่ละคน เมื่อตั้งแล้วให้นำ Webhook URL ไปใส่ในช่อง Webhook ของ
+            LINE Developers Console แล้วเปิด "Use webhook"
+          </p>
+        </div>
       </div>
     </div>
   </div>
@@ -582,6 +622,19 @@ function resetTimeSettings() {
 
 .setting-item:last-child {
   border-bottom: none;
+}
+
+.ack-help {
+  margin: 0.75rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: #64748b;
+}
+
+.ack-help code {
+  background: #f1f5f9;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
 }
 
 .setting-label {

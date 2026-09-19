@@ -23,7 +23,17 @@ def get_line_settings():
     try:
         user_id = int(get_jwt_identity())
         settings = LineSettings.get_settings(user_id)
-        return jsonify({'success': True, 'data': settings.to_dict()}), 200
+        data = settings.to_dict()
+        # What the acknowledge button and the 60-second clip need on top of a channel token.
+        # Without these, LINE alerts still arrive but pressing "รับทราบ" does nothing and no
+        # clip is ever sent, with nothing on screen explaining why -- so the settings page can
+        # say which piece is missing instead of leaving the feature quietly half-working.
+        base = (Config.PUBLIC_BASE_URL or '').rstrip('/')
+        data['acknowledge_ready'] = bool(base) and bool(Config.LINE_CHANNEL_SECRET)
+        data['public_base_url'] = base
+        data['channel_secret_set'] = bool(Config.LINE_CHANNEL_SECRET)
+        data['webhook_url'] = f'{base}/api/line/webhook' if base else ''
+        return jsonify({'success': True, 'data': data}), 200
     except Exception as e:
         return jsonify({'success': False, 'error': f'Failed to get LINE settings: {str(e)}'}), 500
 
