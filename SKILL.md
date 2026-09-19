@@ -2928,3 +2928,45 @@ broken", and it is not.
 score is uninformative" was true of a specific model at a specific frame rate, and it survived
 into comments as though it were a property of fall detection. Every such claim needs the
 configuration attached, and re-running after the configuration changes is part of changing it.
+
+## 54. Averaging three seeds is worse on the data that counts
+
+SS49 measured seed-to-seed spread at 1-3 clips on every surface and called it variance rather
+than any seed knowing something. Averaging the seeds is the standard way to spend that
+variance, it had never been tried here, and the classifier is small enough that three of them
+is affordable. Added as `V3_ENSEMBLE` (extra ONNX files whose sigmoid outputs are averaged --
+probabilities, not logits, since the threshold is calibrated against a probability).
+
+Measured on the **choose** half of URFD plus GMDCSA24, the only data a choice may read:
+
+| config | URFD falls /30 | URFD clean /20 | GMDCSA falls /79 | val clean /16 | train50 clean /25 |
+|---|---|---|---|---|---|
+| deployed, one seed | **28** | **17** | 69 | 7 | 21 |
+| ensemble of three | 27 | 15 | **72** | **10** | **22** |
+
+**Worse on URFD on both axes, better on GMDCSA24 on all three.** That is the wrong direction:
+averaging pulls the model toward what its training data agrees on, which is exactly what
+GMDCSA24 measures and what URFD was brought in to avoid measuring. Not deployed. The flag
+stays, defaulted off, with the numbers recorded so nobody repeats it expecting a win, and the
+two extra exports stay in `models/` so it can be re-run in one command.
+
+### The speed claim I made and had to withdraw
+
+The first version of this said an ensemble was "close to free because the temporal CNN is
+sub-millisecond". That was an assumption, written into a code comment as though measured. When
+measured it read 6.07 ms per window single and 42.9 ms ensemble -- until the same benchmark run
+twice in a row gave 0.94 ms and 4.05 ms for identical work, which means the numbers were
+measuring host load, not the model.
+
+Measured properly inside the GPU container, taking the best of five runs of a thousand windows:
+**0.579 ms per window**. Two things came out of doing it properly:
+
+- the original assumption was right, but it was still an assumption when it was written down;
+- **the container's onnxruntime has no CUDA provider at all** (`AzureExecutionProvider`,
+  `CPUExecutionProvider`), so the classifier has always run on CPU. The `[V3] pose backend on
+  cuda` line refers to the YOLO pose model, which is PyTorch and does use the GPU. The code
+  already anticipated this -- it only requests the CUDA provider when it exists -- but "runs on
+  the GPU" was not true of this half of the pipeline, and is worth not repeating.
+
+At 0.58 ms, four tracked people at 15 fps cost 35 ms of CPU per second of video. The ensemble
+would have been affordable. It simply was not better.
