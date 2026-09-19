@@ -18,6 +18,7 @@ Usage:
 import glob
 import importlib.util
 import os
+import sys
 
 import cv2
 
@@ -28,19 +29,17 @@ v3 = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(v3)
 
 CLIPS = os.path.join(ROOT, 'training', 'data', 'urfd')
+sys.path.insert(0, os.path.join(ROOT, 'training'))
+from frame_sampler import sampled_frames, TARGET_FPS  # noqa: E402
 
 
 def run(detector, path):
     state = v3.V3MultiPersonFallState()
-    cap = cv2.VideoCapture(path)
     alerts, last, peak = 0, None, 0.0
-    while True:
-        ok, frame = cap.read()
-        if not ok:
-            break
-        # Right half only: the left half is a depth map, and feeding it to a pose model
-        # trained on colour images would be measuring the wrong thing.
-        frame = frame[:, frame.shape[1] // 2:]
+    # rgb_half: the left half is a depth map, and feeding it to a pose model trained on colour
+    # images would be measuring the wrong thing. Frames arrive at the rate the live loop is
+    # pinned to -- reading every frame measures a detector that is not deployed (frame_sampler).
+    for frame in sampled_frames(path, rgb_half=True):
         results = v3.detect_v3_fall_multi(frame, state, detector, config=None)
         for _, _, p, _, _ in results:
             peak = max(peak, float(p))
@@ -48,7 +47,6 @@ def run(detector, path):
         if label != last:
             alerts += label == 'fall'
             last = label
-    cap.release()
     return alerts, peak
 
 
@@ -75,7 +73,7 @@ def main():
         else:
             noisy.append((os.path.basename(p), a, round(peak, 2)))
 
-    print(f'\nURFD, never used for tuning (usable frame 320x240)')
+    print(f'\nURFD, never used for tuning (usable frame 320x240), fed at {TARGET_FPS:.0f} fps')
     print(f'  falls caught      : {caught}/{len(falls)} ({caught / max(len(falls),1):.0%})')
     print(f'  ADL with no alert : {clean}/{len(adls)} ({clean / max(len(adls),1):.0%})')
     if fall_peaks:

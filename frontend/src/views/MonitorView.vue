@@ -1595,7 +1595,10 @@ function getUserCameraCount(userId) {
                   class="tier-badge"
                   :class="activity.tier"
                 >
-                  {{ getAlertTierText(activity.tier) }}<template v-if="activity.confidence != null"> · {{ Math.round(activity.confidence * 100) }}%</template>
+                  {{ getAlertTierText(activity.tier) }}<template v-if="activity.confidence != null"> · <span
+                    class="model-score"
+                    title="คะแนนดิบจากโมเดล ไม่ใช่โอกาสที่จะเป็นการล้มจริง — วัดแล้วพบว่าคะแนนสูงไม่ได้แปลว่าแม่นกว่า"
+                  >คะแนน {{ Math.round(activity.confidence * 100) }}</span></template>
                 </span>
                 <span v-if="activity.escalation_count > 0" class="escalation-badge">
                   แจ้งซ้ำ {{ activity.escalation_count }} ครั้ง
@@ -2426,6 +2429,15 @@ function getUserCameraCount(userId) {
 /* Mirrors the two tiers the backend sends to LINE: 'check' asks staff to verify, which is
    every fresh fall alert; 'confirmed' means nobody acknowledged it and it was re-sent. The
    alert is never hidden either way. */
+
+/* The model score is shown as a labelled number, not a bare percentage. A bare "78%" beside
+   an alert reads as "78% likely to be a fall", and that is measured to be untrue here: across
+   154 alerts a false alarm was about as likely to score high as a real fall. The number is
+   kept because it helps when diagnosing a specific alert, not because it ranks them. */
+.model-score {
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
 .tier-badge {
   display: inline-block;
   margin-left: 0.5rem;

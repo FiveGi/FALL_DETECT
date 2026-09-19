@@ -11,6 +11,7 @@ Fall clips: pass if at least one alert fires anywhere in the clip.
 ADL clips: pass if zero alerts fire anywhere in the clip (any alert = false positive).
 """
 import os
+import sys
 import glob
 import importlib.util
 import cv2
@@ -26,6 +27,8 @@ V3PoseFallDetector = v3.V3PoseFallDetector
 V3FallDetectionState = v3.V3FallDetectionState
 detect_v3_fall = v3.detect_v3_fall
 MODEL_DIR = os.environ.get("TEST_MODEL_DIR", os.path.join(ROOT, "models"))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from frame_sampler import sampled_frames, effective_fps, TARGET_FPS  # noqa: E402
 
 VAL_FALL = ["s1_Fall_02", "s1_Fall_06", "s1_Fall_16", "s2_Fall_02", "s2_Fall_04",
             "s2_Fall_09", "s2_Fall_14", "s2_Fall_20", "s3_Fall_02", "s3_Fall_09",
@@ -40,15 +43,14 @@ ADL_DIR = os.path.join(os.path.dirname(__file__), "data", "gmdcsa24_adl_raw_val"
 
 def run_clip(detector, path):
     state = V3FallDetectionState()
-    cap = cv2.VideoCapture(path)
-    fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
+    # Frames arrive at the rate the live camera loop is pinned to. Reading every frame of a
+    # 30fps file measures a detector that is not deployed: the window is a fixed number of
+    # frames, so its span in real time moves with the rate (frame_sampler, SS50).
+    fps = effective_fps(path)
     frame_idx = 0
     alerts = []
     last_label = None
-    while True:
-        ok, frame = cap.read()
-        if not ok:
-            break
+    for frame in sampled_frames(path):
         t = frame_idx / fps
         detected, probability, label, _ = detect_v3_fall(frame, state, detector, config=None)
         if label != last_label:
@@ -56,7 +58,6 @@ def run_clip(detector, path):
                 alerts.append((t, probability))
             last_label = label
         frame_idx += 1
-    cap.release()
     return alerts
 
 

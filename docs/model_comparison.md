@@ -30,6 +30,9 @@ training -- URFD (60 falls, 40 normal-activity clips) plus GMDCSA24's held-out v
 | GMDCSA24 val ADL clean | 11/16 | 7/16 |
 | **falls, all held-out data** | **49/75 (65%)** | **56/75 (75%)** |
 | **clean, all held-out data** | **41/56 (73%)** | **41/56 (73%)** |
+| two people, one falls | 13/15 | **14/15** |
+| the same clips, single-person pipeline | 2/15 | 4/15 |
+| two people, nobody falls | 4/4 | 3/4 |
 
 **Seven more falls caught, with the same number of false alarms.** The previous column is not
 the number this document used to quote: 72% was measured offline at 30 fps, a rate the system

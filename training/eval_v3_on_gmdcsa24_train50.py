@@ -6,6 +6,7 @@ show up even on clips the model has seen, or only on unseen ones? If it fails he
 too, that's a stronger signal the pattern itself is hard, not just under-generalized.
 """
 import os
+import sys
 import importlib.util
 import cv2
 
@@ -19,6 +20,8 @@ V3PoseFallDetector = v3.V3PoseFallDetector
 V3FallDetectionState = v3.V3FallDetectionState
 detect_v3_fall = v3.detect_v3_fall
 MODEL_DIR = os.environ.get("TEST_MODEL_DIR", os.path.join(ROOT, "models"))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from frame_sampler import sampled_frames, effective_fps, TARGET_FPS  # noqa: E402
 
 TRAIN_FALL = ['s4_Fall_13', 's3_Fall_04', 's2_Fall_21', 's1_Fall_07', 's4_Fall_08',
               's3_Fall_20', 's2_Fall_17', 's2_Fall_08', 's3_Fall_14', 's1_Fall_05',
@@ -37,15 +40,14 @@ ADL_DIR = os.path.join(os.path.dirname(__file__), "data", "gmdcsa24_adl_raw_trai
 
 def run_clip(detector, path):
     state = V3FallDetectionState()
-    cap = cv2.VideoCapture(path)
-    fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
+    # Frames arrive at the rate the live camera loop is pinned to. Reading every frame of a
+    # 30fps file measures a detector that is not deployed: the window is a fixed number of
+    # frames, so its span in real time moves with the rate (frame_sampler, SS50).
+    fps = effective_fps(path)
     frame_idx = 0
     alerts = []
     last_label = None
-    while True:
-        ok, frame = cap.read()
-        if not ok:
-            break
+    for frame in sampled_frames(path):
         t = frame_idx / fps
         detected, probability, label, _ = detect_v3_fall(frame, state, detector, config=None)
         if label != last_label:
@@ -53,7 +55,6 @@ def run_clip(detector, path):
                 alerts.append((t, probability))
             last_label = label
         frame_idx += 1
-    cap.release()
     return alerts
 
 

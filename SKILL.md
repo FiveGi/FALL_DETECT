@@ -2817,3 +2817,68 @@ eye from `sheets_only.py` contact sheets. Worth knowing before planning a verifi
 Verified after deploying: md5 and all four settings read back from inside the running worker,
 URFD reproduces 41/60 and 34/40 from the committed defaults, API 28/28, all 8 pages, the
 alert-rule check 13/13, LINE still off.
+
+## 52. Making the rest of the system agree with what was deployed
+
+SS51 changed the detector. Several things around it still described, measured, or would rebuild
+the one it replaced. Each of these is the same failure: a number that is really one decision
+living in several files, where changing one place leaves the others quietly wrong.
+
+**`python training/train.py` with no environment was building a three-generation-old model.**
+The defaults still pointed at the MediaPipe-era pose directories (`poses`, `poses_caucafall`,
+`poses_ofitw`), `AUGMENT=0`, and a 30-frame window -- an export the runtime cannot even load,
+because it expects `[batch,15,85]`. Anyone cloning this repo and training got that silently.
+Defaults now reproduce the deployed recipe; every old configuration is still reachable through
+the same environment variables, so SS22/SS28/SS34's comparisons remain runnable.
+
+**Every evaluation script was measuring a detector that is not deployed.** They read each frame
+of a 30fps file, and after SS50 that is the wrong quantity: the window is a fixed number of
+frames, so at 30 fps it spans half the real time it spans at the 15 fps the camera loop is
+pinned to. `training/frame_sampler.py` (new) is now the single place that knows this, and
+`eval_urfd.py`, `eval_v3_on_gmdcsa24_val.py`, `eval_v3_on_gmdcsa24_train50.py`,
+`eval_multiperson_composite.py` and `measure_alert_tier.py` all feed frames through it,
+defaulting to `V3_TARGET_FPS`.
+
+**`tools/check_config_coherence.py`** (new) asserts the relationship that the four places have
+to satisfy:
+
+```
+runtime WINDOW_SIZE == ONNX input frames == training WINDOW_SIZE
+training TEMPORAL_STRIDE * V3_TARGET_FPS == 30   (the rate the datasets were recorded at)
+```
+
+so a window covers the same real time in training as it does live. It runs without Docker, a
+database or a GPU, and it was checked by breaking a setting and confirming it fails -- a check
+that has never been seen to fail is not yet a check. It joins `tools/check_alert_rules.py`,
+which does the same job for the backend and web UI agreeing on alert wording.
+
+**The README now states the accuracy honestly**, with the two adjustments that make published
+numbers for systems like this incomparable: measuring on the dataset you tuned against is worth
+~25 points, and measuring by reading a video file instead of a live camera is worth another
+10-15. It also carries the three installation facts that came out of measurement rather than
+opinion -- wall-mount not ceiling, GPU required, and that every alert asks a human to look.
+
+**Re-measured at the deployed configuration, multi-person got better, not worse**
+(`eval_multiperson_composite.py` at 15 fps):
+
+| | previous model, every frame | **deployed**, 15 fps |
+|---|---|---|
+| fall with a bystander in frame | 13/15 | **14/15** |
+| same clips through the single-person pipeline | 2/15 | 4/15 |
+| control: same wide frame, nobody else in it | 15/15 | 14/15 |
+| two people, nobody falls | 4/4 clean | 3/4 clean |
+
+The 14-versus-4 gap is the whole case for multi-person tracking, and it widened. The one lost
+clean composite is `s2_ADL_13__s2_ADL_15`, and both halves are already on SS51's list of clips
+that alert on their own (someone sitting down onto the floor) -- the composite inherits it
+rather than revealing anything new. Same for the three caught falls attributed to the right
+half: the right half is the bystander clip, alerting on its own.
+
+**The UI stopped showing the score as a bare percentage.** "รอตรวจสอบ · 78%" reads as "78%
+likely to be a fall", which SS47 measured to be untrue. It now reads "คะแนน 78" with a tooltip
+saying it is the model's raw score and not a probability. The number stays because it helps when
+diagnosing one specific alert, not because it ranks alerts against each other.
+
+**The pattern worth naming**: every one of these survived because the system kept working. The
+containers started, both smoke tests passed, the UI rendered. Nothing here would have been
+caught by asking "does it run" -- only by asking "is the thing running the thing I measured".
