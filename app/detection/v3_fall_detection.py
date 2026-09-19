@@ -201,8 +201,24 @@ class V3PoseFallDetector:
             # build has no CUDA provider and asking for it anyway is a hard error.
             providers.insert(0, "CUDAExecutionProvider")
         self.session = ort.InferenceSession(onnx_path, providers=providers)
+
+        # V3_ENSEMBLE: comma-separated extra classifier files (paths, or bare names inside
+        # model_dir) whose sigmoid outputs are averaged with the main one. Training the same
+        # recipe with different seeds moves results by 1-3 clips on every surface (SS49), which
+        # is pure variance rather than any seed knowing something; averaging them is the
+        # standard way to spend that variance instead of gambling on one draw. Off by default:
+        # it changes the detector, so it only ships if both the accuracy and the per-window
+        # cost are measured -- the classifier is small but it runs once per tracked person per
+        # frame, so three of them is not automatically free.
+        self.extra_sessions = []
+        for name in filter(None, (n.strip() for n in os.environ.get("V3_ENSEMBLE", "").split(","))):
+            path = name if os.path.isabs(name) or os.sep in name else os.path.join(model_dir, name)
+            self.extra_sessions.append(ort.InferenceSession(path, providers=providers))
+
         self.pose_model = YOLO(yolopose_path)
-        print(f"[V3] pose backend on {device}")
+        members = 1 + len(self.extra_sessions)
+        print(f"[V3] pose backend on {device}"
+              + (f", classifier ensemble of {members}" if members > 1 else ""))
 
     def extract_keypoints(self, frame_bgr):
         """-> ((17, 3) COCO17 [x, y, confidence], person_found: bool) for the FIRST
@@ -269,10 +285,21 @@ class V3PoseFallDetector:
         return people
 
     def predict_window(self, raw_window):
-        """raw_window: (WINDOW_SIZE, 17, 3) -> fall probability in [0, 1]."""
+        """raw_window: (WINDOW_SIZE, 17, 3) -> fall probability in [0, 1].
+
+        With V3_ENSEMBLE set, the probabilities are averaged rather than the logits: the
+        threshold is calibrated against a probability, and averaging logits would shift what
+        0.65 means."""
         feat = _normalize_and_velocity(raw_window).reshape(1, WINDOW_SIZE, -1).astype(np.float32)
-        logit = self.session.run(["logit"], {"input": feat})[0]
-        return float(1.0 / (1.0 + np.exp(-logit.reshape(-1)[0])))
+
+        def prob(session):
+            logit = session.run(["logit"], {"input": feat})[0]
+            return float(1.0 / (1.0 + np.exp(-logit.reshape(-1)[0])))
+
+        p = prob(self.session)
+        if not self.extra_sessions:
+            return p
+        return (p + sum(prob(s) for s in self.extra_sessions)) / (1 + len(self.extra_sessions))
 
 
 # Env-overridable so the multi-person false-positive sweep can A/B it (see

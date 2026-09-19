@@ -425,10 +425,15 @@ function clearSearch() {
                 <small class="form-help">เวลาที่ต้องรอก่อนแจ้งเตือนครั้งต่อไป (ป้องกันการแจ้งเตือนซ้ำเร็วเกินไป) เช่น 30 วินาที, 60 วินาที (1 นาที), 600 วินาที (10 นาที)</small>
               </div>
 
-              <div class="form-group">
+              <!-- Only the legacy detection loops read camera.ai_confidence_threshold. The v3
+                   path calls detect_v3_fall_multi without a threshold, so it uses the measured
+                   0.65 and this field does nothing -- it was a control that looked live and was
+                   not. Disabled rather than removed, because the legacy modes still use it. -->
+              <div class="form-group" :class="{ 'form-group-inactive': newCamera.detection_type === 'fall_v2' }">
                 <label for="ai-confidence-threshold" class="form-label">ความแม่นยำของ AI (0.0-1.0)</label>
-                <input type="number" id="ai-confidence-threshold" v-model.number="newCamera.ai_confidence_threshold" class="form-input" min="0" max="1" step="0.01" />
-                <small class="form-help">ระดับความมั่นใจของ AI ที่จะแจ้งเตือน (0.5 = 50%)</small>
+                <input type="number" id="ai-confidence-threshold" v-model.number="newCamera.ai_confidence_threshold" class="form-input" min="0" max="1" step="0.01"
+                  :disabled="newCamera.detection_type === 'fall_v2'" />
+                <small class="form-help">ใช้กับโหมดตรวจจับรุ่นเก่าเท่านั้น โหมด "ตรวจจับการล้ม (เวอร์ชั่น 3)" ซึ่งเป็นโหมดที่แนะนำ ใช้ค่าที่ผ่านการวัดผลมาแล้ว (0.65) และไม่อ่านค่านี้</small>
               </div>
 
               <div class="form-buttons">
@@ -504,20 +509,24 @@ function clearSearch() {
   margin: 0 auto;
 }
 
+/* Bootstrap's negative-margin gutter needs a container that pads it back; this one has no
+   such container, so the row hung 7px off the right edge on a phone. gap does the same job
+   without reaching outside the parent. */
 .row {
   display: flex;
   flex-wrap: wrap;
-  margin: 0 -15px;
+  gap: 30px;
 }
 
 .col-md-6 {
   width: 100%;
-  padding: 0 15px;
+  min-width: 0;
 }
 
 @media (min-width: 768px) {
   .col-md-6 {
-    width: 50%;
+    /* half the row minus its share of the gap */
+    width: calc(50% - 15px);
   }
 }
 
@@ -607,6 +616,12 @@ function clearSearch() {
   margin-top: 1.5rem;
   display: flex;
   justify-content: flex-end;
+}
+
+/* A field the selected detection mode ignores is shown greyed rather than hidden, so the
+   setting does not silently reappear for the legacy modes that do use it. */
+.form-group-inactive {
+  opacity: 0.55;
 }
 
 .form-help {

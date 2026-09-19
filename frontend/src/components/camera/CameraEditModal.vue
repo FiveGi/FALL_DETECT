@@ -137,10 +137,12 @@
             <small class="form-help">เวลาที่ต้องรอก่อนแจ้งเตือนครั้งต่อไป (ป้องกันการแจ้งเตือนซ้ำเร็วเกินไป) เช่น 30 วินาที, 60 วินาที (1 นาที), 600 วินาที (10 นาที)</small>
           </div>
 
-          <div class="form-group">
+          <!-- See CameraManagementView: the v3 detector ignores this field. -->
+          <div class="form-group" :class="{ 'form-group-inactive': camera.detection_type === 'fall_v2' }">
             <label for="edit-ai-confidence-threshold" class="form-label">ความแม่นยำของ AI (0.0-1.0)</label>
-            <input type="number" id="edit-ai-confidence-threshold" v-model.number="camera.ai_confidence_threshold" class="form-input" min="0" max="1" step="0.01" />
-            <small class="form-help">ระดับความมั่นใจของ AI ที่จะแจ้งเตือน (0.5 = 50%, ยิ่งสูงยิ่งแม่นยำ)</small>
+            <input type="number" id="edit-ai-confidence-threshold" v-model.number="camera.ai_confidence_threshold" class="form-input" min="0" max="1" step="0.01"
+              :disabled="camera.detection_type === 'fall_v2'" />
+            <small class="form-help">ใช้กับโหมดตรวจจับรุ่นเก่าเท่านั้น โหมด "ตรวจจับการล้ม (เวอร์ชั่น 3)" ซึ่งเป็นโหมดที่แนะนำ ใช้ค่าที่ผ่านการวัดผลมาแล้ว (0.65) และไม่อ่านค่านี้</small>
           </div>
 
           <div class="form-actions">
@@ -259,6 +261,10 @@ watch(() => props.show, (isShown) => {
   border-radius: 6px;
   font-size: 1rem;
   box-sizing: border-box;
+}
+
+.form-group-inactive {
+  opacity: 0.55;
 }
 
 .form-help {

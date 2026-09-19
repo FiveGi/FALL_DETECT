@@ -27,8 +27,8 @@
         </div>
 
         <div class="summary-card">
-          <div class="summary-icon alert-icon">
-            <IconAlert />
+          <div class="summary-icon user-icon">
+            <IconCommunity />
           </div>
           <div class="summary-content">
             <div class="summary-value">{{ adminDashboardData?.users?.total || 0 }}</div>
@@ -41,8 +41,8 @@
         </div>
 
         <div class="summary-card">
-          <div class="summary-icon motion-icon">
-            <IconMotion />
+          <div class="summary-icon assessment-icon">
+            <IconDocumentation />
           </div>
           <div class="summary-content">
             <div class="summary-value">{{ adminDashboardData?.assessments?.total || 0 }}</div>
@@ -157,6 +157,8 @@ import { getDetectionTypeText, getAlertTypeText } from '@/utils/detectionType'
 import IconCamera from '@/components/icons/IconCamera.vue'
 import IconAlert from '@/components/icons/IconAlert.vue'
 import IconMotion from '@/components/icons/IconMotion.vue'
+import IconCommunity from '@/components/icons/IconCommunity.vue'
+import IconDocumentation from '@/components/icons/IconDocumentation.vue'
 import logService from '@/services/logService'
 
 const cameraStore = useCameraStore()
@@ -259,12 +261,23 @@ const recentAlerts = computed(() => {
 })
 
 
-// Format timestamp to time only
+// Time for today, date and time for anything older. Showing a bare "04:13" next to an alert
+// from last week reads as four o'clock this morning, and the card above it says "0 alerts
+// today" -- a monitoring dashboard that makes stale alerts look live is worse than one that
+// shows nothing.
 function formatTime(timestamp) {
   const date = new Date(timestamp)
   const hours = date.getHours().toString().padStart(2, '0')
   const minutes = date.getMinutes().toString().padStart(2, '0')
-  return `${hours}:${minutes}`
+  const time = `${hours}:${minutes}`
+  const now = new Date()
+  const sameDay = date.getFullYear() === now.getFullYear()
+    && date.getMonth() === now.getMonth()
+    && date.getDate() === now.getDate()
+  if (sameDay) return time
+  const day = date.getDate().toString().padStart(2, '0')
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  return `${day}/${month} ${time}`
 }
 
 // Fetch data functions (same as MonitorView)
@@ -441,6 +454,14 @@ onBeforeUnmount(() => {
   background-color: #ef4444;
 }
 
+.user-icon {
+  background: #8b5cf6;
+}
+
+.assessment-icon {
+  background: #0ea5e9;
+}
+
 .motion-icon {
   background-color: #f59e0b;
 }
@@ -490,7 +511,9 @@ onBeforeUnmount(() => {
 .cameras-grid {
   margin-top: 1rem;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  /* min() so a 360px track cannot exceed the viewport: on a 390px phone the fixed
+     minimum plus card padding pushed the grid 27px past the screen edge. */
+  grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr));
   gap: 0.75rem;
 }
 
@@ -682,6 +705,13 @@ onBeforeUnmount(() => {
 @media (max-width: 768px) {
   .dashboard-card.lg {
     grid-column: span 1;
+  }
+
+  /* The cameras/alerts split is 2fr 1fr on desktop. Left alone on a phone it squeezes the
+     alert column to ~150px, which wraps every word onto its own line -- and a caregiver is
+     more likely to open this on a phone than anywhere else. */
+  .dashboard-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

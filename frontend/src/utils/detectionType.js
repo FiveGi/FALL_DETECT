@@ -42,7 +42,10 @@ export const DETECTION_TYPE_FORM_HELP =
 const ALERT_TYPE_LABELS = {
     bed_exit: 'ตรวจจับการลุกจากเตียง',
     alone_yellow: 'ตรวจจับคนอยู่คนเดียว',
-    fall_red: 'ตรวจจับการล้ม (อันตราย)',
+    // Matches the LINE wording. The system does not assert a fall: measured, its
+    // highest-scoring alert is a man getting up from a bed, so "(อันตราย)" was a claim the
+    // evidence does not support -- and it sat next to a "รอตรวจสอบ" badge saying the opposite.
+    fall_red: 'อาจมีการล้ม — ต้องตรวจสอบ',
 }
 
 export function getAlertTypeText(alertDetectionType) {

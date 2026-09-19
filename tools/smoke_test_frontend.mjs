@@ -107,6 +107,40 @@ async function main() {
     `entries=${m.entries} tier=${m.tier} ack=${m.ack} clips=${m.clips}`);
   if (!alertsOk) failures.push('alert list');
 
+  // Every page at phone width, asserting nothing hangs off the right edge. A caregiver is
+  // more likely to open this on a phone than anywhere else, and the failure is invisible from
+  // a desktop browser: the dashboard's camera grid had a fixed 360px minimum that pushed it
+  // 27px past a 390px screen, and the camera form kept Bootstrap's negative-margin gutter
+  // without the container that pads it back.
+  await send(ws, 'Emulation.setDeviceMetricsOverride',
+    { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+  const overflowing = [];
+  for (const [path, label] of PAGES) {
+    await send(ws, 'Page.navigate', { url: APP + path });
+    await sleep(2500);
+    const o = await ev(ws, `JSON.stringify((() => {
+      const d = document.documentElement;
+      const over = d.scrollWidth - d.clientWidth;
+      let worst = '';
+      if (over > 0) {
+        for (const el of document.querySelectorAll('*')) {
+          const r = el.getBoundingClientRect();
+          if (r.right > d.clientWidth + 1 && r.width > 0) {
+            worst = el.tagName.toLowerCase() + '.' + (el.className || '').toString().slice(0, 30);
+            break;
+          }
+        }
+      }
+      return { over, worst };
+    })())`);
+    if (o.over > 0) overflowing.push(`${label} +${o.over}px (${o.worst})`);
+  }
+  const fitsPhone = overflowing.length === 0;
+  console.log(`${fitsPhone ? 'PASS' : 'FAIL'}  fits a 390px phone                      ` +
+    (fitsPhone ? `${PAGES.length} pages` : overflowing.join('; ')));
+  if (!fitsPhone) failures.push('phone width');
+  await send(ws, 'Emulation.clearDeviceMetricsOverride');
+
   console.log(`\n${failures.length ? 'FAILURES: ' + failures.join(', ') : 'all pages OK'}`);
   await send(ws, 'Page.close'); ws.close();
   process.exit(failures.length ? 1 : 0);
