@@ -42,11 +42,19 @@ NUM_KEYPOINTS = 17
 # Overridable so the low-frame-rate experiment (a model trained on frames subsampled to the
 # rate a live camera actually achieves -- see training/eval_v3_frame_drop.py) can be evaluated
 # through this exact production code path instead of a parallel copy of it.
-WINDOW_SIZE = int(os.environ.get("V3_WINDOW_SIZE", 30))
+# 15 frames, matching the deployed model, which is trained on every second frame of 30fps
+# footage -- so a window covers 1.0s of real time at the 15 fps V3_TARGET_FPS pins the camera
+# loop to. This number and the model are a pair: a 30-frame window with this model, or this
+# window with the 30-frame model, is a different detector from the one that was measured.
+WINDOW_SIZE = int(os.environ.get("V3_WINDOW_SIZE", 15))
 STRIDE = 10
-# Env-overridable so it can be swept against a change of window size or frame rate without
-# editing code -- the right value is not independent of those (SS38, SS50).
-THRESHOLD = float(os.environ.get("V3_THRESHOLD", 0.5))
+# 0.65, not the previous 0.50, because the shorter window scores differently. Chosen on half
+# of URFD (even-numbered clips) plus GMDCSA24, then confirmed on the untouched odd half, where
+# it improved both axes (falls 12 -> 13 of 30, clean 14 -> 17 of 20). Against everything never
+# trained on it catches 56/75 falls versus the previous 49/75 with identical false alarms
+# (41/56 clean either way). Sweep it with training/measure_alert_tier.py-style runs if the
+# window or frame rate ever changes; the right value is not independent of those (SS38, SS51).
+THRESHOLD = float(os.environ.get("V3_THRESHOLD", 0.65))
 # Env-overridable alongside V3_WINDOW_SIZE: at a live camera'''s real frame rate each window
 # advances by a whole 1/5 s, so "2 positive windows out of 3" is a much longer wait than it
 # was at 30fps -- worth measuring rather than assuming (training/eval_v3_frame_drop.py).

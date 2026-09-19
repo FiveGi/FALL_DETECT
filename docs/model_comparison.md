@@ -10,28 +10,37 @@ which holds the model fixed, is kept below it as history.
 | piece | value |
 |---|---|
 | pose backbone | `yolo26s-pose`, input 960, pose confidence 0.30 |
-| classifier | `models/fall_classifier_v3.onnx` (md5 `194614047877dc8e9ff896e5331170f7`) |
-| trained from | `yolopose_aug_seed42.pt` -- SS35's recipe |
-| alerting | one positive window out of the last three |
+| classifier | `models/fall_classifier_v3.onnx` (md5 `ff5ccd741f658e941b2a5c46ce470ef6`), 15-frame window |
+| trained from | `yolopose_ts2_w15_seed42.pt` -- every second frame of 30fps footage, so a window is 1.0s at 15 fps |
+| alerting | one positive window out of the last three, threshold 0.65 |
+| camera rate | pinned to 15 fps (`V3_TARGET_FPS`), not whatever the machine manages |
 | alert wording | never decided by the score; see "The alert tier" below |
 
-Accuracy on the dataset nothing here has been tuned against (**URFD**, 60 fall clips and 40
-normal-activity clips, none of them used in training) alongside GMDCSA24, which has been used
-for tuning repeatedly and therefore reads high:
+These four settings are one decision in four places. The window size, the threshold and the
+frame rate were measured together; changing any of them alone gives a detector nobody tested.
 
-| what is measured | deployed |
-|---|---|
-| URFD falls caught | **43/60 (72%)** |
-| URFD normal clips with no false alarm | **27/40 (68%)** |
-| GMDCSA24 val falls | 15/15 |
-| GMDCSA24 val ADL clean | 10/16 |
-| GMDCSA24 train50 falls | 24/25 |
-| GMDCSA24 train50 ADL clean | 20/25 |
-| two people, one falls | 13/15 |
-| two people, nobody falls | 4/4 |
+Accuracy measured at the frame rate the system actually runs, on everything never used in
+training -- URFD (60 falls, 40 normal-activity clips) plus GMDCSA24's held-out val split:
 
-**Quote the URFD number.** GMDCSA24 overstates this system by roughly 25 points of recall
-because its clips have been used to pick thresholds, input size and pose confidence.
+| what is measured | previous | **deployed** |
+|---|---|---|
+| URFD falls caught | 34/60 (57%) | **41/60 (68%)** |
+| URFD normal clips with no false alarm | 30/40 | **34/40** |
+| GMDCSA24 val falls (held out of training) | 15/15 | 15/15 |
+| GMDCSA24 val ADL clean | 11/16 | 7/16 |
+| **falls, all held-out data** | **49/75 (65%)** | **56/75 (75%)** |
+| **clean, all held-out data** | **41/56 (73%)** | **41/56 (73%)** |
+
+**Seven more falls caught, with the same number of false alarms.** The previous column is not
+the number this document used to quote: 72% was measured offline at 30 fps, a rate the system
+never reaches. At its real ~18 fps the previous model caught 57%.
+
+GMDCSA24 fall clips *used in training* drop from 63/64 to 54/64. The held-out fall split does
+not move, so that is the new model leaning less on clips it has seen -- not a loss of ability.
+
+**Quote the held-out number, with the frame rate.** GMDCSA24 alone overstates this system by
+roughly 25 points of recall, and any figure measured by reading every frame of a file overstates
+it by another 10-15.
 
 ### A model change that did not survive a proper check
 

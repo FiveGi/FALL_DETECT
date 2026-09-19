@@ -2746,3 +2746,74 @@ a re-extraction and retrain:
 Bigger is not better: the medium model is worse everywhere, and the large one is better only on
 clips already caught, at 43% more compute. Capacity is not what these frames lack. Screening on
 the cheap intermediate signal killed this in twenty minutes instead of a day.
+
+## 51. Deployed: a model trained for the deployment frame rate, chosen on a split URFD
+
+SS50 measured the problem and stopped short of deciding, because picking an operating point by
+reading URFD would have burned it -- the same error as SS47. URFD was split by clip number:
+**even-numbered incidents may be used to choose, odd-numbered ones only to confirm afterwards.**
+Both cameras of one incident share a number, so no incident straddles the split. GMDCSA24 was
+used freely for choosing; it has been tuned against so many times it has no independence left.
+
+Candidates: the `TEMPORAL_STRIDE=2, WINDOW_SIZE=15` model at 15 fps, smoothing 1-of-3 or
+2-of-3, thresholds 0.50 to 0.70. On the **choose** half plus GMDCSA24:
+
+| config | URFD falls /30 | URFD clean /20 | GMDCSA falls /79 | val clean /16 | train50 clean /25 |
+|---|---|---|---|---|---|
+| deployed 30-frame at its own ~18 fps | 22 | 16 | 78 | 11 | 20 |
+| w15, thr 0.50 | 29 | 12 | 75 | 7 | 17 |
+| w15, thr 0.60 | 29 | 15 | 72 | 7 | 20 |
+| **w15, thr 0.65** | **28** | **17** | 69 | 7 | 21 |
+| w15, thr 0.70 | 26 | 17 | 66 | 8 | 22 |
+
+0.65 is the only candidate better than the incumbent on **both** URFD axes. 2-of-3 was dropped:
+it looked good at 18 fps but collapses at 15 (33/60 falls), because waiting for two windows is
+a longer wait when windows arrive more slowly.
+
+**The confirm half then agreed, having played no part in the choice**: falls 12 -> 13 of 30,
+clean 14 -> 17 of 20. Better on both axes there too.
+
+### What it costs and what it does not
+
+| | previous (30-frame, uncapped ~18 fps) | **deployed** (15-frame, thr 0.65, pinned 15 fps) |
+|---|---|---|
+| URFD falls | 34/60 | **41/60** |
+| URFD clean | 30/40 | **34/40** |
+| GMDCSA24 val falls (held out of training) | 15/15 | 15/15 |
+| GMDCSA24 val clean | 11/16 | 7/16 |
+| GMDCSA24 falls **used in training** | 63/64 | 54/64 |
+| train50 clean | 20/25 | 21/25 |
+| **everything never trained on: falls** | **49/75** | **56/75** |
+| **everything never trained on: clean** | **41/56** | **41/56** |
+
+**+7 falls for zero net false alarms on data the model never trained on.** The nine lost
+GMDCSA falls are *all* clips the old model saw in training -- the held-out fall split is 15/15
+either way. A model that fits its training set less while generalising more is the trade this
+project should want, and this is what that looks like in the numbers.
+
+Every changed clip was looked at. The eight newly caught URFD falls are genuine (Gemini called
+four of them "deliberate", and the contact sheets show the opposite -- `fall-04` and `fall-28`
+both pitch head-first off a chair with heavy motion blur and land flat; **on acted datasets the
+sheet outranks the Gemini verdict**, as in SS47). The seven added false alarms are almost all
+one class: **a person sitting down onto the floor** (`s2_ADL_13`, `s2_ADL_20`, `s3_ADL_13`,
+`adl-30`) or onto a bed. In an elderly-care setting that is arguably worth a look anyway, and
+the alert says "please check" rather than asserting a fall (SS47).
+
+Gemini's free tier is 20 requests a day and it ran out mid-verification; the rest was read by
+eye from `sheets_only.py` contact sheets. Worth knowing before planning a verification pass.
+
+### What shipped
+
+- `models/fall_classifier_v3.onnx` md5 `ff5ccd741f658e941b2a5c46ce470ef6`, input `[batch,15,85]`,
+  from `training/data/yolopose_ts2_w15_seed42.pt`. Previous export kept as
+  `fall_classifier_v3_w30_backup.onnx`.
+- **Seed 42, not the best-scoring seed.** 123 measured higher on URFD; choosing it would have
+  been selection on the evaluation set.
+- Code defaults changed to match the model, because they are properties of it, not preferences:
+  `WINDOW_SIZE` 30 -> 15, `THRESHOLD` 0.50 -> 0.65. A fresh clone therefore works correctly.
+- `V3_TARGET_FPS=15` in the GPU overlay. **The window size, the threshold and the frame rate are
+  one setting in three places** -- changing any one alone produces a detector nobody measured.
+
+Verified after deploying: md5 and all four settings read back from inside the running worker,
+URFD reproduces 41/60 and 34/40 from the committed defaults, API 28/28, all 8 pages, the
+alert-rule check 13/13, LINE still off.
