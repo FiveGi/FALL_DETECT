@@ -46,8 +46,11 @@ def stream_camera(camera_id):
         return jsonify({'error': f'No camera found with ID {camera_id}.'}), 404
     
     try:
-        # Log stream access
-        save_system_log('INFO', f'Video stream accessed for camera {camera.name}', 'STREAM', current_user_id)
+        # Deliberately not logged. Opening a video element is a page view, not a system event,
+        # and the dashboard reconnects streams constantly: this single line produced 800+ of
+        # the ~820 rows in the system log, burying the AUTH, DETECTION and ERROR entries the
+        # page exists to show, and it accumulated for the full 90-day retention. Stream
+        # failures are still logged in the except below, which is the part worth keeping.
 
         # Pose-skeleton overlay is opt-in (?overlay=1) -- it re-runs the AI model on
         # served frames, which competes with celery_worker's actual detection for CPU

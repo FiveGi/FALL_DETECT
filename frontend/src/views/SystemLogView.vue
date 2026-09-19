@@ -250,6 +250,10 @@ onUnmounted(() => clearInterval(timer))
   border-radius: 0.375rem;
   border: 1px solid #d1d5db;
   background: #f9fafb;
+  /* main.css's .btn-secondary sets color: white for its dark grey background. Overriding the
+     background here without the colour left white text on a near-white button -- the pager
+     read as two empty grey boxes. */
+  color: #374151;
   font-size: 0.85rem;
   cursor: pointer;
 }

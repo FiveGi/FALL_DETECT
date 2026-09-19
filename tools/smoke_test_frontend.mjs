@@ -107,6 +107,75 @@ async function main() {
     `entries=${m.entries} tier=${m.tier} ack=${m.ack} clips=${m.clips}`);
   if (!alertsOk) failures.push('alert list');
 
+  // Unreadable controls, measured rather than eyeballed. main.css gives .btn-secondary white
+  // text for its dark background; a view that overrides the background without the colour
+  // leaves white on near-white, and the system log's pager rendered as two empty grey boxes.
+  // Only buttons and links are checked, and only ones with visible text, so this stays a
+  // contrast check rather than a design opinion.
+  const unreadable = [];
+  for (const [path, label] of PAGES) {
+    await send(ws, 'Page.navigate', { url: APP + path });
+    // Wait for the page to settle rather than a flat delay: the system log's pager only
+    // exists once its rows have loaded, and a 2.5s wait checked a page with no buttons on it
+    // -- the check passed against a bug that was demonstrably on screen.
+    let settled = 0;
+    for (let i = 0; i < 16; i++) {
+      await sleep(500);
+      const n = await ev(ws, `document.querySelectorAll('button, a.btn, .btn').length`);
+      if (n > 0 && n === settled) break;
+      settled = n;
+    }
+    const found = await ev(ws, `JSON.stringify((() => {
+      const lum = (c) => {
+        // Parsed without a regex on purpose. This whole expression lives inside a template
+        // literal, where a lone backslash is consumed before the string reaches the browser:
+        // /[\d.]+/ silently became /[d.]+/, matched nothing in "rgb(255, 255, 255)", and made
+        // this check pass against a bug that was plainly on screen.
+        const m = c.replace('rgba(', '').replace('rgb(', '').replace(')', '')
+          .split(',').map(v => v.trim()).filter(v => v.length);
+        if (m.length < 3) return null;
+        if (m.length > 3 && parseFloat(m[3]) < 0.3) return null;   // near-transparent
+        const [r, g, b] = m.slice(0, 3).map(v => {
+          const x = parseFloat(v) / 255;
+          return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+        });
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      };
+      const bgOf = (el) => {
+        for (let n = el; n; n = n.parentElement) {
+          const c = getComputedStyle(n).backgroundColor;
+          const l = lum(c);
+          if (l !== null) return l;
+        }
+        return 1;
+      };
+      const bad = [];
+      for (const el of document.querySelectorAll('button, a.btn, .btn')) {
+        const text = (el.textContent || '').trim();
+        const r = el.getBoundingClientRect();
+        if (!text || r.width < 4 || r.height < 4) continue;
+        const cs = getComputedStyle(el);
+        if (cs.visibility === 'hidden' || cs.display === 'none') continue;
+        // A gradient or image background reports backgroundColor as transparent, so walking
+        // up to the parent would compare the text against the page behind the button and
+        // call white-on-green white-on-white. Skipped rather than guessed: this check should
+        // only report contrast it can actually compute.
+        if (cs.backgroundImage && cs.backgroundImage !== 'none') continue;
+        const fg = lum(cs.color);
+        if (fg === null) continue;
+        const bg = bgOf(el);
+        const ratio = (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05);
+        if (ratio < 2) bad.push(text.slice(0, 18) + ' (' + ratio.toFixed(1) + ':1)');
+      }
+      return bad.slice(0, 4);
+    })())`);
+    if (found.length) unreadable.push(`${label}: ${found.join(', ')}`);
+  }
+  const readable = unreadable.length === 0;
+  console.log(`${readable ? 'PASS' : 'FAIL'}  button text is readable                  ` +
+    (readable ? `${PAGES.length} pages` : unreadable.join('; ')));
+  if (!readable) failures.push('button contrast');
+
   // Every page at phone width, asserting nothing hangs off the right edge. A caregiver is
   // more likely to open this on a phone than anywhere else, and the failure is invisible from
   // a desktop browser: the dashboard's camera grid had a fixed 360px minimum that pushed it

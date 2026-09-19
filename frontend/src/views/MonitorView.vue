@@ -2663,9 +2663,34 @@ function getUserCameraCount(userId) {
   margin-bottom: 0;
 }
 
+/* These lists scroll, but with an auto-hiding scrollbar and a row sliced mid-line at the
+   bottom edge they read as a rendering fault rather than as "there is more below". A visible
+   gutter and a little breathing room at the end make the overflow legible. */
 .notifications-list {
   max-height: 200px;
   overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding-bottom: 0.35rem;
+}
+
+.notifications-list::-webkit-scrollbar,
+.user-filter-list::-webkit-scrollbar,
+.log-entries::-webkit-scrollbar {
+  width: 8px;
+}
+
+.notifications-list::-webkit-scrollbar-thumb,
+.user-filter-list::-webkit-scrollbar-thumb,
+.log-entries::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.notifications-list::-webkit-scrollbar-track,
+.user-filter-list::-webkit-scrollbar-track,
+.log-entries::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
 }
 
 /* Empty notifications state */
@@ -3045,6 +3070,8 @@ function getUserCameraCount(userId) {
   gap: 0.5rem;
   max-height: 200px;
   overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding-bottom: 0.35rem;
 }
 
 .user-filter-btn {
