@@ -1,27 +1,31 @@
 from app.services.line_service import send_line_message_async
 
-# The alert score does NOT decide how an alert is worded, and the measurement that once
-# said it could has been redone properly. `camera_manager` passes the score at the instant
-# the alert fires, so the bar has to be judged on alert scores -- the earlier 0.85 was
-# derived from clip peaks on GMDCSA24 val alone. Swept across all four labelled surfaces
-# (GMDCSA24 val + train50, URFD falls, URFD ADL; 154 alerts):
+# The alert score does NOT decide how an alert is worded. Measured on the quantity the system
+# actually sends -- the score at the instant the alert fires -- across all four labelled
+# surfaces at the 15 fps the camera loop is pinned to (training/measure_alert_tier.py,
+# 135 alerts):
 #
 #     bar    real-fall alerts above it    false alarms above it    precision above it
-#     0.50         131/131 (100%)               23/23 (100%)              85%
-#     0.70          60/131 ( 46%)                6/23 ( 26%)              91%
-#     0.85          13/131 ( 10%)                2/23 (  9%)              87%
+#     0.70          97/119 ( 82%)               14/16 ( 88%)              87%
+#     0.80          71/119 ( 60%)                4/16 ( 25%)              95%
+#     0.90          26/119 ( 22%)                1/16 (  6%)              96%
 #
-# At 0.85 the bar lets through 10% of genuine-fall alerts and 9% of false alarms: it is not
-# separating the two. Precision above it (87%) is within noise of precision overall (85%) and
-# rests on two clips. The justification written here previously -- "nothing above 0.85 was a
-# false alarm" -- is false: s4_ADL_08 (a man getting up from a bed) alerts at 0.88.
-# Reproduce with training/measure_alert_tier.py.
+# Unlike the model this replaced, the score here does carry information: above 0.80 an alert is
+# 95% real against 88% overall. That is a real change and it is recorded honestly -- an earlier
+# version of this comment said the score separated nothing, which was true of the previous
+# model and is not true of this one.
 #
-# So urgency comes from the one signal that does mean something: nobody answered.
+# It still does not justify telling a family a fall happened, for two reasons. The
+# highest-scoring alert in the whole corpus, 0.96, is a man getting up from a bed
+# (s4_ADL_08) -- the score's top end is exactly where the hardest false alarms sit. And the
+# false-alarm column is 16 alerts, so the differences that look decisive are a few clips.
+# Reintroducing a score-based bar would need it chosen on one half of URFD and confirmed on
+# the other, the way SS51 chose the detection threshold; reading the table above and picking
+# from it is the contamination this project has already paid for twice.
+#
+# So urgency comes from the one signal that is a fact rather than an estimate: nobody answered.
 # A fresh fall alert asks a human to look; escalation_service promotes it once it goes
-# unacknowledged (see notify_alert). This is the honest version of the SS33/SS40 result
-# that no measured signal separates a fall from a deep bend -- routing the ambiguity to a
-# person is the alternative to guessing, and asserting a guess was the bug.
+# unacknowledged (see notify_alert).
 
 
 def alert_tier(detection_type, escalation_level=0):

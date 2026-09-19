@@ -54,10 +54,11 @@ export function getAlertTypeText(alertDetectionType) {
 // alert in the web UI. If one moves and the other doesn't, the same event reads as urgent in
 // chat and "please check" on screen.
 //
-// The confidence score deliberately plays no part. Measured across 154 alerts on four
-// labelled surfaces, the 0.85 bar let through 10% of genuine-fall alerts and 9% of false
-// alarms -- it does not separate them (see the backend comment for the table). Urgency comes
-// from nobody having acknowledged the alert instead.
+// The confidence score deliberately plays no part. It is not uninformative with the current
+// model -- above 0.80 an alert is 95% real against 88% overall -- but the single
+// highest-scoring alert measured, 0.96, is a man getting up from a bed, so the top of the
+// range is where the hardest false alarms live (see the backend comment for the table).
+// Urgency comes from nobody having acknowledged the alert instead, which is a fact.
 
 /**
  * 'check'     -> a fall alert: staff are asked to look rather than told what happened.

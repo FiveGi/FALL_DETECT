@@ -8,9 +8,11 @@ the dashboard. Nothing catches that: the Vue build passes either way, and the br
 test only asserts that a badge renders.
 
 It also guards the finding in SKILL.md SS47: the confidence score must not come back into the
-decision. Measured across 147 alerts, a false alarm is *more* likely to clear a high score than
-a real fall is (`training/measure_alert_tier.py`), so a score-based tier tells families the
-opposite of the truth.
+decision. At the bar the system used to split on, a genuine-fall alert and a false alarm were
+about equally likely to clear it, so the wording carried no information while sounding like it
+did. Re-derive with `training/measure_alert_tier.py` before ever reintroducing a score-based
+tier -- and re-run it after any change to the model, the window or the frame rate, since the
+scores move with all three.
 
 Runs without Docker, a database or a GPU.
 
@@ -87,6 +89,23 @@ def main():
     check('no confidence threshold constant survives in the frontend',
           'CONFIRMED_CONFIDENCE' not in js)
 
+    # The LINE wording is the thing a family actually reads, and it is the easiest place for
+    # the old behaviour to creep back: an escalated alert is urgent because nobody answered,
+    # not because the system knows a fall happened. Assert the urgent branch says so.
+    line_src = open(os.path.join(ROOT, 'app', 'services', 'line_service.py'),
+                    encoding='utf-8').read()
+    fall_branch = line_src[line_src.index('if "fall" in detection_type'):]
+    fall_branch = fall_branch[:fall_branch.index('elif "alone" in detection_type')]
+    confirmed_text = [ln for ln in fall_branch.splitlines()
+                      if 'event_text =' in ln and not ln.strip().startswith('#')]
+    check('LINE has one wording per tier and no more',
+          len(confirmed_text) == 2, f'found {len(confirmed_text)} event_text assignments')
+    urgent = confirmed_text[0] if confirmed_text else ''
+    check('the escalated LINE message does not assert a fall happened',
+          'ตรวจพบการล้ม' not in urgent, urgent.strip()[:90])
+    check('the escalated LINE message says nobody has checked it',
+          'ยังไม่มีใครตรวจสอบ' in urgent or 'ไม่มีใคร' in urgent, urgent.strip()[:90])
+
     backend_src = open(os.path.join(ROOT, 'app', 'services', 'notification_service.py'),
                        encoding='utf-8').read()
     decision = backend_src[backend_src.index('def alert_tier'):]
@@ -98,7 +117,7 @@ def main():
     if failures:
         print(f'{len(failures)} check(s) failed')
         return 1
-    print(f'{len(CASES) + 6} checks passed -- backend and web UI agree on the alert wording')
+    print(f'{len(CASES) + 9} checks passed -- backend, LINE wording and web UI agree')
     return 0
 
 

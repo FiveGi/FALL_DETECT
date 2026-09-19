@@ -60,20 +60,21 @@ models is noise, and any model claim needs three seeds compared by mean.
 ## The alert tier
 
 Alerts used to be worded two ways, split at a confidence of 0.85: above it the message stated a
-fall, below it asked someone to look. Re-measured on the quantity the system actually uses --
-the score at the instant the alert fires, across 154 alerts on four labelled surfaces
-(`training/measure_alert_tier.py`) -- that split does not separate anything:
+fall, below it asked someone to look. Re-measured on the quantity the system actually sends --
+the score at the instant the alert fires, at the 15 fps the camera loop runs at
+(`training/measure_alert_tier.py`, 135 alerts):
 
 | bar | real-fall alerts above it | false alarms above it | precision above it |
 |---|---|---|---|
-| 0.50 | 100% | 100% | 85% |
-| 0.70 | 46% | 26% | 91% |
-| 0.85 | 10% | 9% | 87% |
+| 0.70 | 82% | 88% | 87% |
+| 0.80 | 60% | 25% | 95% |
+| 0.90 | 22% | 6% | 96% |
 
-At the bar the system used, a genuine-fall alert and a false alarm are about equally likely to
-clear it. The reason written in the code -- "nothing above 0.85 was a false alarm" -- is false:
-a man getting up from a bed (`s4_ADL_08`) alerts at 0.88. And the bar demoted 90% of genuine
-falls to "please check" anyway.
+The score is not uninformative with the current model: above 0.80 an alert is 95% real against
+88% overall. It still does not justify asserting a fall to a family. The highest-scoring alert
+in the whole corpus, 0.96, is a man getting up from a bed -- the top of the range is exactly
+where the hardest false alarms sit -- and the false-alarm column is only 16 alerts, so the
+differences that look decisive are a few clips.
 
 Every fall alert now asks a human to look. The urgent wording is reserved for an alert nobody
 acknowledged, which is a fact about the response rather than a guess about the footage.

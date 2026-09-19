@@ -2882,3 +2882,49 @@ diagnosing one specific alert, not because it ranks alerts against each other.
 **The pattern worth naming**: every one of these survived because the system kept working. The
 containers started, both smoke tests passed, the UI rendered. Nothing here would have been
 caught by asking "does it run" -- only by asking "is the thing running the thing I measured".
+
+## 53. The score separates now — and that is a correction, not a vindication
+
+Re-running the tier measurement at the deployed configuration (SS52 taught the script to sample
+at `V3_TARGET_FPS`) gave a different answer from SS47's, and the difference is the model, not
+the method:
+
+| bar | real-fall alerts above it | false alarms above it | precision above it |
+|---|---|---|---|
+| 0.70 | 97/119 (82%) | 14/16 (88%) | 87% |
+| **0.80** | **71/119 (60%)** | **4/16 (25%)** | **95%** |
+| 0.90 | 26/119 (22%) | 1/16 (6%) | 96% |
+| 0.95 | 8/119 (7%) | 1/16 (6%) | 89% |
+
+**With the deployed model the score does carry information.** Above 0.80 an alert is 95% real
+against 88% overall. The previous model passed 10% of real alerts and 9% of false alarms at
+0.85 — separating nothing. SS47's "the bar does not separate" was a fact about that model, and
+every comment, doc and memory repeating it has been corrected to say so rather than left to
+read as a permanent property of the system.
+
+**The tier stays escalation-based anyway**, for reasons the table itself gives:
+
+- the highest-scoring alert in the entire corpus, **0.96, is a man getting up from a bed**
+  (`s4_ADL_08`). The top of the range is exactly where the hardest false alarms live, which is
+  the opposite of what a "we are sure" wording needs;
+- the false-alarm column is 16 alerts. 4/16 versus 1/16 is three clips;
+- and picking a bar by reading this table is the contamination that cost SS47 and was avoided
+  properly in SS51. A score-based tier would have to be chosen on one half of URFD and
+  confirmed on the other, and nothing yet says the product gains enough to be worth it.
+
+The UI tooltip shipped earlier in SS52 said "a high score does not mean more accurate". That
+was carried over from the old model and this measurement contradicts it, so it now says the
+true and more useful thing: the highest-scoring alert measured was someone getting up from a
+bed.
+
+**An environment trap found while re-verifying**: every request to `localhost:8932` from the
+host hung for the full timeout while `127.0.0.1:8932` answered in 90ms. On Windows `localhost`
+resolves to `::1` first, and Docker Desktop binds the IPv6 loopback through a separate WSL relay
+that does not always survive a host crash. Both smoke tests and the frontend's `.env` now use
+`127.0.0.1`, with the reason written down -- the failure looks exactly like "the backend is
+broken", and it is not.
+
+**A rule this project keeps relearning**: a measured claim is about the thing measured. "The
+score is uninformative" was true of a specific model at a specific frame rate, and it survived
+into comments as though it were a property of fall detection. Every such claim needs the
+configuration attached, and re-running after the configuration changes is part of changing it.

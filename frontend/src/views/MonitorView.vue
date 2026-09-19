@@ -1597,7 +1597,7 @@ function getUserCameraCount(userId) {
                 >
                   {{ getAlertTierText(activity.tier) }}<template v-if="activity.confidence != null"> · <span
                     class="model-score"
-                    title="คะแนนดิบจากโมเดล ไม่ใช่โอกาสที่จะเป็นการล้มจริง — วัดแล้วพบว่าคะแนนสูงไม่ได้แปลว่าแม่นกว่า"
+                    title="คะแนนดิบจากโมเดล ไม่ใช่โอกาสที่จะเป็นการล้มจริง — การแจ้งเตือนที่ได้คะแนนสูงสุดเท่าที่วัดมาคือคนลุกจากเตียง"
                   >คะแนน {{ Math.round(activity.confidence * 100) }}</span></template>
                 </span>
                 <span v-if="activity.escalation_count > 0" class="escalation-badge">
@@ -2430,10 +2430,12 @@ function getUserCameraCount(userId) {
    every fresh fall alert; 'confirmed' means nobody acknowledged it and it was re-sent. The
    alert is never hidden either way. */
 
-/* The model score is shown as a labelled number, not a bare percentage. A bare "78%" beside
-   an alert reads as "78% likely to be a fall", and that is measured to be untrue here: across
-   154 alerts a false alarm was about as likely to score high as a real fall. The number is
-   kept because it helps when diagnosing a specific alert, not because it ranks them. */
+/* The model score is shown as a labelled number, not a bare percentage. A bare "78%" beside an
+   alert reads as "78% likely to be a fall", which it is not: the score is a model output, and
+   the highest-scoring alert measured on the whole corpus is a man getting up from a bed. It
+   does carry some information with the current model (above 0.80 an alert is 95% real against
+   88% overall), so the number is kept -- but as a diagnostic, not a ranking a caregiver should
+   act on. */
 .model-score {
   opacity: 0.75;
   font-variant-numeric: tabular-nums;

@@ -9,7 +9,7 @@ Deliberately does NOT call anything that would send a message to a real person (
 endpoint) or delete data -- those are listed as skipped rather than silently omitted.
 
 Usage:
-    python training/smoke_test_api.py            # against localhost:8932
+    python training/smoke_test_api.py            # against 127.0.0.1:8932
     API=http://host:8932 python training/smoke_test_api.py
 """
 import json
@@ -18,7 +18,11 @@ import sys
 
 import requests
 
-API = os.environ.get('API', 'http://localhost:8932')
+# 127.0.0.1, not localhost. On Windows `localhost` resolves to ::1 first, and Docker Desktop's
+# WSL port relay binds the IPv6 loopback separately from the IPv4 one; when the relay is unhappy
+# (it survives a host crash badly) every request to localhost hangs until it times out while
+# 127.0.0.1 answers in milliseconds. Spending 30s per check to discover that is not useful.
+API = os.environ.get('API', 'http://127.0.0.1:8932')
 USER = os.environ.get('SMOKE_USER', 'admin')
 PASSWORD = os.environ.get('SMOKE_PASSWORD', 'admin123')
 TIMEOUT = float(os.environ.get('SMOKE_TIMEOUT', 30))

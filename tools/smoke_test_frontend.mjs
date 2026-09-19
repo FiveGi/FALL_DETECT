@@ -10,8 +10,11 @@
  *   msedge --headless=new --remote-debugging-port=9333 --user-data-dir=<tmp> about:blank
  *   node tools/smoke_test_frontend.mjs
  */
-const CDP = process.env.CDP_URL || 'http://localhost:9333';
-const APP = process.env.APP_URL || 'http://localhost:3000';
+// 127.0.0.1, not localhost: on Windows `localhost` resolves to ::1 first and Docker Desktop's
+// WSL port relay binds IPv6 separately, so a sulking relay makes every request hang instead of
+// failing fast. Override with CDP_URL / APP_URL if the services live elsewhere.
+const CDP = process.env.CDP_URL || 'http://127.0.0.1:9333';
+const APP = process.env.APP_URL || 'http://127.0.0.1:3000';
 const USER = process.env.SMOKE_USER || 'admin';
 const PASSWORD = process.env.SMOKE_PASSWORD || 'admin123';
 
