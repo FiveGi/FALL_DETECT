@@ -3173,6 +3173,12 @@ capacity -- never measured -- is probably three or four.
    fps. Settle it by evaluating the 30-frame model at ~24 fps on URFD and GMDCSA24 val, choosing
    on the even-numbered URFD half and confirming on the odd (SS51), not by reading the five
    real clips and picking.
+1b. **The limit on camera count is CPU, not the GPU.** One camera at 15 fps burns ~980% CPU --
+   ten of the twelve cores the worker is allowed -- while the GPU sits at 25% and 3.5 GB of 16.
+   `OMP_NUM_THREADS=1` and torch are already single-threaded; **OpenCV is running 12 threads**,
+   decoding and resizing 1080p, and that is the whole of it. `cv2.setNumThreads(2..4)` per
+   camera would trade a little latency for room to run several. Docker sees 15.5 GB of the
+   host's 32 (WSL2's default half), but memory is not the constraint -- the worker uses 1.7 GB.
 2. **`Test/10` and `Test/11` have never been watched.** Zero alerts in every configuration;
    correct silence or a shared miss is unknown. `Test/13` and `Test/17` are missed by all.
 3. **LINE is off** pending a channel secret, `PUBLIC_BASE_URL`, a tunnel and an admin password
