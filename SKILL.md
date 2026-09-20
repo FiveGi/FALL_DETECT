@@ -3161,3 +3161,29 @@ were each argued and measured away while the real one was an experiment I had le
 And leave the measurement running long enough to be a measurement -- the rate only prints once
 a minute, so every reading costs a minute, which is why this took as long as it did. The
 breakdown is printed with the rate from now on so the next person does not have to guess.
+
+## 59. What is still open, and the GPU headroom that makes one of them worth doing
+
+Measured while one camera ran at the pinned 15 fps: **GPU utilisation 20-35%, 3.5 GB of 16 GB.**
+The machine is a quarter busy. That matters for the first item below, and it means multi-camera
+capacity -- never measured -- is probably three or four.
+
+1. **The frame-rate/model question.** On real elderly-fall footage the deployed configuration
+   catches 3/5 and the previous 30-frame one at 25 fps catches 4/5, and the loop reaches 23.9
+   fps. Settle it by evaluating the 30-frame model at ~24 fps on URFD and GMDCSA24 val, choosing
+   on the even-numbered URFD half and confirming on the odd (SS51), not by reading the five
+   real clips and picking.
+2. **`Test/10` and `Test/11` have never been watched.** Zero alerts in every configuration;
+   correct silence or a shared miss is unknown. `Test/13` and `Test/17` are missed by all.
+3. **LINE is off** pending a channel secret, `PUBLIC_BASE_URL`, a tunnel and an admin password
+   change. The settings page now reports which pieces are missing.
+4. **Alone-detection runs a second YOLO model** to answer "is one person present", while the
+   fall loop already tracks people and reports `fall_state.seen_count`. Likely removable, which
+   would also remove a second CUDA context from the worker.
+5. **`docs/model_comparison.md`'s second half is historical** -- the settings A/B from the
+   30-frame era. `compare_old_vs_new.py` regenerates the equivalent into
+   `docs/settings_comparison.md` for the current model whenever that is wanted.
+
+**When measuring live, two things first**: drop `LOGGING_INTERVAL`, because the rate prints once
+a minute and every reading otherwise costs one; and stop every task dispatched earlier, because
+duplicate loops on one camera halve the rate silently and cost three wrong diagnoses in SS58.
