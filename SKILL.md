@@ -3012,3 +3012,51 @@ per-clip JSON files, so the table can be rebuilt rather than retyped.
 the end, the machine was shut down mid-run, and an hour of MediaPipe inference was lost. The
 runner now writes after every clip and resumes from what it has. This is the second time in one
 session that a long measurement was lost to writing results only on success.
+
+## 56. Where the frames actually go, and a number that was never a hardware limit
+
+SS50-SS51 rest on "the GPU deployment achieves 16.8-20 fps". That figure comes from SS38, where
+it is described honestly enough -- "lower than the 53.8 fps standalone benchmark because the
+fall and alone-detection tasks share the container" -- but it has since been quoted as though it
+were what this machine can do. Measured properly inside the running worker, one 1080p camera:
+
+| what is being timed | ms/frame | fps |
+|---|---|---|
+| frame decode (1080p mp4) | 3.1 | 320 |
+| `clip_buffer.add_frame` | ~0 | — (it encodes 10x/second, not per frame) |
+| `detect_v3_fall_multi` | 22.5 | 44 |
+| **read + buffer + detect, one camera, no pacing** | **39.8** | **25.1** |
+
+**25 fps is the ceiling for one camera, not 17.** The old number was a *contended* rate: the
+alone-detection loop runs its own YOLO model in the same container, and file-backed test cameras
+are additionally paced by a deliberate `time.sleep(1/fps)` so they play in real time.
+
+This does not change the deployment. 15 fps is what the model is trained for, and pinning there
+now leaves real headroom -- 15 x 22.5 ms is 338 ms of GPU work per second, so a second camera
+and the alone-detection loop fit without starving the detector, which is exactly what used to
+happen when the loop ran flat out and competed. What changes is the *reason*: 15 fps is a
+declared operating point with room to spare, not the most the hardware could manage.
+
+### Two speed levers that are not levers
+
+Since frames buy accuracy (the original detector catches 54/60 URFD falls at 30 fps and 27/60
+at 15), it was worth pricing the obvious ways to buy more:
+
+| | ms/frame | versus deployed |
+|---|---|---|
+| 1080p, fp32 (deployed) | 28.9 | — |
+| 1080p, fp16 | 28.7 | 1.01x |
+| pre-resized to 960, fp32 | 27.9 | 1.04x |
+| pre-resized to 960, fp16 | 27.4 | 1.06x |
+
+And input size, which SS39 chose for accuracy:
+
+| imgsz | 416 | 512 | 640 | 768 | **960** | 1280 |
+|---|---|---|---|---|---|---|
+| ms/frame | 25.6 | 25.7 | 26.6 | 26.7 | **27.6** | 30.8 |
+
+**Dropping to imgsz 416 would buy 7% and cost recall.** At these sizes the GPU is not
+compute-bound; the time is per-call overhead -- preprocessing a 1920x1080 frame, the host-to-
+device copy, NMS, postprocessing. That is worth knowing in both directions: there is no cheap
+speed to be had by shrinking the input, and equally, **960 costs almost nothing in frame rate**,
+so SS39's choice is even better than it looked.
