@@ -36,3 +36,33 @@ reading every frame of a file, which a live camera never does.
 
 Reproduce both columns with the runners named in SKILL.md SS55, then regenerate this
 file with `python training/compare_original_vs_deployed.py <original.json> <deployed.json>`.
+
+## The same original detector, fed every frame
+
+The table above feeds both detectors 15 fps, the rate `V3_TARGET_FPS` pins the camera loop to.
+Fed every frame of the same files instead, the original changes beyond recognition:
+
+| original, fed at | URFD falls caught | URFD clean |
+|---|---|---|
+| 30 fps (every frame of the file) | **54/60 (90%)** | 24/40 (60%) |
+| 15 fps (what a camera here delivers) | 27/60 (45%) | 25/40 (62%) |
+
+**Half its recall is frame rate alone.** Two things follow, and the second matters more than
+the comparison above.
+
+First, this confirms the reconstruction is faithful: run the way it was originally measured,
+the original detector reproduces the strong recall that was reported for it.
+
+Second, **the original design was not weak, it was starved of frames.** At 30 fps it catches
+more falls than the deployed detector does at 15 (54 versus 41), though it pays for that with
+far more false alarms (24/40 clean versus 34/40). Its 30-frame window spans 1.0s at 30 fps and
+2.0s at 15 fps, and a fall stretched to twice its length stops looking like one.
+
+So the honest reading of this document is not "the new detector is better". It is:
+
+- at the frame rate this hardware actually sustains, the deployed detector is clearly better on
+  both axes, and that is the situation the system is in;
+- at 30 fps the original is better at catching falls, so **raising the achievable frame rate is
+  worth more than any model change measured on this project so far** — pose extraction alone
+  runs at ~71 fps on the GPU (14.1 ms/frame), and the loop achieves 16.8-20, so the gap is in
+  the surrounding work rather than the model.
