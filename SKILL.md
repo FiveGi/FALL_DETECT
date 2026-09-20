@@ -3060,3 +3060,57 @@ compute-bound; the time is per-call overhead -- preprocessing a 1920x1080 frame,
 device copy, NMS, postprocessing. That is worth knowing in both directions: there is no cheap
 speed to be had by shrinking the input, and equally, **960 costs almost nothing in frame rate**,
 so SS39's choice is even better than it looked.
+
+## 57. Running it for real, which found two things the offline sweeps could not
+
+Every number in SS47-SS56 came from feeding clips to the detector in a script. The user asked
+whether it had actually been tested, and it had not. Starting camera 12 through the real API,
+on the real celery loop, found both a confirmation and a problem.
+
+**The chain works end to end.** On `Test/14.mp4` the live system raised
+`V2 FALL ALERT: fall, Confidence: 0.88`, wrote a `fall_red` notification with its confidence,
+image and clip path, produced a valid 640x360 H.264 clip at 10 fps, correctly did *not* send to
+LINE ("LINE disabled for this user"), escalated twice when nobody acknowledged, and showed up on
+the monitor page reading **"อาจมีการล้ม — ต้องตรวจสอบ"** with its clip, its acknowledge button
+and a "แจ้งซ้ำ 2 ครั้ง" badge. The clip was 6.8s rather than 60 because the camera had only been
+running seven seconds when the fall happened -- the ring buffer holds what it has seen.
+
+**And it does not detect `Test/13.mp4` at all.** Ten minutes of looping real elderly-fall
+footage produced two "person is alone" alerts and no fall alert. That is not a bug in the
+plumbing; offline at 15 fps the deployed detector peaks at **0.18** on that clip, nowhere near
+0.65. Checked across all five real-footage clips:
+
+| configuration | 13 | 14 | 15 | 16 | 17 | caught |
+|---|---|---|---|---|---|---|
+| deployed, 15-frame 0.65 @15fps | miss 0.18 | ALERT | ALERT | ALERT | miss 0.38 | 3/5 |
+| previous, 30-frame 0.50 @15fps | miss 0.38 | ALERT | ALERT | ALERT | miss 0.38 | 3/5 |
+| previous, 30-frame 0.50 **@25fps** | **ALERT 0.62** | ALERT | ALERT | ALERT | miss 0.40 | **4/5** |
+| original, MediaPipe @15fps | miss 0.46 | ALERT | ALERT | ALERT | miss 0.68 | 3/5 |
+| original, MediaPipe **@30fps** | miss 0.56 | ALERT | ALERT | ALERT | **ALERT 0.69** | **4/5** |
+
+**Frame rate decides this too**, and both 30-frame configurations reach 4/5 when fed more
+frames. Every decision from SS50 onward was made on URFD and GMDCSA24, which are acted -- people
+lowering themselves onto mats in a lab. These five are real falls by real elderly people, and on
+them the deployed configuration is not ahead. **This is an open question against the current
+deployment, not a settled result**, and it is recorded as such rather than quietly left out.
+
+### The alone-detection loop was eating half the frame rate
+
+The live run also showed the fall loop running at 11.6-13.5 fps against its 15 fps target. The
+alone-detection loop only runs its model every 20 seconds -- but it was still decoding every
+frame at full rate and discarding all but one in six hundred, on a container it shares with the
+detector that frames actually help. Paced to read twice a second
+(`ALONE_DETECTION_READ_PERIOD_S`), measured back to back on the same live camera:
+
+| alone loop | fall loop achieved |
+|---|---|
+| reading at full rate | 11.6-11.7 fps |
+| paced to 2 fps | **13.7 fps** |
+
+No longer flagged below target. The honest size of the win is smaller than that pair suggests --
+uncontended, the old code reached 13.4-13.5 -- so call it a fraction of a frame to two frames
+depending on load, plus a core that is no longer spent on discarded frames.
+
+**The lesson is the plain one.** A hundred and twenty clips measured offline said the deployment
+was good. Ten minutes of the real system said it misses a real fall and that a background loop
+was quietly halving its frame rate. Both were sitting there the whole time.
