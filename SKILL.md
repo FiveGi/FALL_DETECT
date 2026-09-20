@@ -3114,3 +3114,50 @@ depending on load, plus a core that is no longer spent on discarded frames.
 **The lesson is the plain one.** A hundred and twenty clips measured offline said the deployment
 was good. Ten minutes of the real system said it misses a real fall and that a background loop
 was quietly halving its frame rate. Both were sitting there the whole time.
+
+## 58. All 17 Test/ clips, and a frame-rate number I got wrong twice before getting it right
+
+**All 17 clips, three configurations, each fed the rate it would run at.** Clips 13-17 are real
+elderly falls, one per clip, so they are pass/fail. Clips 1-12 are compilations cut from several
+incidents with ordinary activity between them, so an alert count there is a count and not a
+score -- SS42's scene-cut trap is why each alert has always had to be checked individually.
+
+| configuration | 13 | 14 | 15 | 16 | 17 | real falls | compilation alerts |
+|---|---|---|---|---|---|---|---|
+| deployed 15-frame 0.65 @15fps | miss 0.18 | ALERT | ALERT | ALERT | miss 0.38 | **3/5** | 61 |
+| previous 30-frame 0.50 @15fps | miss 0.38 | ALERT | ALERT | ALERT | miss 0.38 | **3/5** | 49 |
+| previous 30-frame 0.50 @25fps | **ALERT 0.62** | ALERT | ALERT | ALERT | miss 0.40 | **4/5** | 64 |
+
+`Test/10` and `Test/11` produce zero alerts in every configuration and have not been looked at;
+whether that is correct silence or a shared miss is unknown and should not be guessed.
+
+### The frame rate, measured three times because the first two were wrong
+
+The live loop reported 13.8-14.4 fps against its target, and I explained it three times before
+measuring it:
+
+1. **"the alone-detection loop is eating it."** It was decoding every frame to use one every
+   20 seconds, which is real waste and is now paced (`ALONE_DETECTION_READ_PERIOD_S`), but
+   running the fall loop with no alone task at all still gave ~14 fps. Not the cause.
+2. **"the file-playback sleep."** A file camera slept a whole frame period *after* the work
+   instead of absorbing it, so a 24 fps clip with 28 ms of processing ran at 14 fps. That was a
+   genuine bug and is fixed -- every "live" measurement this project ever took was on a test
+   clip, so all of them saw a camera at 60% of its nominal rate. But the rate did not move.
+3. **"a database query per frame."** `camera_still_active` does run every frame; measured, it
+   costs 1.6 ms. Not the cause either.
+
+The actual cause was me: **duplicate detection tasks left running from earlier experiments**.
+Two and sometimes three fall loops were processing the same camera at once. Stopped cleanly and
+dispatched exactly one, the loop runs at **23.9 fps**, and the breakdown now printed with the
+rate says where it goes: read 5%, clip buffer 1%, detect 54%, everything else 5%.
+
+So the ceiling on this machine is ~24 fps live, not the 17 quoted before SS56 and not the 14
+I was about to quote here. The 15 fps pin has real headroom, and **the 30-frame configuration
+that catches 4/5 real falls needs ~25 fps, which is borderline reachable** -- that is now a
+concrete question rather than a dismissed one.
+
+**Two process lessons, both expensive.** Instrument before explaining: three plausible causes
+were each argued and measured away while the real one was an experiment I had left running.
+And leave the measurement running long enough to be a measurement -- the rate only prints once
+a minute, so every reading costs a minute, which is why this took as long as it did. The
+breakdown is printed with the rate from now on so the next person does not have to guess.

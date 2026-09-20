@@ -671,9 +671,15 @@ def process_v2_fall_detection(camera_id, config):
             min_period = 1.0 / target_fps if target_fps > 0 else 0.0
             next_due = 0.0
             processed, rate_since = 0, time.time()
+            # Where the loop's time goes, reported with the rate below. Without this, a loop
+            # running under target is just a number and every explanation is a guess -- which
+            # cost several wrong guesses before it was added.
+            t_read = t_clip = t_detect = t_rest = 0.0
 
             while camera.is_active:
+                frame_started = time.monotonic()
                 ret, frame = cap.read()
+                t_read += time.monotonic() - frame_started
                 if not ret:
                     if is_video_file:
                         cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # Loop video
@@ -690,7 +696,9 @@ def process_v2_fall_detection(camera_id, config):
                 # minute BEFORE the fall, which only exists if it was being kept all along.
                 # This happens for every frame read, not only classified ones -- the clip
                 # should be as smooth as the camera allows regardless of the detection rate.
+                _t = time.monotonic()
                 clip_buffer.add_frame(camera_id, frame)
+                t_clip += time.monotonic() - _t
 
                 now_mono = time.monotonic()
                 if min_period and now_mono < next_due:
@@ -701,7 +709,10 @@ def process_v2_fall_detection(camera_id, config):
                 processed += 1
 
                 # Perform V3 pose-based fall detection -- one result per tracked person
+                _t = time.monotonic()
                 results = detect_v3_fall_multi(frame, fall_state, fall_detector, config, camera)
+                t_detect += time.monotonic() - _t
+                _rest_from = time.monotonic()
                 any_detected = any(r[1] for r in results)
                 # For logging/alerting a single confidence number, use whichever tracked
                 # person is most fall-like this frame (the detected one if any, else the max).
@@ -730,11 +741,15 @@ def process_v2_fall_detection(camera_id, config):
                                 + ('' if achieved >= target_fps * 0.9 else '  <-- BELOW TARGET'))
                     else:
                         rate = f"{achieved:.1f} fps (uncapped)"
+                    span = max(1e-6, now - rate_since)
                     print(f"[Camera {camera_id}] V2 Fall Log: {detection_result}, "
                           f"Confidence: {probability:.2f}, People seen: {fall_state.seen_count}, "
-                          f"Detection rate: {rate}")
+                          f"Detection rate: {rate}  "
+                          f"[read {t_read / span * 100:.0f}% clip {t_clip / span * 100:.0f}% "
+                          f"detect {t_detect / span * 100:.0f}% other {t_rest / span * 100:.0f}%]")
                     last_log_time = now
                     processed, rate_since = 0, now
+                    t_read = t_clip = t_detect = t_rest = 0.0
 
                 if any_detected:
 
@@ -773,9 +788,17 @@ def process_v2_fall_detection(camera_id, config):
                 
                 if not camera_still_active(camera_id):
                     break
-                
+
+                # A file source has to be played at its own rate so video time tracks wall
+                # time; a real camera delivers frames on its own schedule and needs none of
+                # this. Sleeping a whole frame period *after* the work added to it instead of
+                # absorbing it: a 24 fps clip with 28 ms of processing ran at 1/(0.042+0.028)
+                # = 14 fps, so every "live" measurement taken on a test clip -- which is all of
+                # them -- saw a camera running at 60% of its nominal rate. Sleep only what is
+                # left of the frame period.
+                t_rest += time.monotonic() - _rest_from
                 if is_video_file and fps > 0:
-                    time.sleep(1.0 / fps)
+                    time.sleep(max(0.0, (1.0 / fps) - (time.monotonic() - frame_started)))
             
             cap.release()
             clip_buffer.clear(camera_id)
