@@ -2970,3 +2970,45 @@ Measured properly inside the GPU container, taking the best of five runs of a th
 
 At 0.58 ms, four tracked people at 15 fps cost 35 ms of CPU per second of video. The ensemble
 would have been affordable. It simply was not better.
+
+## 55. The original detector versus the deployed one, both fed a real camera's frame rate
+
+The user asked for a comparison against the original -- not the previous model, the system as it
+was at this repository's first commit. Both halves came out of git itself: `git lfs smudge` on
+`ce401fa:models/fall_classifier_v3.onnx` (md5 `e794118550563770cff5eb144ba78d73`, 30-frame
+input) and `ce401fa:app/detection/v3_fall_detection.py`, run unmodified. So this compares two
+**systems** -- MediaPipe pose, 30-frame window, threshold 0.50, 2-of-3 smoothing against
+yolo26s-pose at 960, 15-frame window, 0.65, 1-of-3 -- rather than two weight files in the same
+plumbing.
+
+Both fed the same 220 clips at **15 fps**, the rate `V3_TARGET_FPS` pins the camera loop to.
+That is the part that makes the table mean anything: every number published for the original was
+measured by reading every frame of a video file, which a live camera never does.
+
+| what is measured | original | deployed | change |
+|---|---|---|---|
+| URFD — falls caught | 27/60 | **41/60** | **+14** |
+| URFD — normal clips with no false alarm | 25/40 | **34/40** | **+9** |
+| GMDCSA24 val — normal clips clean (held out of training) | 10/16 | 7/16 | −3 |
+| GMDCSA24 — falls caught (both models trained on these) | 75/79 | 69/79 | −6 |
+| GMDCSA24 train50 — normal clips clean (training clips) | 21/25 | 21/25 | 0 |
+| **falls caught, data never trained on** | **27/60 (45%)** | **41/60 (68%)** | **+14** |
+| **clean, data never trained on** | **35/56 (62%)** | **41/56 (73%)** | **+6** |
+
+**Better on both axes on everything never trained on**, which is the only comparison that says
+anything about a real home: +23 points of recall and +11 points of not-crying-wolf. The losses
+are on GMDCSA24, which both models trained on and which has been tuned against repeatedly.
+
+Clip by clip: **18 falls the original missed are now caught, 10 it caught are now missed, 12
+false alarms removed and 6 introduced.** The ten lost falls were all looked at and all are real.
+They share a pattern: the body leaves the frame or is hidden by furniture on the way down
+(`fall-19` falls behind a desk, `s4_Fall_09` and `s4_Fall_10` drop out of the bottom of frame),
+leaving a partial pose that no longer clears the stricter 0.65 threshold.
+
+`training/compare_original_vs_deployed.py` regenerates `docs/original_vs_deployed.md` from two
+per-clip JSON files, so the table can be rebuilt rather than retyped.
+
+**A repeat of a mistake already made this session**: the first attempt wrote its results only at
+the end, the machine was shut down mid-run, and an hour of MediaPipe inference was lost. The
+runner now writes after every clip and resumes from what it has. This is the second time in one
+session that a long measurement was lost to writing results only on success.
