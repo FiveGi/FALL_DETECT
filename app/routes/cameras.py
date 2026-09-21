@@ -9,6 +9,7 @@ from app.services.logging_service import save_system_log
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.services.camera_manager import process_camera, process_fall_detection, process_alone_detection, process_bed_exit_detection
 from app.config import Config
+from app.services.detection_dispatch import dispatch_for, is_really_running
 import re
 
 bp = Blueprint('cameras', __name__, url_prefix='/api/cameras')
@@ -411,8 +412,23 @@ def start_camera(id):
     if not current_user.is_admin() and camera.user_id != current_user.id:
         return jsonify({'error': 'Access denied. You can only control your own cameras.'}), 403
     
+    # `is_active` is a database column, not proof that a loop is running: a worker restart
+    # kills every detection task and leaves every row saying active, and refusing here on the
+    # column alone left cameras marked "monitoring" with nothing watching them and no way to
+    # restart them from the UI. Ask the workers instead, and fall back to the column only when
+    # they cannot be reached.
     if camera.is_active:
-        return jsonify({'message': f'Monitoring for camera "{camera.name}" is already running.'}), 200
+        really = is_really_running(camera.id)
+        if really is not False:
+            return jsonify({'message': f'Monitoring for camera "{camera.name}" is already running.'}), 200
+        task_ids = dispatch_for(camera)
+        save_system_log('INFO', f'Detection restarted for camera {camera.name} (marked active '
+                        f'but no task was running)', 'CAMERA', current_user.id)
+        return jsonify({
+            'message': f'Monitoring for camera "{camera.name}" was restarted.',
+            'task_ids': task_ids,
+            'detection_type': camera.detection_type
+        })
     
     # For regular users, enforce CAMERA_MAX_PARALLEL limit per user
     # For admins, check global limit or per-user limit based on camera owner
@@ -443,28 +459,11 @@ def start_camera(id):
         "LOGGING_INTERVAL": Config.LOGGING_INTERVAL,
     }
     
-    task_ids = []
-    
-    if camera.detection_type == 'bed_exit':
-        task = process_bed_exit_detection.apply_async(args=[camera.id, config])
-        task_ids.append(task.id)
-        save_system_log('INFO', f'Bed exit detection task started for camera {camera.name}', 'CAMERA', current_user.id)
-    elif camera.detection_type == 'fall':
-        # Start both fall and alone detection as separate tasks
-        fall_task = process_fall_detection.apply_async(args=[camera.id, config])
-        alone_task = process_alone_detection.apply_async(args=[camera.id, config])
-        task_ids.extend([fall_task.id, alone_task.id])
-        save_system_log('INFO', f'Fall and alone detection tasks started for camera {camera.name}', 'CAMERA', current_user.id)
-    elif camera.detection_type == 'fall_v2':
-        from app.services.camera_manager import process_v2_fall_detection, process_v2_alone_detection
-        fall_v2_task = process_v2_fall_detection.apply_async(args=[camera.id, config])
-        alone_v2_task = process_v2_alone_detection.apply_async(args=[camera.id, config])
-        task_ids.extend([fall_v2_task.id, alone_v2_task.id])
-        save_system_log('INFO', f'V2 Fall and alone detection tasks started for camera {camera.name}', 'CAMERA', current_user.id)
-    else:
-        task = process_fall_detection.apply_async(args=[camera.id, config])
-        task_ids.append(task.id)
-        save_system_log('INFO', f'Fall detection task started for camera {camera.name}', 'CAMERA', current_user.id)
+    # Which tasks each detection_type needs lives in detection_dispatch, so that the restart
+    # path above and the worker-start recovery queue exactly the same set.
+    task_ids = dispatch_for(camera, config)
+    save_system_log('INFO', f'{camera.detection_type} detection started for camera '
+                    f'{camera.name} ({len(task_ids)} task(s))', 'CAMERA', current_user.id)
     
     response_message = f'Monitoring for camera "{camera.name}" has started.'
     if len(task_ids) > 1:

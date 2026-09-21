@@ -57,6 +57,11 @@ services:
       - CUDA_VISIBLE_DEVICES=""
       - OMP_NUM_THREADS=1
       - TF_ENABLE_ONEDNN_OPTS=0
+      # Only this worker restarts camera loops when it comes up; the maintenance worker shares
+      # the same code and must not. Detection tasks are infinite loops that never survive a
+      # worker restart, so without this a restart leaves every camera marked active in the
+      # database, shown as "monitoring" in the UI, and watched by nothing.
+      - RESUME_ACTIVE_CAMERAS=1
     deploy:
       resources:
         limits:

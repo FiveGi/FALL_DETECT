@@ -51,6 +51,36 @@ import app.services.camera_manager
 import app.services.escalation_service
 
 
+# A camera worker coming up re-queues detection for every camera the database still says is
+# active. Detection tasks are infinite loops, so none of them survives a worker restart, and
+# before this the rows stayed `is_active = True` with nothing running: the dashboard said
+# "monitoring", the status endpoint said "running", `/start` refused as "already running", and
+# no fall would ever have been detected again. Measured, not guessed -- a
+# `docker compose restart celery_worker` produced exactly that, with zero detection log lines
+# afterwards.
+#
+# It lives here rather than in celery_worker.py because the workers start with
+# `celery -A app.celery`, which imports this package and never imports that file -- a handler
+# put there is dead code, which is how the first attempt at this failed.
+#
+# Guarded by RESUME_ACTIVE_CAMERAS so only the camera worker does it: the maintenance worker
+# shares this module and serves its own queue, and must not start camera loops.
+if os.environ.get('RESUME_ACTIVE_CAMERAS') == '1':
+    from celery.signals import worker_ready as _worker_ready
+
+    @_worker_ready.connect
+    def _resume_cameras_on_start(**_):
+        from app.services.detection_dispatch import resume_active_cameras
+        try:
+            with get_worker_app().app_context():
+                resumed = resume_active_cameras()
+        except Exception as exc:                  # never take the worker down over this
+            print(f'[Celery Worker] could not resume active cameras: {exc}', flush=True)
+            return
+        print(f'[Celery Worker] resumed detection for: {", ".join(resumed)}' if resumed
+              else '[Celery Worker] no active cameras needed resuming', flush=True)
+
+
 _worker_app = None
 
 
