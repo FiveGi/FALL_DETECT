@@ -93,21 +93,22 @@ detector nobody measured.
 ## How accurate is it, really
 
 On **URFD**, a public dataset that was never used to train or tune anything here, fed at the
-15 fps the camera loop is pinned to:
+rate each deployment profile actually runs at:
 
-| | |
-|---|---|
-| falls caught | 41 of 60 (68%) |
-| normal-activity clips with no false alarm | 34 of 40 (85%) |
+| | with a GPU (20 fps) | four CPU cores (8 fps) |
+|---|---|---|
+| falls caught | 45 of 60 (75%) | 32 of 60 (53%) |
+| normal-activity clips with no false alarm | 33 of 40 (83%) | 34 of 40 (85%) |
 
-Across everything never used in training — URFD plus the held-out GMDCSA24 split — that is
-**56 of 75 falls caught**, with 41 of 56 normal clips silent.
+The gap between the columns is frame rate, not a different model: the same weights run in both.
+A CPU machine cannot feed the detector as many frames per second, and the classifier's window
+is a fixed number of frames, so it sees a slower, coarser version of the same fall.
 
 Seven of those 60 URFD clips are ones no classifier here could have scored: they are the
 dataset's ceiling camera on its standing falls, where the room is empty for two thirds of the
 clip and the person walks into view as they land, so the clip ends before the 15-frame window
-has 15 frames with a person in them. Over the 53 clips that can be scored, recall is
-**41 of 53 (77%)**. Both figures are honest; the table above is the conservative one.
+has 15 frames with a person in them. Over the 53 clips that can be scored, GPU recall is
+**44 of 53 (83%)**. Both figures are honest; the table above is the conservative one.
 
 Two numbers you will see quoted elsewhere for systems like this, and why they are not these:
 
@@ -123,8 +124,16 @@ Practical consequences worth knowing before installing a camera:
 
 - **Mount it on a wall, not the ceiling.** From directly overhead the pose model finds a person
   in only 12-29% of frames versus 78-88% from a wall, and the classifier never even runs.
-- **It needs a GPU.** On CPU the pipeline manages 2-8 fps, which is far below what the model
-  needs; detection effectively stops working.
+- **It runs on CPU, but only with the CPU settings.** `docker-compose.yml` on its own is the
+  CPU deployment and is tuned for a four-core machine: input size 320 and the camera rate
+  pinned to 8 fps. Measured there, it catches 32 of 60 URFD falls and 64 of 79 GMDCSA24 falls,
+  against 5 and 48 with the GPU settings left in place — which is the difference between a
+  system that works and one that does not. `docker-compose.gpu.yml` overlays the GPU settings
+  (input size 960, 20 fps) and reaches 45 of 60 URFD falls. Do not run the GPU settings on a
+  CPU host: one camera manages 1.5 fps there and almost nothing is caught.
+- **Frame rate is the thing to watch.** The loop prints its achieved rate once a minute and
+  says `<-- BELOW TARGET` when it cannot keep up. If it does, lower `V3_TARGET_FPS` to what the
+  machine reaches and re-check the numbers rather than leaving it short.
 - **Every fall alert asks a human to look** rather than asserting a fall, because the model's
   confidence score was measured and does not separate real falls from false alarms. Urgency
   comes from an alert going unacknowledged, which is a fact rather than a guess.

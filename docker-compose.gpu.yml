@@ -21,6 +21,12 @@ services:
       # The base file pins this empty to force CPU; clear it so the container sees the GPU.
       - CUDA_VISIBLE_DEVICES=0
       - V3_DEVICE=cuda
+      # The base file tunes for a four-core CPU server (imgsz 320, one OMP thread left to
+      # cpu_tuning); with a GPU the input size is nearly free and 960 is the measured best, so
+      # it goes back here along with the single OMP thread that keeps torch out of the way of
+      # frame decoding.
+      - V3_IMGSZ=960
+      - OMP_NUM_THREADS=1
       # Classify at a fixed rate rather than however fast this machine happens to be. The
       # camera loop has no stride, so without this the sampling rate is whatever the hardware
       # gives and the deployed accuracy moves with it: the same model catches 43/60 URFD falls

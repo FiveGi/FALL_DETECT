@@ -55,17 +55,42 @@ services:
       - TZ=Asia/Bangkok
       - TF_CPP_MIN_LOG_LEVEL=3
       - CUDA_VISIBLE_DEVICES=""
-      - OMP_NUM_THREADS=1
       - TF_ENABLE_ONEDNN_OPTS=0
       # Only this worker restarts camera loops when it comes up; the maintenance worker shares
       # the same code and must not. Detection tasks are infinite loops that never survive a
       # worker restart, so without this a restart leaves every camera marked active in the
       # database, shown as "monitoring" in the UI, and watched by nothing.
       - RESUME_ACTIVE_CAMERAS=1
+      # This file is the CPU deployment -- docker-compose.gpu.yml overlays the GPU settings on
+      # top of it -- and the target server is four cores with no GPU. Tuned there, measured in
+      # a container limited the same way (SS62):
+      #
+      #   imgsz 960, one OMP thread   1.5 fps live,  5/60 URFD falls,  48/79 GMDCSA falls
+      #   imgsz 320, threads pinned   8.1 fps live, 34/60 URFD falls,  67/79 GMDCSA falls
+      #
+      # Input size is the lever on CPU (unlike the GPU, where it changed nothing because the
+      # bottleneck was CPU-side resizing): the model's own cost scales with it, and the frame
+      # rate it buys is worth far more than the pose detail it costs. 320 beat 960, 640, 480,
+      # 384, 256 and 192 once each was paired with the rate it can actually reach, and it beat
+      # yolo26n-pose at matched cost on falls (34/60 against 26/60) -- the smaller model trades
+      # recall for quiet, which is the wrong trade here.
+      - V3_IMGSZ=320
+      # Pinned so the rate is a setting rather than whatever the machine manages. 8 is what
+      # this machine's four-core container sustains WITH alone-detection running; the
+      # production server is a QEMU VM with slower cores and will sit below it, so measure
+      # there before trusting the recall figures above.
+      - V3_TARGET_FPS=8
+      # OMP_NUM_THREADS is deliberately NOT set: app/services/cpu_tuning reads the container's
+      # real CPU quota and pins torch and onnxruntime to it, after the pose model loads.
+      # Pinning it to 1 here (as this file used to) halved the frame rate on a CPU-only host.
     deploy:
       resources:
         limits:
-          cpus: '2.0'
+          # Most of the machine. The backend and the maintenance worker are idle almost all the
+          # time, and `cpus` is a ceiling rather than a reservation, so this does not take
+          # anything from them -- it stops one camera from using the whole box and leaving the
+          # web UI unresponsive. Measured: 4.0 gives 8.9 fps, 3.5 gives 8.1, 2.0 is half that.
+          cpus: '3.5'
         reservations:
           cpus: '0.5'
     depends_on:

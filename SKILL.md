@@ -3362,3 +3362,102 @@ one-line description per clip from `Test/clips.json`; the label is built in one 
 which had duplicated the markup. `tools/smoke_test_frontend.mjs` grew a check that opens the
 dropdown in a real browser and asserts both the order and the descriptions; it was confirmed to
 fail when the sort key is removed and when `Test/clips.json` is taken away, then to pass again.
+
+## 61. The frame rate was pinned too low, and a window's duration is not what matters
+
+SS60 settled whether to move back to the 30-frame model. Running the sweeps for it turned up
+something else: across every per-clip file in the scratchpad, the deployed model scored better
+fed more frames per second than the 15 it was trained for. Measured properly on URFD, with the
+deployed model and threshold, at rates the GPU machine can sustain:
+
+| rate | window covers | URFD falls | URFD clean | half B falls (confirms only) |
+|---|---|---|---|---|
+| 15 fps (was deployed) | 1.00 s | 41/60 | 34/40 | 19/28 |
+| 18 fps | 0.83 s | 45/60 | 32/40 | 21/28 |
+| **20 fps (deployed)** | 0.75 s | **45/60** | **33/40** | **21/28** |
+| 23 fps | 0.65 s | 48/60 | 33/40 | 21/28 |
+
+At 20 fps the held-out false-alarm rate is **identical** to 15 fps (41/56 either way) for four
+more falls, and the whole gain is on falls from standing (13/30 -> 17/30), the harder and more
+realistic type, rather than the easy falls out of a chair. It holds on the half of URFD
+reserved for confirming, so it is not a choice made by reading the answer. A window also fills
+in 0.75s instead of 1.00s, so an alert arrives sooner.
+
+**Not higher.** The extra falls at 23 fps are URFD's very short ceiling-camera clips finally
+filling a window at all -- restricted to the 53 clips every rate can score, 18, 20 and 23 fps
+are 44, 43 and 44 out of 53, indistinguishable. And 23.4 fps is this machine's uncapped
+ceiling, measured live; pinning there would make the achieved rate depend on machine load
+again, which is what pinning it exists to prevent.
+
+**The obvious explanation is wrong.** If a shorter window in real time were what helped, a
+model trained for one would help more. One was trained (12 frames, 0.80s at 15 fps, same
+recipe and seed) and it is far worse: **34/60**. So it is the frames, not the duration --
+either more chances per second to land a window on the fall, or the motion appearing slower
+than trained, and this does not distinguish them.
+
+`tools/check_config_coherence.py` used to enforce `training stride * target fps == 30` so that
+a window covered the same real time in training and live. That is the assumption the
+measurements above contradict, so the check now verifies something true instead: that the
+deployed `(input size, window, frame rate)` triple is one that has actually been run end to end,
+against a table of measured configurations, and that the rate is one the machine sustains.
+
+## 62. The production server has no GPU, and nothing here was tuned for it
+
+The user asked for the system to be tuned for the machine it ships to. That machine is a KVM VM
+with **four online vCPUs, 12 GB and no GPU**, and every frame-rate number this project has ever
+published came from an RTX 4070 Ti Super. Measured in a container limited the same way:
+
+| | live loop | URFD falls | GMDCSA24 falls |
+|---|---|---|---|
+| the settings it would have shipped with | **1.5 fps** | **5/60 (8%)** | 48/79 |
+| after this section | **8.1 fps** | **32/60 (53%)** | 64/79 |
+
+**The first cause is not the model.** torch and onnxruntime both size their thread pools from
+the *host's* core count and neither reads the cgroup quota, so a four-CPU container runs eight
+to twenty threads that cannot all run:
+
+    torch threads 8 -> 100 ms per detection   |  classifier, onnxruntime default -> 1.594 ms
+    torch threads 4 ->  68 ms  (the quota)    |  classifier, intra_op = quota    -> 0.188 ms
+
+`app/services/cpu_tuning.py` reads the quota (cgroup v2, then v1, then the process's CPU
+affinity -- which matters here, because the server has fourteen vCPUs allocated and four
+online) and pins both. It must run **after** `YOLO()` loads: ultralytics sets the thread count
+itself while building a model, so doing it earlier is silently undone. That alone took the live
+loop from 3.4 to 6.9 fps. It is applied on CPU only, so the GPU profile's published numbers
+still describe the GPU profile.
+
+**The second is input size.** On the GPU this changed nothing, because the bottleneck there was
+CPU-side resizing; on a CPU the model's own cost scales with it. Each size paired with the rate
+it reaches on four cores:
+
+| imgsz | rate it reaches | URFD falls | GMDCSA24 falls (720p) |
+|---|---|---|---|
+| 960 | 4 fps | 5/60 | 48/79 |
+| 640 | 7 fps | 25/60 | 66/79 |
+| 480 | 6 fps | 13/60 | 68/79 |
+| 384 | 6 fps | 14/60 | 69/79 |
+| **320** | **8-9 fps** | **32-34/60** | **64-67/79** |
+| 256 | 10 fps | 25/60 | 62/79 |
+| 192 | 14 fps | 32/60 | 59/79 |
+
+URFD's usable frame is 320x240, so it cannot answer what shrinking the input costs a real
+camera -- GMDCSA24 is 720p and does, and `Test/13`-`16` are real footage. On those the change
+costs nothing: both configurations catch 3 of 4, with *higher* peak scores at 320 (0.84 -> 0.89,
+0.71 -> 0.77), and both stay silent on `Test/17`.
+
+**Two things that looked promising and were not.** `yolo26n-pose` is about twice as fast as
+`yolo26s-pose` at every size, so n at 640 costs what s costs at 384 -- but at matched cost it
+loses falls (26/60 against 34/60 at 9 fps, 15/60 against 13/60 at 6 fps); it trades recall for
+quiet, which is the wrong trade for a fall detector, and the classifier was trained on
+`yolo26s-pose` keypoints anyway. Exporting the pose model to ONNX made it **2.3x slower** on
+CPU (133 ms against 57 ms at imgsz 320), so no dependency was added for it.
+
+`docker-compose.yml` on its own is now the CPU deployment (imgsz 320, 8 fps, worker capped at
+3.5 of 4 cores, `OMP_NUM_THREADS` deliberately unset so `cpu_tuning` decides) and
+`docker-compose.gpu.yml` overlays the GPU one (imgsz 960, 20 fps, one OMP thread). The
+coherence check validates both.
+
+**The caveat to carry forward:** 8.1 fps was measured in a four-core container on a fast
+desktop chip. The production server is a QEMU virtual CPU with slower cores and will sit below
+it, and every figure in the table above moves with the rate. Measure on the server itself before
+quoting any of this as its accuracy.
