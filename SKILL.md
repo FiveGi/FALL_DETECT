@@ -3495,3 +3495,47 @@ reaches and the rate it was asked for, in this regime, is most of the accuracy.
 That steepness is worth stating on its own: at imgsz 320, URFD recall is 13/60 at 6 fps, 32/60
 at 8 fps and 34/60 at 9 fps. Restricted to the 28 clips every one of those rates can score at
 all, it is 46%, 75% and 71%. Two frames per second is the difference between working and not.
+
+## 64. yolo26n-pose lost fairly: the mismatch objection was measured and does not hold
+
+SS62 rejected `yolo26n-pose` because at matched cost per frame it caught fewer falls. The
+objection to that is real and was raised: the classifier was trained on keypoints extracted
+with `yolo26s-pose`, so a different extractor is a train/serve mismatch and n was handicapped
+before it started. Retraining on n-extracted features is the clean answer.
+
+**It cannot be done.** The source videos for 97% of the training frames are gone -- `oops_download`
+and the CAUCAFall videos were deleted after extraction, leaving only the `.npz` keypoints. What
+remains is GMDCSA24 (34,784 frames, 3%), whose videos are still here, and FallVision (929,647
+frames, 74%), which is external keypoints that neither backend produced and is identical for
+both arms. Re-extracting 3% of the data would not remove the mismatch; it would only make the
+claim harder to read.
+
+So the premise was measured instead (`scratchpad/diff_s_vs_n_pose.py`), both extractors over
+the same frames of seven clips from URFD, GMDCSA24 and `Test/`:
+
+- they agree on **whether anybody is in the frame 95.5%** of the time
+- where both find someone, the keypoints differ by **0.0054 frame widths**, or **3% of a torso
+  length** after the torso normalisation the classifier's features actually use
+
+Three per cent of a torso is roughly a wrist's width. The feature distribution the classifier
+sees is nearly the same from either model, so the mismatch is not what cost n its falls.
+
+**What did** is the other kind of disagreement. A frame where the pose model finds nobody is a
+zero row, not a slightly different elbow, and n produces more of them. Measured over whole
+evaluation clips at the input size each would deploy at for the same cost
+(`scratchpad/person_found_s_vs_n.py`):
+
+| | URFD falls | GMDCSA24 falls |
+|---|---|---|
+| yolo26s-pose @ 320 | person found 87% (89% in the last third) | 85% (71%) |
+| yolo26n-pose @ 384 | person found 79% (80% in the last third) | 82% (64%) |
+
+n loses the person **7.8 points more often on URFD and 9.2 points more in the last third** --
+which is the part of a fall clip after the person is on the ground, the hardest frames for a
+pose model and the ones the window needs. That is a capability difference, not an artefact, and
+it explains 26/60 against 34/60 directly.
+
+The conclusion also holds across three matched pairs rather than one: s@480/6fps 13/60 against
+n@640/6fps 15/60, s@384/6-7fps 14/60 against n@480/7fps 21/60, s@320/9fps 34/60 against
+n@384/9fps 26/60. n wins the two slow pairs and loses the one that is actually deployable,
+which is the regime the CPU profile runs in.
