@@ -3539,3 +3539,90 @@ The conclusion also holds across three matched pairs rather than one: s@480/6fps
 n@640/6fps 15/60, s@384/6-7fps 14/60 against n@480/7fps 21/60, s@320/9fps 34/60 against
 n@384/9fps 26/60. n wins the two slow pairs and loses the one that is actually deployable,
 which is the regime the CPU profile runs in.
+
+## 65. Ideas worth doing next, ranked, with what each one rests on
+
+**The living list is `docs/next_steps.md`, ordered for the CPU server** -- that is what to pick
+up from. This section is the reasoning behind the items and is not updated as they are done.
+
+Written after the CPU tuning, while the measurements are fresh. Everything here is grounded in
+a number measured in SS60-SS64; where something is a guess it says so.
+
+### 1. Re-tune the threshold for the rates now deployed (cheap, and it is a loose end I made)
+
+Threshold 0.65 was chosen at **15 fps** on the GPU (SS51). The GPU profile now runs at 20 fps
+and the CPU profile at 8, and the score distribution moves with the rate -- that is the whole
+reason SS51 had to pick a new threshold when the window changed. Neither deployed profile is
+running the threshold that was tuned for it.
+
+Sweep 0.50/0.55/0.60/0.65/0.70 at each profile's rate and input size, choose on half of URFD
+(pairs, not parity -- SS60), confirm on the other. Two sweeps per threshold, so about three
+hours. **This is the highest value per hour on the list**, because it is free accuracy with no
+new code and no retraining.
+
+### 2. Give the classifier the one thing it is not allowed to see: where the person is
+
+Six of seven GMDCSA24 val false alarms are beds, and they have survived every decision rule
+tried. The reason is structural: `_normalize_and_velocity` subtracts the hip centre and divides
+by torso size, so **the model cannot tell lying on a bed from lying on the floor** -- both are
+a horizontal body, identical once centred. A person on a bed is higher in the frame and a
+person on the floor is lower, and that information is deliberately thrown away.
+
+The stored `.npz` keypoints are normalised to [0,1] of the frame, so hip height, hip x and
+apparent torso size are **already in the training data** -- this needs a retrain, not a
+re-extraction, which matters because the source videos for 97% of the data are gone (SS64).
+Three extra channels take 85 features to 88.
+
+**The risk is real and must be measured**: absolute position lets the model memorise the four
+rooms GMDCSA24 was filmed in. Three seeds, and URFD decides -- if URFD does not improve, it
+learned the rooms, not the physics.
+
+### 3. Score a partially filled window instead of waiting for a full one
+
+Seven URFD falls score exactly 0.00 at 15 fps and sixteen at 8 fps, because the clip ends
+before the window holds enough frames with a person in them (SS60, SS62). The runtime waits for
+`WINDOW_SIZE` observed frames before it will produce a number at all.
+
+In a home this is not a dataset artefact: somebody walking into a room and falling within the
+first second is exactly the case the window cannot see. Padding a short window with its first
+observed frame, or scoring on a shorter prefix with a higher threshold, would cover it.
+`scratchpad/urfd_window_fill.py` already measures how many clips each variant would unlock.
+
+### 4. A motion gate, for the CPU server and for running more than one camera
+
+One camera at imgsz 320 uses most of a four-core server, and the detector is ~90% of the loop.
+In an elderly person's home most minutes are an empty room. A frame-difference check costing
+under a millisecond could skip the pose pass when nothing has moved, which is CPU returned for
+free and the only credible route to two or three cameras on that hardware.
+
+**What has to be got right**: a person already on the floor and not moving must not be gated
+out, because that is precisely the state an alert needs to keep reporting. Gate the pose pass,
+never the state machine, and hold the last known state through gated frames.
+
+### 5. Cancel an alert when the person gets up
+
+The tier already keys off escalation rather than the score (SS53), but nothing uses the
+strongest evidence available: the pipeline tracks people across frames, so it knows whether the
+person who triggered an alert is upright again thirty seconds later. A human judges a fall that
+way. This would cut false alarms without touching the model, and it reads honestly in the UI --
+"they got up" is a fact, not a confidence.
+
+### 6. Measure on the production server itself
+
+Not an improvement, a prerequisite for trusting any of the CPU numbers. 7.4 fps was measured in
+a four-core container on a fast desktop chip; the server is a QEMU VM with slower cores.
+Between 6 and 8 fps, URFD recall is 13/60 against 32/60 -- so if it lands at 6 there, the input
+size has to come down another step and everything in SS62's table has to be re-read at the rate
+it actually achieves.
+
+### 7. The unglamorous deployment list
+
+- **The admin password is still `admin123`** on a system that will be reachable from a phone.
+- LINE needs a channel secret, `PUBLIC_BASE_URL` and a tunnel before it can notify anyone.
+- A short deployment note for the server: use `docker-compose.yml` alone, *not* the GPU
+  overlay, and check the loop's reported frame rate on the first day.
+- Alone-detection still runs a second YOLO model and holds a second worker slot per camera for
+  a question the fall loop already answers (`fall_state.seen_count`). Removing it frees both.
+- RTSP recovery has never been tested: if the camera drops, does the loop reconnect or does it
+  sit there marked active? The same failure the worker-restart fix addressed (SS: commit
+  `b5c683d`) could exist for a dropped stream.
