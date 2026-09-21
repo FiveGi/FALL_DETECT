@@ -51,6 +51,11 @@ const send = (ws, method, params = {}) => new Promise(res => {
 });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const ev = async (ws, expr) => JSON.parse((await send(ws, 'Runtime.evaluate', { expression: expr, returnByValue: true })).result.value);
+// For expressions that have to wait for the page -- opening a dialog, letting a v-if render --
+// so the check sees the same DOM a person would rather than the one that existed 0ms after a
+// click. Returns the resolved value directly; `ev` above would JSON.parse a Promise into {}.
+const evAsync = async (ws, expr) => (await send(ws, 'Runtime.evaluate',
+  { expression: expr, returnByValue: true, awaitPromise: true })).result.value;
 
 const failures = [];
 
@@ -175,6 +180,44 @@ async function main() {
   console.log(`${readable ? 'PASS' : 'FAIL'}  button text is readable                  ` +
     (readable ? `${PAGES.length} pages` : unreadable.join('; ')));
   if (!readable) failures.push('button contrast');
+
+  // The test-clip dropdown, opened the way a person opens it. It is the first thing anyone
+  // trying the system without a camera touches, and two things about it were wrong: the clips
+  // were listed 1, 10, 11 ... 17, 2, 3, and each option showed nothing but a number. `17.mp4`
+  // has no fall in it, so someone picking it sees no alert and concludes the detector is
+  // broken -- which is exactly the conclusion this project drew about its own clip for days.
+  await send(ws, 'Page.navigate', { url: APP + '/camera' });
+  await sleep(2500);
+  const dropdown = await evAsync(ws, `(async () => {
+    // The add-camera form is a card on the page, not behind a button; the only thing that
+    // has to be clicked is the "test clip" source radio, which is what reveals the dropdown.
+    const radio = [...document.querySelectorAll('input[type=radio]')]
+      .find(r => (r.closest('label') || {}).textContent?.includes('ไฟล์วิดีโอทดสอบ'));
+    if (!radio) return { error: 'no test-clip source option on the add-camera form' };
+    radio.click();
+    await new Promise(r => setTimeout(r, 1200));
+    const select = [...document.querySelectorAll('select')]
+      .find(s => [...s.options].some(o => o.textContent.includes('.mp4')));
+    if (!select) return { error: 'no test-clip dropdown' };
+    const opts = [...select.options].map(o => o.textContent.trim())
+      .filter(t => t.includes('.mp4'));
+    return { count: opts.length, first: opts[0] || '', second: opts[1] || '',
+             last: opts[opts.length - 1] || '' };
+  })()`);
+  let clipsOk = !dropdown.error && dropdown.count > 0;
+  let clipDetail = dropdown.error || `${dropdown.count} clips`;
+  if (clipsOk) {
+    // 2.mp4 second, not 10.mp4: the list is in human order.
+    if (!/^2\.mp4/.test(dropdown.second)) {
+      clipsOk = false; clipDetail = `sorted wrong: second option is "${dropdown.second}"`;
+    } else if (!dropdown.last.includes('—')) {
+      clipsOk = false; clipDetail = `no description shown: "${dropdown.last}"`;
+    } else {
+      clipDetail = `${dropdown.count} clips, described, in order`;
+    }
+  }
+  console.log(`${clipsOk ? 'PASS' : 'FAIL'}  test-clip dropdown                      ${clipDetail}`);
+  if (!clipsOk) failures.push('test-clip dropdown');
 
   // Every page at phone width, asserting nothing hangs off the right edge. A caregiver is
   // more likely to open this on a phone than anywhere else, and the failure is invisible from

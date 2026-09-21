@@ -23,6 +23,13 @@ import os
 import re
 import sys
 
+# The alert wording this checks is Thai, and it gets printed. A Windows console defaults to the
+# system codepage -- cp874 here -- which cannot encode the emoji in the escalated message, so
+# the script died on its own output with a UnicodeEncodeError before reporting anything. Inside
+# the container stdout is already UTF-8 and this is a no-op.
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 JS = os.path.join(ROOT, 'frontend', 'src', 'utils', 'detectionType.js')
 

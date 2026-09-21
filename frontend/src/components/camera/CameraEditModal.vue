@@ -68,7 +68,7 @@
             <select id="edit-camera-test-video" v-model="camera.url" class="form-input">
               <option value="" disabled>เลือกไฟล์วิดีโอ</option>
               <option v-for="v in testVideos" :key="v.filename" :value="v.url">
-                {{ v.filename }}
+                {{ testVideoLabel(v) }}
               </option>
             </select>
             <small class="form-help" v-if="testVideos.length === 0">
@@ -159,6 +159,7 @@
 import { ref, watch, onMounted } from 'vue'
 import cameraService from '@/services/cameraService'
 import { DETECTION_TYPE_OPTIONS, DETECTION_TYPE_FORM_HELP } from '@/utils/detectionType'
+import { testVideoLabel } from '@/utils/testVideos'
 
 const props = defineProps({
   show: { type: Boolean, default: false },

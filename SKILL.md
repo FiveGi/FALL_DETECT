@@ -3168,19 +3168,19 @@ Measured while one camera ran at the pinned 15 fps: **GPU utilisation 20-35%, 3.
 The machine is a quarter busy. That matters for the first item below, and it means multi-camera
 capacity -- never measured -- is probably three or four.
 
-1. **The frame-rate/model question.** On real elderly-fall footage the deployed configuration
-   catches 3/5 and the previous 30-frame one at 25 fps catches 4/5, and the loop reaches 23.9
-   fps. Settle it by evaluating the 30-frame model at ~24 fps on URFD and GMDCSA24 val, choosing
-   on the even-numbered URFD half and confirming on the odd (SS51), not by reading the five
-   real clips and picking.
+1. ~~**The frame-rate/model question.**~~ **Settled in SS60: do not switch.** The 30-frame
+   model at 24 fps is behind the deployed configuration on URFD falls, URFD clean, and both
+   halves of the corrected split. The real-footage figures quoted here were also wrong --
+   `Test/17` has no fall in it, so the surface is four clips and the scores are 3/4 and 4/4.
 1b. **The limit on camera count is CPU, not the GPU.** One camera at 15 fps burns ~980% CPU --
    ten of the twelve cores the worker is allowed -- while the GPU sits at 25% and 3.5 GB of 16.
    `OMP_NUM_THREADS=1` and torch are already single-threaded; **OpenCV is running 12 threads**,
    decoding and resizing 1080p, and that is the whole of it. `cv2.setNumThreads(2..4)` per
    camera would trade a little latency for room to run several. Docker sees 15.5 GB of the
    host's 32 (WSL2's default half), but memory is not the constraint -- the worker uses 1.7 GB.
-2. **`Test/10` and `Test/11` have never been watched.** Zero alerts in every configuration;
-   correct silence or a shared miss is unknown. `Test/13` and `Test/17` are missed by all.
+2. ~~**`Test/10` and `Test/11` have never been watched.**~~ **Watched in SS60**: both
+   contain a real fall (a toddler down a staircase, a child off a bunk bed) and both are
+   missed, but both are out of domain. `Test/13` is the one real fall still missed.
 3. **LINE is off** pending a channel secret, `PUBLIC_BASE_URL`, a tunnel and an admin password
    change. The settings page now reports which pieces are missing.
 4. **Alone-detection runs a second YOLO model** to answer "is one person present", while the
@@ -3193,3 +3193,161 @@ capacity -- never measured -- is probably three or four.
 **When measuring live, two things first**: drop `LOGGING_INTERVAL`, because the rate prints once
 a minute and every reading otherwise costs one; and stop every task dispatched earlier, because
 duplicate loops on one camera halve the rate silently and cost three wrong diagnoses in SS58.
+
+## 60. The comparison against the original, and four things it showed were wrong
+
+The task was to extend `docs/original_vs_deployed.md` — which compared the first commit's
+detector against the deployed one on URFD and GMDCSA24 — to cover the 30-frame configuration at
+24 fps, and so settle SS59's first open question. It settles it. It also invalidated four
+things this project had been reporting, two of them mine from this same session, and those
+matter more than the answer.
+
+### `Test/17.mp4` contains no fall
+
+It sat in the "real elderly falls" group as clip five of five for days, described as a fall
+every configuration missed. It is a crowd of about twenty people doing an outdoor exercise
+routine in a courtyard, filmed handheld from across the yard. Nobody falls in it at any point.
+
+Consequences, in order of how much they hurt:
+
+- **The real-footage surface is four clips, not five.** The deployed configuration scores 3/4,
+  not 3/5, and the 30-frame one at 24 or 25 fps scores 4/4.
+- **SS57's "both 30-frame configurations reach 4/5 when fed more frames" was wrong.** The
+  original at 30 fps got its fifth by alerting on `Test/17` at 0.69 — a false alarm on a crowd
+  doing squats, counted as a success.
+- **`Test/17` is a good negative and is now scored as one.** Twenty people repeatedly dropping
+  into deep squats at distance is exactly the motion that invites a false alarm, and every
+  current configuration stays silent through it (deployed peaks at 0.38, the original at 0.68).
+
+Two compilation clips were also watched for the first time, closing SS59's question 3.
+`Test/10` is a toddler falling down a staircase at ~3 s; `Test/11` is a child falling off a
+bunk bed at ~11 s in night vision. Both contain a real fall and both are missed. Both are phone
+re-uploads with the subject tiny in frame, heavy letterboxing, sticker overlays and several
+seconds of end card — out of the domain this system is for, rather than evidence about it.
+`Test/README.md` records all of this so nobody investigates them a fourth time.
+
+Every verdict was read twice: contact sheets looked at directly, and Gemini on the intact clips
+(`scratchpad/gemini_verify_test_clips.py`). They agreed on all seven, including `Test/17`.
+Gemini's free tier is 20 requests a day and that ran out afterwards, which is worth knowing
+before planning a verification round.
+
+### URFD's odd/even split-half was comparing two different tasks
+
+SS51 introduced choosing an operating point on even-numbered URFD clips and confirming on
+odd-numbered ones, so reading URFD would not burn it as an independent measure. The discipline
+is right. The split was not.
+
+The deployed detector catches **28/30 even-numbered URFD falls and 13/30 odd-numbered ones**.
+That is not chance, and the clips explain it at a glance: **URFD alternates its two fall types
+by sequence number.** Odd sequences are falls from standing, even ones are falls out of a
+chair. Every choice made under SS51 was made on chair falls and confirmed on standing falls.
+
+The split now takes sequences two at a time (`((index - 1) // 2) % 2`), putting both fall types
+and both cameras in both halves, and the comparison reports URFD by fall type as well, because
+the total hides which one a change moved. Subject size was the first explanation offered and it
+was wrong — the missed clips have a *larger* person in frame than the caught ones.
+
+### A quarter of the original's URFD misses are clips it could never have scored
+
+The classifier cannot emit a number until its window holds a full set of frames with a person
+in them. Seven URFD fall clips score exactly **0.00** under the deployed configuration, all the
+same thing: the ceiling camera (`cam1`) on standing falls, where the room is empty for two
+thirds of the clip and the person walks into view as they land. 43 sampled frames at 15 fps, a
+person in 14 of them, a window that needs 15; the clip ends first.
+
+| column | window covers | URFD falls it cannot score | recall over the rest |
+|---|---|---|---|
+| original, 30 frames @15fps | 2.00 s | **24/60** | 25/36 (69%) |
+| original, 30 frames @30fps | 1.00 s | 7/60 | 49/53 (92%) |
+| deployed, 15 frames @15fps | 1.00 s | 7/60 | 41/53 (77%) |
+| 30-frame @24fps | 1.25 s | 9/60 | 37/51 (73%) |
+
+So the original's 27/60 at 15 fps is not "it got 33 wrong" — it is "it could not score 24 of
+them at all". `scratchpad/urfd_window_fill.py` runs the pose pass over every frame once and
+answers this for any (window, rate) by arithmetic, without another GPU pass.
+
+### The original, fed every frame, is better than anything deployed since — and cannot be fed every frame
+
+This is the uncomfortable one. At 30 fps the original catches **54/60 URFD falls (90%)** against
+the deployed detector's 41/60 (68%).
+
+Two explanations were tried and both are wrong:
+
+- **"It is the collapse rule."** The original reports a fall when the classifier was confident
+  and person detection then drops to zero, and MediaPipe loses people once they are prone,
+  which describes the end of nearly every URFD fall clip. Measured by disabling the rule and
+  re-running (`scratchpad/original/original_no_collapse.py`): URFD recall is **54/60 either
+  way**. The rule contributed one extra false alarm and nothing else. The recall is the
+  classifier.
+- **"It is alerting more freely."** At threshold 0.50 the deployed model has a *better* clean
+  rate than the original (36/56 against 33/56) and still catches only 43/60.
+
+What settles it is speed. Timed on the same 1080p frames on an idle machine
+(`scratchpad/bench_original_vs_deployed_speed.py`): the original needs **70.3 ms/frame
+(14.2 fps)**, the deployed detector **54.4 ms/frame (18.4 fps)** — MediaPipe on the CPU is
+slower than YOLO26s-pose on the GPU, before decoding or anything else in the loop. 30 fps was
+never available to it, and at the rate it can sustain its own score is **27/60 (45%)**.
+
+The honest summary of the rewrite is therefore **the system now works at the speed it really
+runs**, worth +14 falls and +6 clean clips at 15 fps — not that the model learned more. The
+90% figure is what a faster machine would be worth, and it is the strongest argument yet for
+spending effort on frame rate rather than on the classifier.
+
+### The answer to SS59's first question: do not switch
+
+The 30-frame model was evaluated at 24 fps over all 220 lab clips, and over the `Test/` clips
+at 24 and 25 fps. Against the deployed 15-frame configuration at 15 fps:
+
+- **URFD falls 39/60 against 41/60**, URFD clean **30/40 against 34/40**.
+- **On the corrected split-half it is behind or level on both halves** — falls 22/32 against
+  22/32 on half A and 19/28 against 17/28 on half B; clean 18/20 against 16/20 and 16/20
+  against 14/20. A configuration that loses on the confirming half has not earned a switch.
+- It has **more clips it cannot score at all** (9 against 7).
+- GMDCSA24 val goes the other way (11/16 against 7/16), but that set has been read to choose
+  settings many times and is not independent any more.
+
+Its one win is `Test/13`, the single real fall the deployed configuration misses — and that
+clip is a poor witness. It is a **moving, zooming camera**, measured at 4.8 px/frame of
+background optical flow against 0.03 for the fixed-camera clips in the same set
+(`scratchpad/test_camera_motion.py`); the subject is a young adult, not an elderly person; and
+he ends on hands and knees rather than on the ground. Nothing in this pipeline is built for a
+moving camera — every training clip is a fixed one and the features are torso-normalised.
+Seed variance alone moves one to three clips per surface, which is what caused the SS47
+rollback.
+
+There is also a structural reason 24 fps is the wrong target. `training/dataset.py` samples
+with `raw[::TEMPORAL_STRIDE]` and the stride is an integer, so the only rates a model can be
+*trained* for are 30, 15 and 10 fps. 24 fps is not expressible, and the 30-frame model run at
+24 fps is a model trained for 1.0 s being asked to judge 1.25 s. Reaching it properly would
+mean teaching the training sampler the runtime's integer-slot arithmetic.
+
+**Decision: the deployed configuration stays.** `Test/13` becomes a named open item, not an
+argument for a rollback.
+
+### A lead worth following: 18 fps looks free
+
+Across every per-clip sweep in `scratchpad/perclip/`, the same model scores better fed 18 fps
+than 15 — the 15-frame model at threshold 0.50 reads 45/60 at 18 fps against 43/60 at 15, and
+with 2-of-3 smoothing 39/60 against 33/60, with clean rates equal or better. The deployed
+detector benchmarks at 18.4 fps of detector time, so the rate is plausibly available. This has
+not been checked at the deployed threshold, on three seeds, or against the coherence invariant
+(`TEMPORAL_STRIDE * V3_TARGET_FPS == 30` fails at 18), so it is recorded as a lead, not a
+change.
+
+### Two smaller things fixed on the way
+
+`tools/check_alert_rules.py` **died on its own output on a Windows console.** The alert wording
+it prints is Thai with an emoji, the console here is cp874, and the script raised
+`UnicodeEncodeError` before reporting a single check — so anyone cloning the repository on
+Windows saw a traceback instead of 16 passes. It now reconfigures stdout to UTF-8, a no-op
+inside the container.
+
+**The test-clip dropdown listed clips as 1, 10, 11 … 17, 2, 3** and showed nothing but the
+number. Someone trying the system by picking `17.mp4` would watch a crowd exercise for thirty
+seconds, see no alert and conclude the detector is broken — the exact mistake this project made
+about its own clip. `/api/cameras/test-videos` now sorts naturally and carries an optional
+one-line description per clip from `Test/clips.json`; the label is built in one place
+(`frontend/src/utils/testVideos.js`) and used by both the add-camera form and the edit modal,
+which had duplicated the markup. `tools/smoke_test_frontend.mjs` grew a check that opens the
+dropdown in a real browser and asserts both the order and the descriptions; it was confirmed to
+fail when the sort key is removed and when `Test/clips.json` is taken away, then to pass again.

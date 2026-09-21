@@ -1,4 +1,5 @@
 import cv2
+import json
 import os
 from flask import Blueprint, request, jsonify, current_app
 from app import db
@@ -124,6 +125,31 @@ def is_admin_or_owner(camera_id, user_id):
     camera = Camera.query.get(camera_id)
     return camera and camera.user_id == user_id
 
+def _natural_key(name):
+    """Sort 2.mp4 before 10.mp4. Plain string sorting put the clip list in the order
+    1, 10, 11, ... 17, 2, 3, which reads as a bug to anyone opening the dropdown."""
+    return [int(part) if part.isdigit() else part.lower()
+            for part in re.split(r'(\d+)', name)]
+
+
+def _clip_descriptions():
+    """One-line description per clip, from Test/clips.json if the folder ships one.
+
+    Without it the dropdown is a list of bare numbers, and picking the wrong one looks
+    like the detector is broken: `17.mp4` contains no fall at all (a crowd doing an
+    outdoor exercise routine), so the correct result on it is silence. That cost this
+    project several days of treating a correct result as a defect, and someone who has
+    just cloned the repository has no way of knowing. The file is optional and the
+    listing works exactly as before without it.
+    """
+    try:
+        with open(os.path.join(LOCAL_VIDEOS_DIR, 'clips.json'), encoding='utf-8') as fh:
+            data = json.load(fh)
+        return data if isinstance(data, dict) else {}
+    except (FileNotFoundError, ValueError, OSError):
+        return {}
+
+
 @bp.route('/test-videos', methods=['GET'])
 @jwt_required()
 def list_test_videos():
@@ -131,14 +157,17 @@ def list_test_videos():
     as a camera source instead of requiring users to type a file path."""
     try:
         files = sorted(
-            f for f in os.listdir(LOCAL_VIDEOS_DIR)
-            if f.lower().endswith(VALID_VIDEO_EXTENSIONS)
+            (f for f in os.listdir(LOCAL_VIDEOS_DIR)
+             if f.lower().endswith(VALID_VIDEO_EXTENSIONS)),
+            key=_natural_key,
         )
     except FileNotFoundError:
         files = []
 
+    descriptions = _clip_descriptions()
     return jsonify([
-        {'filename': f, 'url': os.path.join(LOCAL_VIDEOS_DIR, f)}
+        {'filename': f, 'url': os.path.join(LOCAL_VIDEOS_DIR, f),
+         'description': descriptions.get(f, '')}
         for f in files
     ])
 

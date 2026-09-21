@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth'
 import adminService from '@/services/adminService'
 import cameraService from '@/services/cameraService'
 import { getDetectionTypeText, DETECTION_TYPE_OPTIONS, DETECTION_TYPE_FORM_HELP } from '@/utils/detectionType'
+import { testVideoLabel } from '@/utils/testVideos'
 import CameraEditModal from '@/components/camera/CameraEditModal.vue'
 import IconCamera from '@/components/icons/IconCamera.vue'
 import SearchFilter from '@/components/common/SearchFilter.vue'
@@ -373,7 +374,7 @@ function clearSearch() {
                 <select id="camera-test-video" v-model="newCamera.url" class="form-input">
                   <option value="" disabled>เลือกไฟล์วิดีโอ</option>
                   <option v-for="v in testVideos" :key="v.filename" :value="v.url">
-                    {{ v.filename }}
+                    {{ testVideoLabel(v) }}
                   </option>
                 </select>
                 <small class="form-help" v-if="testVideos.length === 0">

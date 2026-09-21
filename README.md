@@ -59,9 +59,12 @@ use Firebase; the dashboard runs without them.
 `Test/` has 17 real-world video clips (see [Test/README.md](Test/README.md)) that the backend can
 run detection on exactly like a live camera. In the dashboard's "เพิ่มกล้องใหม่"/"แก้ไขกล้อง" form,
 choose "ไฟล์วิดีโอทดสอบ" as the video source and pick one from the dropdown -- no need to type a
-path or own a camera to see fall detection working end to end. `Test/13.mp4`-`Test/17.mp4` are real
-elderly-fall footage; `1.mp4`-`12.mp4` are multi-scene compilation clips (harder, mixed camera
-angles -- expect the model to catch some falls in them but not every single one).
+path or own a camera to see fall detection working end to end. `Test/13.mp4`-`Test/16.mp4` are real
+fall footage, one fall each. `Test/17.mp4` has **no fall in it** -- it is a crowd doing an outdoor
+exercise routine, and it is in here on purpose, because staying silent through a lot of
+squatting and bending is as much a result as catching a fall. `1.mp4`-`12.mp4` are multi-scene
+compilation clips (harder, mixed camera angles -- expect the model to catch some falls in them
+but not every single one).
 
 ## Checking it works
 
@@ -99,6 +102,12 @@ On **URFD**, a public dataset that was never used to train or tune anything here
 
 Across everything never used in training — URFD plus the held-out GMDCSA24 split — that is
 **56 of 75 falls caught**, with 41 of 56 normal clips silent.
+
+Seven of those 60 URFD clips are ones no classifier here could have scored: they are the
+dataset's ceiling camera on its standing falls, where the room is empty for two thirds of the
+clip and the person walks into view as they land, so the clip ends before the 15-frame window
+has 15 frames with a person in them. Over the 53 clips that can be scored, recall is
+**41 of 53 (77%)**. Both figures are honest; the table above is the conservative one.
 
 Two numbers you will see quoted elsewhere for systems like this, and why they are not these:
 
