@@ -21,12 +21,29 @@ services:
       # The base file pins this empty to force CPU; clear it so the container sees the GPU.
       - CUDA_VISIBLE_DEVICES=0
       - V3_DEVICE=cuda
-      # Classify at a fixed 15 fps rather than however fast this machine happens to be.
-      # The camera loop has no stride, so without this the sampling rate is whatever the
-      # hardware gives (16.8-20 fps here) and the deployed accuracy moves with it: the same
-      # model catches 43/60 URFD falls at 30 fps and 17/60 at 10 fps. 15 fps is what the
-      # model is trained for and is sustainable with headroom for several cameras.
-      - V3_TARGET_FPS=15
+      # Classify at a fixed rate rather than however fast this machine happens to be. The
+      # camera loop has no stride, so without this the sampling rate is whatever the hardware
+      # gives and the deployed accuracy moves with it: the same model catches 43/60 URFD falls
+      # at 30 fps and 17/60 at 10 fps.
+      #
+      # 20, not the 15 this was pinned to until SS61. Feeding the deployed model more frames
+      # than the 15 fps it was trained for measurably helps, and the gain is on exactly the
+      # falls that matter: URFD 41/60 -> 45/60, with the held-out false-alarm rate unchanged
+      # (41/56 either way), and all of it on falls from standing (13/30 -> 17/30) rather than
+      # the easy falls out of a chair. It holds on the half of URFD reserved for confirming
+      # (19/28 -> 21/28, clean unchanged), so it is not a choice made by reading the test set.
+      # A window also fills in 0.75s instead of 1.00s, so alerts arrive sooner.
+      #
+      # Not higher: accuracy plateaus here (18, 20 and 23 fps are within one clip of each
+      # other on the URFD clips all of them can score), the extra falls at 23 fps are URFD's
+      # very short clips finally filling a window rather than anything a real camera would
+      # see, and this machine's uncapped ceiling is 23.4 fps -- pinning at that would make the
+      # rate depend on machine load again, which is the problem this setting exists to solve.
+      #
+      # The cost is CPU per camera, which is what limits how many cameras run at once. The
+      # ceiling is CPU-side frame resizing, not the GPU: 1080p at one thread is 39.1 ms/frame,
+      # at six threads 33.8 ms, and dropping imgsz to 736 or using FP16 changes neither.
+      - V3_TARGET_FPS=20
     deploy:
       resources:
         limits:

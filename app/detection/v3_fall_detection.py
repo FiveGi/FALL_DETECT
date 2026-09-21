@@ -166,6 +166,29 @@ def _autodetect_device():
         return "cpu"
 
 
+
+def _ort_options():
+    """onnxruntime SessionOptions sized to this container's CPU quota, or None outside the app."""
+    try:
+        from app.services.cpu_tuning import ort_session_options
+        return ort_session_options()
+    except Exception:
+        return None
+
+
+def _tune_threads():
+    """-> the CPU thread count actually set, or whatever torch is already using."""
+    try:
+        from app.services.cpu_tuning import tune_threads
+        return tune_threads()
+    except Exception:
+        try:
+            import torch
+            return torch.get_num_threads()
+        except Exception:
+            return 0
+
+
 class V3PoseFallDetector:
     """Loads the pose extractor + ONNX classifier. One instance shared across all cameras.
 
@@ -189,7 +212,12 @@ class V3PoseFallDetector:
         training/eval_v3_frame_drop.py. Auto-detect rather than defaulting to CPU so a host
         that has a GPU actually uses it; V3_DEVICE overrides when that is not wanted."""
         onnx_path = os.path.join(model_dir, "fall_classifier_v3.onnx")
-        yolopose_path = os.path.join(model_dir, "yolo26s-pose.pt")
+        # V3_POSE_MODEL names a different pose checkpoint in the same directory. It exists for
+        # the CPU-only production server, where the pose pass is the entire frame budget:
+        # yolo26n-pose runs in about half the time of yolo26s-pose at every input size, so the
+        # real choice there is not "which size" but "which model at which size" -- n at 640
+        # costs the same as s at 384. Accuracy has to decide that, not speed alone.
+        yolopose_path = os.path.join(model_dir, os.environ.get("V3_POSE_MODEL", "yolo26s-pose.pt"))
 
         if device is None:
             device = os.environ.get("V3_DEVICE") or _autodetect_device()
@@ -200,7 +228,12 @@ class V3PoseFallDetector:
             # The classifier is tiny, so this is a nice-to-have; the CPU-only onnxruntime
             # build has no CUDA provider and asking for it anyway is a hard error.
             providers.insert(0, "CUDAExecutionProvider")
-        self.session = ort.InferenceSession(onnx_path, providers=providers)
+        # Sized to the container's CPU quota, not the host's core count -- see
+        # app/services/cpu_tuning. Left alone, onnxruntime opens twenty threads inside a
+        # four-CPU container for a 560 KB model and takes 1.59 ms per window instead of 0.19.
+        sess_opts = _ort_options()
+        self.session = ort.InferenceSession(onnx_path, sess_options=sess_opts,
+                                            providers=providers)
 
         # V3_ENSEMBLE: comma-separated extra classifier files (paths, or bare names inside
         # model_dir) whose sigmoid outputs are averaged with the main one. Training the same
@@ -213,11 +246,23 @@ class V3PoseFallDetector:
         self.extra_sessions = []
         for name in filter(None, (n.strip() for n in os.environ.get("V3_ENSEMBLE", "").split(","))):
             path = name if os.path.isabs(name) or os.sep in name else os.path.join(model_dir, name)
-            self.extra_sessions.append(ort.InferenceSession(path, providers=providers))
+            self.extra_sessions.append(ort.InferenceSession(path, sess_options=sess_opts,
+                                                            providers=providers))
 
         self.pose_model = YOLO(yolopose_path)
+        # After YOLO(), never before: ultralytics sets torch's thread count itself while
+        # building a model, from the host's core count, which inside a container is a number
+        # of threads that cannot all run. Measured at 100 ms per detection against 68 ms with
+        # the quota, on the four-CPU configuration the production server has, and it took the
+        # live camera loop there from 3.4 to 6.9 fps.
+        #
+        # Only on CPU. On a GPU machine torch's threads do preprocessing rather than the model
+        # itself, the tuning there was measured with the thread count as it stood, and there is
+        # nothing to win by changing a configuration whose numbers are already published.
+        threads = _tune_threads() if device == "cpu" else 0
         members = 1 + len(self.extra_sessions)
         print(f"[V3] pose backend on {device}"
+              + (f", {threads} CPU thread(s)" if threads else "")
               + (f", classifier ensemble of {members}" if members > 1 else ""))
 
     def extract_keypoints(self, frame_bgr):
