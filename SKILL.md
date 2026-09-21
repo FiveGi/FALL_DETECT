@@ -3282,11 +3282,22 @@ Two explanations were tried and both are wrong:
 - **"It is alerting more freely."** At threshold 0.50 the deployed model has a *better* clean
   rate than the original (36/56 against 33/56) and still catches only 43/60.
 
-What settles it is speed. Timed on the same 1080p frames on an idle machine
-(`scratchpad/bench_original_vs_deployed_speed.py`): the original needs **70.3 ms/frame
-(14.2 fps)**, the deployed detector **54.4 ms/frame (18.4 fps)** — MediaPipe on the CPU is
-slower than YOLO26s-pose on the GPU, before decoding or anything else in the loop. 30 fps was
-never available to it, and at the rate it can sustain its own score is **27/60 (45%)**.
+What settles it is speed — with one correction to how it was first measured here. In the same
+host process on the same 1080p frames (`scratchpad/bench_original_vs_deployed_speed.py`) the
+original needs **70.3 ms/frame** against the deployed pipeline's **54.4 ms**: MediaPipe on the
+CPU is **1.3x slower** than YOLO26s-pose on the GPU. Those absolute figures were then written
+into the docs as deployment rates, and they are not. **The same deployed code inside its own
+container takes 26.3 ms/frame (38 fps)**, and the live camera loop — decoding, clip buffer,
+database and all — sustains **23.4 fps** uncapped, measured by running a 1080p camera with
+`V3_TARGET_FPS=0` and `LOGGING_INTERVAL=10` and reading the loop's own log. The host Python is
+about half the speed of the container for identical work; only the ratio between the two
+detectors transfers.
+
+The original cannot be benchmarked in that container at all: the image no longer ships a
+loadable MediaPipe (`mediapipe` imports, but `PoseLandmarker.create_from_options` fails on a
+missing shared library). Scaling the live rate by the measured ratio puts an equivalent
+MediaPipe loop near **18 fps** — an estimate, not a measurement, and still nowhere near 30. At
+the rate it could sustain, the original scores **27/60 (45%)**.
 
 The honest summary of the rewrite is therefore **the system now works at the speed it really
 runs**, worth +14 falls and +6 clean clips at 15 fps — not that the model learned more. The
