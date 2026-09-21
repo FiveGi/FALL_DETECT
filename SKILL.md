@@ -3461,3 +3461,37 @@ coherence check validates both.
 desktop chip. The production server is a QEMU virtual CPU with slower cores and will sit below
 it, and every figure in the table above moves with the rate. Measure on the server itself before
 quoting any of this as its accuracy.
+
+## 63. The rate governor was making the loop slower, not just slower to classify
+
+Pinning `V3_TARGET_FPS` was supposed to make the sampling rate a setting rather than an
+accident. It did -- and it also quietly burned about half the loop's budget, which only became
+visible once the CPU profile made the budget small enough to matter.
+
+The governor sat *after* the frame read: the loop decoded every frame the source offered and
+threw away the ones that were not due. With a 24 fps clip and an 8 fps target that is roughly
+twenty decodes for every frame classified, and the loop's own breakdown said so all along --
+`read 46% detect 45%`. The reads also competed with the detector for the same CPU quota, so
+detection itself ran at about half speed.
+
+Moving the wait to the top of the loop, before the read:
+
+| | before | after |
+|---|---|---|
+| CPU profile, target 8 fps | 6.4 fps, `read 46%`, BELOW TARGET | **7.4 fps**, `read 2%`, no warning |
+| GPU profile, target 20 fps | -- | **18.8 fps**, `detect 43%` |
+
+The ceiling on the CPU profile is 8.9 fps (pin it at 14 and that is what it reaches), so 8
+leaves margin. The redundant file-camera pacing at the end of the loop is now skipped when the
+governor is active, since it could only push the achieved rate further below the target.
+
+**What changed in behaviour:** the clip buffer now records at the detection rate instead of the
+camera's full rate, because frames that are not classified are no longer read at all. A camera
+opened with `CAP_PROP_BUFFERSIZE=1` still hands back its newest frame when the loop does read,
+so what is classified is current video. On a CPU host the trade is a slightly choppier evidence
+clip against **32/60 URFD falls instead of 13/60** -- the difference between the rate the loop
+reaches and the rate it was asked for, in this regime, is most of the accuracy.
+
+That steepness is worth stating on its own: at imgsz 320, URFD recall is 13/60 at 6 fps, 32/60
+at 8 fps and 34/60 at 9 fps. Restricted to the 28 clips every one of those rates can score at
+all, it is 46%, 75% and 71%. Two frames per second is the difference between working and not.

@@ -677,6 +677,23 @@ def process_v2_fall_detection(camera_id, config):
             t_read = t_clip = t_detect = t_rest = 0.0
 
             while camera.is_active:
+                # Wait for the next slot BEFORE reading rather than reading and discarding.
+                # The governor used to sit after the read, so between two classified frames
+                # the loop spun decoding frames at full speed and threw them all away: with a
+                # 24 fps source and an 8 fps target that was about twenty decodes per frame
+                # used, and the loop's own breakdown reported `read 46%` while detection got
+                # less than half the budget. On four CPU cores it cost 8.1 fps of achievable
+                # rate down to 6.4 -- and on URFD that is 32/60 falls against 13/60.
+                #
+                # A camera opened with CAP_PROP_BUFFERSIZE=1 hands back its newest frame, so
+                # waiting first still classifies current video; what changes is that the clip
+                # buffer now records at the detection rate instead of the camera's full rate.
+                # On a CPU host that is the right trade -- a slightly choppier evidence clip
+                # against roughly two and a half times the falls caught.
+                if min_period:
+                    _wait = next_due - time.monotonic()
+                    if _wait > 0:
+                        time.sleep(_wait)
                 frame_started = time.monotonic()
                 ret, frame = cap.read()
                 t_read += time.monotonic() - frame_started
@@ -700,12 +717,10 @@ def process_v2_fall_detection(camera_id, config):
                 clip_buffer.add_frame(camera_id, frame)
                 t_clip += time.monotonic() - _t
 
-                now_mono = time.monotonic()
-                if min_period and now_mono < next_due:
-                    continue
                 # Schedule from now rather than adding a period to the previous slot, so a
                 # stall does not leave a backlog of "due" frames to burn through at full rate.
-                next_due = now_mono + min_period
+                # The wait that enforces this happens at the top of the loop, before the read.
+                next_due = time.monotonic() + min_period
                 processed += 1
 
                 # Perform V3 pose-based fall detection -- one result per tracked person
@@ -797,7 +812,11 @@ def process_v2_fall_detection(camera_id, config):
                 # them -- saw a camera running at 60% of its nominal rate. Sleep only what is
                 # left of the frame period.
                 t_rest += time.monotonic() - _rest_from
-                if is_video_file and fps > 0:
+                # Only when nothing else is pacing the loop. With V3_TARGET_FPS set, the wait
+                # at the top of the loop already holds the rate, and sleeping again here can
+                # only push the achieved rate below the target -- it cost 0.6 of the 8 fps the
+                # CPU profile asks for.
+                if is_video_file and fps > 0 and not min_period:
                     time.sleep(max(0.0, (1.0 / fps) - (time.monotonic() - frame_started)))
             
             cap.release()
