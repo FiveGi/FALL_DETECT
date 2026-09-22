@@ -103,18 +103,24 @@ rate each deployment profile actually runs at:
 
 | | with a GPU (20 fps) | four CPU cores (8 fps) |
 |---|---|---|
-| falls caught | 45 of 60 (75%) | 32 of 60 (53%) |
-| normal-activity clips with no false alarm | 33 of 40 (83%) | 34 of 40 (85%) |
+| falls caught | **56 of 60 (93%)** | **45 of 60 (75%)** |
+| normal-activity clips with no false alarm | 33 of 40 (83%) | 33 of 40 (83%) |
 
 The gap between the columns is frame rate, not a different model: the same weights run in both.
 A CPU machine cannot feed the detector as many frames per second, and the classifier's window
 is a fixed number of frames, so it sees a slower, coarser version of the same fall.
 
-Seven of those 60 URFD clips are ones no classifier here could have scored: they are the
-dataset's ceiling camera on its standing falls, where the room is empty for two thirds of the
-clip and the person walks into view as they land, so the clip ends before the 15-frame window
-has 15 frames with a person in them. Over the 53 clips that can be scored, GPU recall is
-**44 of 53 (83%)**. Both figures are honest; the table above is the conservative one.
+Those numbers used to be 45 and 32. The difference is that the classifier will now score a
+**partially filled window**, padded at the front with the first frame it saw, instead of
+refusing to produce any number until it has a full window of a continuously visible person. At
+8 fps that wait is nearly two seconds, and sixteen of URFD's sixty fall clips ended before it
+was over.
+
+It also changes what the detector can notice: with a padded window it can alert on somebody who
+is **already on the floor when the camera first sees them**, not only on the moment of the
+fall. For this job that is the right behaviour — a person who fell before the camera could see
+them still needs help — and it is why it costs a false alarm or two on people who lie down
+deliberately.
 
 Two numbers you will see quoted elsewhere for systems like this, and why they are not these:
 

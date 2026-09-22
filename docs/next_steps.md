@@ -58,7 +58,18 @@ speed-up available on CPU.
 
 ONNX was also tried and is 2.3x *slower* on CPU. Both routes are closed.
 
-## 3. Score a partially filled window instead of waiting for a full one
+## 3. ~~Score a partially filled window~~ — done, and it was the biggest single gain yet
+**Done 2026-09-22 (SS70). CPU URFD 32/60 -> 45/60, GPU 45/60 -> 56/60.**
+
+`V3_PARTIAL_MIN=4`: once four real frames are in the buffer, the window is padded at the front
+with the earliest observed frame and scored. 4 is the peak of the curve (6 gives 38/60, 2 gives
+41/60 on the CPU profile). Held-out clean cost 3 clips on CPU and 1 on GPU, where URFD clean did
+not move at all. Confirmed on the reserved URFD half: CPU 16/28 -> 21/28, GPU 21/28 -> 26/28.
+
+The original description is kept below.
+
+<details><summary>the problem it solved</summary>
+
 **Gain: unlocks up to a quarter of falls the detector currently cannot score at all on CPU.
 Effort: half a day. Free in runtime cost.**
 
@@ -72,6 +83,8 @@ threshold. `scratchpad/urfd_window_fill.py` already measures how many clips each
 unlocks at each rate. **This is the best accuracy-per-hour item on the list for CPU** and it
 costs nothing at runtime, because on a camera that is already running the window is full
 anyway — it only changes the first seconds after a person appears.
+
+</details>
 
 ## 4. A motion gate
 **Gain: large on a quiet house; the only credible route to more than one camera on four cores.

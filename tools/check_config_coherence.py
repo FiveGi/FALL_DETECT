@@ -49,23 +49,30 @@ SOURCE_FPS = 30.0   # every training dataset here is 30fps footage
 # Add a row by measuring it -- scratchpad/rule_sweep_perclip.py over the 220 lab clips -- not
 # by editing the table to make a check pass.
 MEASURED = {
+    # (input size, window, frame rate, partial-window minimum) -> what it scored.
     # GPU profile: RTX 4070 Ti Super, one 1080p camera, uncapped ceiling 23.4 fps.
-    (960, 15, 15.0): 'GPU: URFD 41/60 falls, 34/40 clean; held-out clean 41/56',
-    (960, 15, 18.0): 'GPU: URFD 45/60 falls, 32/40 clean',
-    (960, 15, 20.0): 'GPU: URFD 45/60 falls, 33/40 clean; held-out clean 41/56 (deployed)',
-    (960, 15, 23.0): 'GPU: URFD 48/60 falls, 33/40 clean',
-    # CPU profile: four cores, no GPU, the production server's shape. The whole ladder was
-    # measured because on CPU the input size buys frame rate and frame rate buys recall.
-    (960, 15, 4.0): 'CPU 4 cores: URFD 5/60 falls, 48/79 GMDCSA falls -- the old settings',
-    (640, 15, 7.0): 'CPU 4 cores: URFD 25/60 falls, 66/79 GMDCSA falls',
-    (480, 15, 6.0): 'CPU 4 cores: URFD 13/60 falls, 68/79 GMDCSA falls',
-    (480, 15, 12.0): 'CPU: URFD 38/60 falls, 71/79 GMDCSA falls (not reachable on four cores)',
-    (384, 15, 6.0): 'CPU 4 cores: URFD 14/60 falls, 69/79 GMDCSA falls',
-    (384, 15, 17.0): 'CPU: URFD 39/60 falls, 69/79 GMDCSA falls (not reachable on four cores)',
-    (320, 15, 8.0): 'CPU 3.5 cores: URFD 32/60 falls, 34/40 clean, 64/79 GMDCSA falls (deployed)',
-    (320, 15, 9.0): 'CPU 4 cores: URFD 34/60 falls, 32/40 clean, 67/79 GMDCSA falls',
-    (256, 15, 10.0): 'CPU 4 cores: URFD 25/60 falls, 62/79 GMDCSA falls',
-    (192, 15, 14.0): 'CPU 4 cores: URFD 32/60 falls, 59/79 GMDCSA falls',
+    (960, 15, 15.0, 0): 'GPU: URFD 41/60 falls, 34/40 clean; held-out clean 41/56',
+    (960, 15, 18.0, 0): 'GPU: URFD 45/60 falls, 32/40 clean',
+    (960, 15, 20.0, 0): 'GPU: URFD 45/60 falls, 33/40 clean; held-out clean 41/56',
+    (960, 15, 23.0, 0): 'GPU: URFD 48/60 falls, 33/40 clean',
+    (960, 15, 20.0, 4): 'GPU: URFD 56/60 falls, 33/40 clean; held-out clean 40/56 (deployed)',
+    # CPU profile: four cores, no GPU, the production server's shape.
+    (960, 15, 4.0, 0): 'CPU 4 cores: URFD 5/60 falls, 48/79 GMDCSA falls -- the old settings',
+    (640, 15, 7.0, 0): 'CPU 4 cores: URFD 25/60 falls, 66/79 GMDCSA falls',
+    (480, 15, 6.0, 0): 'CPU 4 cores: URFD 13/60 falls, 68/79 GMDCSA falls',
+    (480, 15, 12.0, 0): 'CPU: URFD 38/60 falls, 71/79 GMDCSA falls (not reachable on four cores)',
+    (384, 15, 6.0, 0): 'CPU 4 cores: URFD 14/60 falls, 69/79 GMDCSA falls',
+    (384, 15, 17.0, 0): 'CPU: URFD 39/60 falls, 69/79 GMDCSA falls (not reachable on four cores)',
+    (320, 15, 6.0, 0): 'CPU 4 cores: URFD 13/60 falls -- below the cliff, do not deploy',
+    (320, 15, 8.0, 0): 'CPU 3.5 cores: URFD 32/60 falls, 34/40 clean, 64/79 GMDCSA falls',
+    (320, 15, 9.0, 0): 'CPU 4 cores: URFD 34/60 falls, 32/40 clean, 67/79 GMDCSA falls',
+    (256, 15, 10.0, 0): 'CPU 4 cores: URFD 25/60 falls, 62/79 GMDCSA falls',
+    (192, 15, 14.0, 0): 'CPU 4 cores: URFD 32/60 falls, 59/79 GMDCSA falls',
+    (320, 15, 8.0, 2): 'CPU 3.5 cores: URFD 41/60 falls, held-out clean 40/56',
+    (320, 15, 8.0, 3): 'CPU 3.5 cores: URFD 44/60 falls, held-out clean 40/56',
+    (320, 15, 8.0, 4): 'CPU 3.5 cores: URFD 45/60 falls, held-out clean 41/56 (deployed)',
+    (320, 15, 8.0, 6): 'CPU 3.5 cores: URFD 38/60 falls, held-out clean 42/56',
+    (320, 15, 8.0, 8): 'CPU 3.5 cores: URFD 31/60 falls, held-out clean 42/56',
 }
 
 # What one 1080p camera sustains, measured uncapped (V3_TARGET_FPS=0) by reading the camera
@@ -153,10 +160,10 @@ def main():
               '' if fps else f'V3_TARGET_FPS missing from the {name} compose file')
         if not fps:
             continue
-        measured = MEASURED.get((imgsz, v3.WINDOW_SIZE, fps))
+        measured = MEASURED.get((imgsz, v3.WINDOW_SIZE, fps, v3.PARTIAL_MIN))
         check(f'{name}: this exact configuration has been measured', measured is not None,
-              measured or f'imgsz {imgsz}, window {v3.WINDOW_SIZE}, {fps:.0f} fps is not in '
-              f'MEASURED -- run the sweep before deploying it')
+              measured or f'imgsz {imgsz}, window {v3.WINDOW_SIZE}, {fps:.0f} fps, partial '
+              f'from {v3.PARTIAL_MIN} is not in MEASURED -- run the sweep before deploying it')
         check(f'{name}: the rate is one the machine sustains', fps <= SUSTAINED_FPS[name],
               f'pinned at {fps:.0f} fps, measured ceiling {SUSTAINED_FPS[name]:.1f} fps '
               f'for one camera')

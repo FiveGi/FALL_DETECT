@@ -6,7 +6,8 @@ does not.
 
 The one thing to understand before anything else: **on a CPU host, speed is accuracy.** The
 classifier's window is a fixed number of frames, so the frame rate decides how much of a fall
-it sees. At input size 320, URFD recall is 13 of 60 falls at 6 fps, 32 at 8 fps and 34 at 9.
+it sees. At input size 320, URFD recall is 13 of 60 falls at 6 fps, 45 at 8 fps and 34 at 9 (the 8 fps
+figure includes partial-window scoring, which the others predate).
 Two frames per second is the difference between a system that works and one that does not, so
 every step below is really about frame rate.
 
@@ -20,7 +21,7 @@ docker compose up -d --build          # docker-compose.yml alone IS the CPU depl
 
 Do **not** add `-f docker-compose.gpu.yml`. That overlay sets input size 960 and 20 fps, which
 a four-core machine cannot feed: one camera manages 1.5 fps and catches 5 of 60 URFD falls.
-The CPU file sets input size 320 and pins the rate at 8, which catches 32.
+The CPU file sets input size 320 and pins the rate at 8, which catches 45.
 
 ## 2. Point the camera at its low-resolution substream
 
@@ -78,9 +79,8 @@ end to end, which is the point of it.
   it with yet.
 - **A wall, not a ceiling.** From directly overhead the pose model finds a person in 12-29% of
   frames against 78-88% from a wall, and the classifier never runs at all.
-- **Roughly half the falls of a GPU host**: 32 of 60 URFD falls against 45, with a slightly
-  *better* false-alarm rate. The gap is frame rate, not a different model — the same weights
-  run in both.
+- **Fewer falls than a GPU host**: 45 of 60 URFD falls against 56, at the same false-alarm
+  rate. The gap is frame rate, not a different model — the same weights run in both.
 
 ## Things that were tried and are not worth doing
 

@@ -439,7 +439,25 @@ class V3PoseFallDetector:
 # the value is measured, not assumed. On a camera that has been running the window is always
 # full, so nothing here changes steady-state behaviour -- only the first seconds after a
 # person appears.
-PARTIAL_MIN = int(os.environ.get("V3_PARTIAL_MIN", 0))
+#
+# MEASURED, both profiles, on the 220-clip lab set with the reserved URFD half confirming:
+#
+#   CPU  320 @ 8 fps    URFD falls 32/60 -> 45/60, held-out clean 44/56 -> 41/56
+#   GPU  960 @ 20 fps   URFD falls 45/60 -> 56/60, held-out clean 41/56 -> 40/56
+#
+# On the GPU profile URFD clean does not move at all (33/40 either way) and exactly one
+# held-out clip newly false-alarms. The clips it gains are the ones the window could never
+# fill: the ceiling camera and the falls from standing.
+#
+# 4 is the peak of the curve, not the lowest value that works -- 6 gives 38/60 and 2 gives
+# 41/60, both worse than 4 on the CPU profile.
+#
+# What it changes in kind, and the reason it costs a false alarm on someone lying down: with a
+# padded window the detector can alert on a person who is ALREADY on the floor when it first
+# sees them, not only on the transition. For a fall detector that is right -- somebody who
+# fell before the camera could see them still needs help -- and it is why `fall-20-cam1`,
+# where the ceiling camera opens on someone already down, now alerts three frames in.
+PARTIAL_MIN = int(os.environ.get("V3_PARTIAL_MIN", 4))
 
 MIN_PERSON_FRACTION = float(os.environ.get("V3_MIN_PERSON_FRACTION", 0.2))
 # Fraction of frames in a window that must have a detected person before trusting the

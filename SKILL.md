@@ -3819,3 +3819,56 @@ One thing this leaves: `cv2.VideoCapture` on a dead endpoint can block for a whi
 reconnect attempts are slower than the backoff alone suggests, and the loop is unresponsive
 while it waits. Nine attempts spanned three minutes. That is acceptable for a camera that is
 genuinely gone and worth revisiting if anyone sees a camera take minutes to come back.
+
+## 70. Scoring a partially filled window: the largest single accuracy gain in this project
+
+The classifier produced no number at all until its buffer held `WINDOW_SIZE` frames with a
+person in them. At the CPU profile's 8 fps that is nearly two seconds of continuously visible
+person, and **sixteen of URFD's sixty fall clips ended before it was over** (seven at 15 fps).
+`V3_PARTIAL_MIN` scores a shorter window instead, padded at the front by repeating the earliest
+observed frame -- repeated frames differ by zero, so the padding contributes no velocity of its
+own and whatever motion exists stays at the end of the window, where a fall's signature lives.
+
+| CPU profile, 320 @ 8 fps | URFD falls | held-out clean | reserved half: falls |
+|---|---|---|---|
+| full window only (before) | 32/60 | 44/56 | 16/28 |
+| partial from 8 | 31/60 | 42/56 | 15/28 |
+| partial from 6 | 38/60 | 42/56 | 17/28 |
+| **partial from 4 (deployed)** | **45/60** | 41/56 | **21/28** |
+| partial from 3 | 44/60 | 40/56 | 22/28 |
+| partial from 2 | 41/60 | 40/56 | 20/28 |
+
+4 is the peak, not the lowest value that works. On the GPU profile the same setting gives
+**45/60 -> 56/60**, with **URFD clean unchanged at 33/40** and exactly one held-out clip newly
+false-alarming. The clips it gains are precisely the ones diagnosed in SS60 as unscorable: the
+ceiling camera and the falls from standing.
+
+### What it changes in kind, not just in degree
+
+With a padded window the detector can alert on somebody who is **already on the floor when it
+first sees them**, not only on the transition from upright to down. That is a different
+capability, and for this job it is the right one -- a person who fell before the camera could
+see them still needs help. It is also the honest explanation for the false alarms it costs: a
+person lying down deliberately looks the same at first sight.
+
+Checked rather than assumed. On five newly caught clips, where does the alert land?
+
+| clip | first alert | |
+|---|---|---|
+| fall-17-cam0 | 90% through | at the fall |
+| fall-21-cam0 | 95% through | at the fall |
+| fall-13-cam1 | 82% through | 10 frames after the person walks in |
+| fall-27-cam1 | 74% through | 14 frames after the person walks in |
+| fall-20-cam1 | **5% through** | three frames after first seen |
+
+Four land on the fall. The fifth looked like luck until the clip was watched: **`fall-20-cam1`
+opens with the person already on the floor** -- the ceiling camera caught the aftermath, not the
+event -- so alerting three frames in is correct, and is exactly the new capability doing its
+job.
+
+### The headline numbers this moves
+
+URFD, the dataset nothing here was ever tuned against: **93% of falls on the GPU profile and
+75% on four CPU cores**, against 75% and 53% before. `tools/check_config_coherence.py` now keys
+its measured-configurations table on `PARTIAL_MIN` as well, because the same input size, window
+and frame rate score very differently with and without it.
