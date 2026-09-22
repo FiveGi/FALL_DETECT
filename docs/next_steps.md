@@ -97,8 +97,18 @@ so is the GPU profile now that it is at 20 fps. This is a loose end created by S
 Sweep 0.50 / 0.55 / 0.60 / 0.65 / 0.70 at each profile's rate and input size. Choose on half of
 URFD (**pairs of sequences, not odd/even** — SS60), confirm on the other half.
 
-## 6. Finish the pose-model comparison: yolo26m-pose and yolo26l-pose
-**Gain: unknown, evidence points both ways. Effort: 20 minutes for a first answer.**
+## 6. ~~Finish the pose-model comparison~~ — done. yolo26s-pose stays
+**Done 2026-09-22 (SS68). Nothing beat it at matched cost.**
+
+At the input size where each costs what s@320 costs (m at 224, l at 160), person-found on
+URFD/GMDCSA24 falls is s 87%/85%, m 80%/84%, l 87%/78%. Neither is better, so no accuracy
+sweep was run. `l@160` is level with s on URFD and 11.5 points worse on GMDCSA24's last
+third — URFD's 320x240 frames cannot see what a 160 input costs a 720p camera, which is
+exactly why item E's real-resolution evaluation set matters.
+
+The original reasoning is kept below because the argument for trying was sound.
+
+<details><summary>why it was worth testing</summary>
 
 Only `n` and `s` were measured. `m`, `l`, `x` were skipped on the assumption that bigger is
 slower and therefore worse on CPU — an assumption, not a measurement.
@@ -113,6 +123,8 @@ model should improve.
 Test m and l; x is almost certainly out of reach. Measure the matched-cost input size and the
 person-found rate first. If the bigger model does not find people better than s@320, stop —
 no accuracy sweep needed.
+
+</details>
 
 ## 7. Remove the second YOLO in alone-detection
 **Gain: 12% of the frame rate back, plus a model and a worker slot per camera. Effort: half a day.**

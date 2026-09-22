@@ -3744,3 +3744,42 @@ detection because a lock could not be taken would be worse than the duplicate it
 Verified by dispatching a duplicate directly at Celery, bypassing the API guard entirely: the
 second loop logged "another loop already holds this camera -- exiting" and stopped. This is the
 failure that cost three wrong diagnoses in SS58 and it cannot happen again.
+
+## 68. The pose-model ladder finished: n, s, m and l at matched cost, and s wins
+
+SS62 chose `yolo26s-pose` after comparing it with `yolo26n-pose`, and skipped `m`, `l` and `x`
+on the assumption that a bigger model is slower and therefore worse on CPU. That was an
+assumption, and the counter-argument was good: the reason `n` lost is that it **fails to find
+the person more often**, which a larger model should improve, and "bigger model at a smaller
+input" had already won once when s@320 beat n@384.
+
+So the ladder was finished properly. On four CPU cores the input size where each model costs
+what `s@320` costs (83 ms):
+
+| model | matched input size | cost |
+|---|---|---|
+| yolo26s-pose | 320 | 83 ms |
+| yolo26m-pose | 224 | 90 ms |
+| yolo26l-pose | 160 | 81 ms |
+
+And the thing that decides it -- how often each finds the person at all, measured over whole
+evaluation clips, with the last third reported separately because that is after the person is
+on the ground:
+
+| | URFD falls | GMDCSA24 falls |
+|---|---|---|
+| **yolo26s-pose @320** | **87% / 89%** | **85% / 71%** |
+| yolo26m-pose @224 | 80% / 83% | 84% / 69% |
+| yolo26l-pose @160 | 87% / 91% | 78% / 60% |
+
+Neither beats `s`, so by SS62's own stopping rule no accuracy sweep was run.
+
+**The interesting part is `l@160`**: level with `s` on URFD and **11.5 points worse on
+GMDCSA24's last third**. URFD's usable frame is 320x240, so 160 is a modest downscale there;
+GMDCSA24 is 720p, where 160 throws most of the person away. **URFD cannot see this failure at
+all** -- a model chosen on URFD alone would have looked fine and then lost a tenth of its
+prone-person detection on a real camera. Any input-size decision needs a real-resolution set
+beside it, which is why that gap is on `docs/next_steps.md`.
+
+The `m` and `l` weights were deleted after measuring; `yolo26n-pose.pt` stays because the CPU
+profile can select it with `V3_POSE_MODEL` and SS64 documents what it costs.
