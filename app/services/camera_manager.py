@@ -40,6 +40,12 @@ ALONE_DETECTION_CHECK_INTERVAL_S = 20
 # connection alive and the next check's frame fresh.
 ALONE_DETECTION_READ_PERIOD_S = 0.5
 
+# Longest gap between reconnection attempts when a network camera's stream drops. The backoff
+# doubles from one second so a momentary blip costs a second, not half a minute, while a camera
+# that is genuinely off does not spin. The loop never gives up on its own: a camera that comes
+# back should start being watched again without anyone pressing anything.
+RECONNECT_MAX_BACKOFF_S = 30
+
 @dataclass
 class TrackState:
     history: Deque[Tuple[int, float, float]]
@@ -712,6 +718,7 @@ def process_v2_fall_detection(camera_id, config):
             # running under target is just a number and every explanation is a guess -- which
             # cost several wrong guesses before it was added.
             t_read = t_clip = t_detect = t_rest = 0.0
+            read_failures = 0
             # One loop per camera. A second one halves the frame rate and says nothing about
             # it; see detection_dispatch.claim_camera for why the dispatch-side check is not
             # enough on its own.
@@ -756,9 +763,32 @@ def process_v2_fall_detection(camera_id, config):
                     if is_video_file:
                         cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # Loop video
                         continue
-                    else:
+                    # A network camera that misses a frame used to end the loop here, which
+                    # meant one wifi blip or one camera reboot stopped detection for good --
+                    # while the row stayed active and the dashboard kept saying "monitoring".
+                    # That is the same silent failure as a worker restart and likelier in a
+                    # house. Reconnect instead, with a backoff, and say so in the system log
+                    # both when it breaks and when it comes back.
+                    read_failures += 1
+                    if read_failures == 1:
+                        save_system_log('WARNING', f'Camera {camera.name}: lost the video '
+                                        f'stream, reconnecting', 'DETECTION', camera.user_id)
+                    if not camera_still_active(camera_id):
                         break
-                
+                    cap.release()
+                    time.sleep(min(RECONNECT_MAX_BACKOFF_S, 2 ** min(read_failures, 5)))
+                    cap = cv2.VideoCapture(camera.url)
+                    if cap.isOpened():
+                        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                        save_system_log('INFO', f'Camera {camera.name}: video stream '
+                                        f'reconnected after {read_failures} attempt(s)',
+                                        'DETECTION', camera.user_id)
+                        print(f"[Camera {camera_id}] stream reconnected after {read_failures} attempt(s)")
+                        read_failures = 0
+                    continue
+
+                if read_failures:
+                    read_failures = 0
                 frame_count += 1
                 # Print every 30 frames (about 1 second at 30 fps)
                 if frame_count % 30 == 0:

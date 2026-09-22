@@ -3783,3 +3783,39 @@ beside it, which is why that gap is on `docs/next_steps.md`.
 
 The `m` and `l` weights were deleted after measuring; `yolo26n-pose.pt` stays because the CPU
 profile can select it with `V3_POSE_MODEL` and SS64 documents what it costs.
+
+## 69. A dropped camera stream used to end detection permanently
+
+`docs/next_steps.md` listed "RTSP recovery has never been tested" under deployment. It was
+tested, and it was broken: the camera loop read
+
+    if not ret:
+        if is_video_file:  ...loop the file...
+        else:              break
+
+so **one failed read from a network camera ended the loop for good**, while the row stayed
+`is_active` and the dashboard kept saying "monitoring". A wifi blip, a camera reboot, a switch
+restart -- any of them, once, and the house stops being watched with nothing anywhere saying
+so. It is the same silent failure as the worker restart fixed in `b5c683d`, and far likelier in
+a home.
+
+The loop now reconnects with a doubling backoff capped at 30 seconds, logs the loss and the
+recovery to the system log, and never gives up on its own -- a camera that comes back should be
+watched again without anyone pressing anything. A stop request is still honoured between
+attempts.
+
+**Tested against a stream that could really be taken away**, since there is no ffmpeg in the
+image: a small MJPEG server (`scratchpad/mjpeg_server.py`) inside the worker container, a
+camera pointed at `http://celery_worker:8090/s` (no dot in the host, so the loop classifies it
+as a network stream rather than a file), detection confirmed running, then the server killed:
+
+    18:02:20  WARNING  lost the video stream, reconnecting
+    18:05:20  INFO     video stream reconnected after 9 attempt(s)
+
+and frames flowing again, with nothing touched in between. On the old code the loop would have
+exited at 18:02:20.
+
+One thing this leaves: `cv2.VideoCapture` on a dead endpoint can block for a while, so the
+reconnect attempts are slower than the backoff alone suggests, and the loop is unresponsive
+while it waits. Nine attempts spanned three minutes. That is acceptable for a camera that is
+genuinely gone and worth revisiting if anyone sees a camera take minutes to come back.

@@ -425,6 +425,22 @@ class V3PoseFallDetector:
 # Env-overridable so the multi-person false-positive sweep can A/B it (see
 # training/diagnose_multi_person.py: most multi-person alerts fire from windows that are
 # mostly held copies rather than genuinely observed frames).
+# How many real frames a window must hold before the classifier will score it at all.
+# 0 disables this and restores the original behaviour: wait for a completely full window.
+#
+# The problem it exists for: the classifier produces no number whatsoever until the buffer
+# holds WINDOW_SIZE frames with a person in them, which at the CPU profile's 8 fps is nearly
+# two seconds of continuously visible person. Sixteen of URFD's sixty fall clips never get
+# one, and that is not only a dataset artefact -- somebody walking into a room and falling
+# within the first second is exactly the case the window cannot see, and it gets worse as the
+# machine gets slower.
+#
+# A padded window is a weaker piece of evidence than a full one, so this is a real trade and
+# the value is measured, not assumed. On a camera that has been running the window is always
+# full, so nothing here changes steady-state behaviour -- only the first seconds after a
+# person appears.
+PARTIAL_MIN = int(os.environ.get("V3_PARTIAL_MIN", 0))
+
 MIN_PERSON_FRACTION = float(os.environ.get("V3_MIN_PERSON_FRACTION", 0.2))
 # Fraction of frames in a window that must have a detected person before trusting the
 # classifier's output. Deliberately low: MediaPipe's per-frame pose detection is much
@@ -522,7 +538,9 @@ def _step_person(kpts, person_found, state: V3FallDetectionState,
     state.frames_since_infer += 1
 
     if not state.is_ready():
-        return False, 0.0, "Analyzing..."
+        if PARTIAL_MIN <= 0 or len(state.raw_buffer) < PARTIAL_MIN:
+            return False, 0.0, "Analyzing..."
+        # Otherwise fall through and score a padded window -- see PARTIAL_MIN.
 
     person_fraction = sum(state.person_flags) / len(state.person_flags)
     if person_fraction < RESET_PERSON_FRACTION:
@@ -565,6 +583,13 @@ def _step_person(kpts, person_found, state: V3FallDetectionState,
     state.has_run_once = True
     state.collapse_fired = False  # person is reliably visible again -- a future collapse is a new event
     raw_window = np.stack(state.raw_buffer, axis=0)
+    if len(raw_window) < WINDOW_SIZE:
+        # Pad at the FRONT by repeating the earliest observed frame: "the person was
+        # standing as they are now, before we first saw them". That keeps whatever motion
+        # exists in the real frames at the end of the window, where a fall's signature
+        # lives, and adds no velocity of its own (repeated frames differ by zero).
+        pad = np.repeat(raw_window[:1], WINDOW_SIZE - len(raw_window), axis=0)
+        raw_window = np.concatenate([pad, raw_window], axis=0)
     probability = fall_detector.predict_window(raw_window)
     state.recent_flags.append(probability > threshold)
     state.last_probability = probability
