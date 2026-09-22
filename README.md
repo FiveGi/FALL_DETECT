@@ -130,6 +130,8 @@ Practical consequences worth knowing before installing a camera:
 
 - **Mount it on a wall, not the ceiling.** From directly overhead the pose model finds a person
   in only 12-29% of frames versus 78-88% from a wall, and the classifier never even runs.
+- **Deploying on a machine with no GPU?** [docs/deploying_on_a_cpu_server.md](docs/deploying_on_a_cpu_server.md)
+  is the short version of everything below, in the order it matters.
 - **It runs on CPU, but only with the CPU settings.** `docker-compose.yml` on its own is the
   CPU deployment and is tuned for a four-core machine: input size 320 and the camera rate
   pinned to 8 fps. Measured there, it catches 32 of 60 URFD falls and 64 of 79 GMDCSA24 falls,

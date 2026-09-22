@@ -171,12 +171,12 @@ reads honestly in the UI — "they got up" is a fact, not a confidence.
   sign in. **What is left is the actual install: set it.**
 - **LINE is off** and needs a channel secret, `PUBLIC_BASE_URL` and a tunnel before it can
   notify anyone. Credentials are saved; nothing has ever been sent.
-- **A deployment note for the server**: use `docker-compose.yml` alone, **not** the GPU overlay,
-  and read the loop's reported frame rate on the first day. Running the GPU settings on a CPU
-  host gives 1.5 fps and catches almost nothing.
-- **RTSP recovery has never been tested.** If the camera drops, does the loop reconnect or sit
-  there marked active? Same class of failure as the worker-restart bug fixed in `b5c683d`, and
-  just as silent.
+- ~~**A deployment note for the server**~~ — written: `docs/deploying_on_a_cpu_server.md`,
+  covering the compose file to use, the camera substream, the admin password, what to do when
+  the loop reports BELOW TARGET, and the things already tried that are not worth repeating.
+- ~~**RTSP recovery has never been tested.**~~ — tested, and it was broken: one failed read
+  ended the loop permanently while the row stayed active. Fixed in `0281d0b` with a backoff
+  reconnect, verified against a stream that was really taken away and given back (SS69).
 
 ## Open, with no obvious next move
 
