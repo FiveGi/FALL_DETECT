@@ -164,7 +164,11 @@ reads honestly in the UI — "they got up" is a fact, not a confidence.
 
 ## Deployment and safety — small, and none of it optional
 
-- **The admin password is still `admin123`** on a system that will be reachable from a phone.
+- ~~**The admin password is still `admin123`**~~ — partly done. `ADMIN_PASSWORD` now sets it at
+  first start and `SEED_TEST_USER=0` drops the second account; while the default is in place
+  the backend warns on every startup and in the System Logs page. The default itself is
+  unchanged on purpose, so a fresh clone still matches the README and the smoke tests still
+  sign in. **What is left is the actual install: set it.**
 - **LINE is off** and needs a channel secret, `PUBLIC_BASE_URL` and a tunnel before it can
   notify anyone. Credentials are saved; nothing has ever been sent.
 - **A deployment note for the server**: use `docker-compose.yml` alone, **not** the GPU overlay,

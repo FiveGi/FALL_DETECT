@@ -81,6 +81,37 @@ if os.environ.get('RESUME_ACTIVE_CAMERAS') == '1':
               else '[Celery Worker] no active cameras needed resuming', flush=True)
 
 
+
+DEFAULT_ADMIN_PASSWORD = 'admin123'
+
+
+def _warn_if_default_admin_password():
+    """Say so, loudly and on every startup, while the admin account still has the password
+    that ships in the README.
+
+    Not a refusal to start: a fresh clone is supposed to work, and the smoke tests sign in with
+    it. But this is a system somebody reaches from their phone to be told their parent has
+    fallen, and a known password on it is the kind of thing that stays unnoticed precisely
+    because nothing ever mentions it. It goes to the system log as well as stdout, so it is
+    visible on the dashboard's System Logs page and not only to whoever reads container output.
+    """
+    try:
+        from app.models.user import User
+        admin = User.query.filter_by(username='admin').first()
+        if not admin or not admin.check_password(DEFAULT_ADMIN_PASSWORD):
+            return
+        message = ('The admin account is still using the default password from the README. '
+                   'Change it before this system is reachable from anywhere but this machine.')
+        bar = '!' * 78
+        print(os.linesep.join(['', bar, '  SECURITY: ' + message, bar, '']), flush=True)
+        try:
+            from app.services.logging_service import save_system_log
+            save_system_log('WARNING', message, 'SECURITY')
+        except Exception:
+            pass
+    except Exception:
+        pass
+
 _worker_app = None
 
 
@@ -214,19 +245,29 @@ def create_app():
                         db.session.rollback()
                         print(f'Could not add {column} column automatically: {e}')
 
+            # ADMIN_PASSWORD seeds the first admin. The default stays `admin123` so a fresh
+            # clone still works exactly as the README says and the smoke tests keep passing --
+            # but this system is reachable from a phone, so leaving it there is checked and
+            # complained about on every startup below rather than left to be noticed.
+            admin_password = os.environ.get('ADMIN_PASSWORD', DEFAULT_ADMIN_PASSWORD)
             if not User.query.filter_by(username='admin').first():
                 admin = User(username='admin', role=UserRole.ADMIN)
-                admin.set_password('admin123')
+                admin.set_password(admin_password)
                 db.session.add(admin)
-                print("Created admin user: username='admin', password='admin123', role='admin'")
-           
-            if not User.query.filter_by(username='testuser').first():
-                test_user = User(username='testuser', role=UserRole.USER)
-                test_user.set_password('user123')
-                db.session.add(test_user)
-                print("Created test user: username='testuser', password='user123', role='user'")
-           
+                print("Created admin user: username='admin', role='admin'")
+
+            # SEED_TEST_USER=0 leaves it out. It exists so a fresh clone has a non-admin
+            # account to look at the dashboard with; a real installation does not want a
+            # second known password on it.
+            if os.environ.get('SEED_TEST_USER', '1') != '0':
+                if not User.query.filter_by(username='testuser').first():
+                    test_user = User(username='testuser', role=UserRole.USER)
+                    test_user.set_password(os.environ.get('TEST_USER_PASSWORD', 'user123'))
+                    db.session.add(test_user)
+                    print("Created test user: username='testuser', role='user'")
+
             db.session.commit()
+            _warn_if_default_admin_password()
             print("Database tables created successfully!")
         except Exception as e:
             print(f"Error creating tables: {e}")

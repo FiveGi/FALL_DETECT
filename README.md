@@ -51,7 +51,13 @@ use Firebase; the dashboard runs without them.
 - The API will be available at `http://localhost:8932/api/`
 - The dashboard (once `npm run dev` is running) at `http://localhost:3000/`
 - Flower (Celery monitoring) at `http://localhost:5555/`
-- Default admin credentials: `admin` / `admin123`
+- Default admin credentials: `admin` / `admin123` — **change this before the system is
+  reachable from anything but the machine it runs on.** It is a login that will be opened from
+  a phone to be told somebody has fallen. Set `ADMIN_PASSWORD` in `.env` before the first
+  start, or change it from the Users page afterwards; while the default is still in place the
+  backend prints a warning on every startup and writes one to the System Logs page.
+  `SEED_TEST_USER=0` leaves out the second `testuser` / `user123` account, which exists only so
+  a fresh clone has a non-admin login to look around with.
 - See [API Documentation](API_DOCUMENTATION.md) for complete endpoint reference
 
 ### Trying it without a real camera
