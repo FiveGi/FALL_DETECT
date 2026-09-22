@@ -137,6 +137,16 @@ def _normalize_and_velocity(raw_window):
 # roughly twice the throughput a 25 fps camera needs.
 IMGSZ = int(os.environ.get("V3_IMGSZ", 960))
 
+# Input size for the people-counting pass that answers alone-detection, which is a different
+# question from "is this person falling" and wants more pixels than the CPU profile can afford
+# to spend on every frame. It runs once every ALONE_DETECTION_CHECK_INTERVAL_S, not per frame.
+# Scored against Gemini-verified counts on the 77-frame ground-truth set, "is exactly one
+# person present" is right 74.0% of the time at 320, 81.8% at 480 and 640, and 83.1% at 800 and
+# above -- against 80.5% for the yolo26l detector this replaces. 640 is the cheapest size that
+# is already better than what it replaces; the last 1.3 points cost 25% more work for a check
+# that runs three times a minute.
+COUNT_IMGSZ = int(os.environ.get("V3_COUNT_IMGSZ", 640))
+
 # Which tracker assigns a person their identity across frames. "hip" is the original
 # nearest-hip-centre matcher in PersonTracker below; "bytetrack" uses ultralytics' own
 # tracker (Kalman motion prediction + IoU), which exists because the hip matcher loses
@@ -337,6 +347,33 @@ class V3PoseFallDetector:
             hip_center = (kpts17[LEFT_HIP, :2] + kpts17[RIGHT_HIP, :2]) / 2.0
             people.append((kpts17, hip_center))
         return people
+
+    def count_people(self, frame_bgr, imgsz=None):
+        """-> how many people are in this frame, for the alone-detection question.
+
+        Separate from the detection path on purpose, and run at its own input size. Alone
+        detection asks "is exactly one person present", and the pose model answers that far
+        better with more pixels: scored against Gemini-verified counts on the 77-frame
+        ground-truth set (`training/gt_compare_binary.py`),
+
+            yolo26l detect, the model this replaces   80.5%
+            yolo26s-pose at 320 (the CPU profile)     74.0%
+            yolo26s-pose at 960                       83.1%
+
+        So the counting pass uses 960 regardless of what detection runs at. It costs about
+        184 ms on four CPU cores, which at one check every twenty seconds is under one per
+        cent of the budget -- against a whole second model, a second video stream and a second
+        Celery slot per camera, which is what it replaces.
+
+        Not capped to NUM_POSES: that cap exists to bound tracking work, and here a crowd of
+        thirteen needs to read as "not one person", not as "NUM_POSES people".
+        """
+        result = self.pose_model.predict(
+            frame_bgr, verbose=False, conf=POSE_CONF, classes=[0],
+            device=self.device, imgsz=imgsz or COUNT_IMGSZ)[0]
+        if result.keypoints is None or result.keypoints.xy is None:
+            return 0
+        return int(len(result.keypoints.xy))
 
     def extract_tracked_keypoints(self, frame_bgr):
         """-> list of (track_id, kpts17, hip_center), ids assigned by ultralytics' tracker.

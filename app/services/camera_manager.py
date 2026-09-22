@@ -15,6 +15,7 @@ from datetime import datetime
 import os
 import re
 import tempfile
+import uuid
 import pytz
 from datetime import time as dtime
 import threading
@@ -103,6 +104,42 @@ def detect_alone_with_state(frame, state: AloneDetectionState, person_detector: 
 
     state.last_result = (risk_level, person_count, detection_result, processed_frame, should_alert_alone)
     return state.last_result
+
+
+def _alone_check(camera, camera_id, person_count, fall_detected):
+    """Alone-detection's decision and alert, from a headcount the fall loop already has.
+
+    Lifted from `process_v2_alone_detection` so the behaviour is the one that shipped: exactly
+    one person is the trigger, zero or several is not, the alert is rate-limited by the
+    camera's cooldown, and a detection row is written so the dashboard's counts stay populated.
+    The one thing added is `fall_detected` -- the alone alert is suppressed while a fall alert
+    is already firing for the same frame, because "someone is alone" is noise next to "someone
+    may have fallen", and the old separate task could never know.
+    """
+    if person_count == 1:
+        detection_result, risk_level = 'alone', 'yellow'
+    elif person_count == 0:
+        detection_result, risk_level = 'no_person', 'normal'
+    else:
+        detection_result, risk_level = 'normal', 'normal'
+
+    save_detection_log(camera_id=camera.id, detection_result=detection_result,
+                       confidence_score=1.0, risk_level=risk_level, person_count=person_count)
+
+    if risk_level != 'yellow' or fall_detected:
+        return
+
+    now = time.time()
+    cooldown = getattr(camera, 'alert_cooldown', None) or Config.NOTIFICATION_COOLDOWN
+    if now - getattr(camera, '_last_alone_v2_alert_time', 0) < cooldown:
+        return
+
+    save_alert_log(camera.id, 'alone_yellow', image_path=None,
+                   additional_info={'model': 'v3-pose', 'person_count': person_count})
+    notify_alert(camera.id, camera.name, camera.room_name, 'alone_yellow',
+                 datetime.now(tz), None)
+    camera._last_alone_v2_alert_time = now
+    print(f"[Camera {camera_id}] ALONE ALERT: {detection_result}, Count: {person_count}")
 
 
 def camera_still_active(camera_id, default=True):
@@ -675,6 +712,24 @@ def process_v2_fall_detection(camera_id, config):
             # running under target is just a number and every explanation is a guess -- which
             # cost several wrong guesses before it was added.
             t_read = t_clip = t_detect = t_rest = 0.0
+            # One loop per camera. A second one halves the frame rate and says nothing about
+            # it; see detection_dispatch.claim_camera for why the dispatch-side check is not
+            # enough on its own.
+            from app.services.detection_dispatch import claim_camera, hold_camera, release_camera
+            loop_token = uuid.uuid4().hex
+            if not claim_camera(camera_id, loop_token):
+                save_system_log('WARNING', f'Fall detection for camera {camera.name} is already '
+                                f'running in another loop; this one is exiting', 'DETECTION',
+                                camera.user_id)
+                print(f"[Camera {camera_id}] another loop already holds this camera -- exiting")
+                cap.release()
+                return
+            last_hold = time.monotonic()
+            # Alone-detection state, now that it lives in this loop rather than its own task.
+            alone_enabled = bool(getattr(camera, 'enable_alone_detection', True))
+            last_alone_check = 0.0
+            if not alone_enabled:
+                print(f"[Camera {camera_id}] alone-detection disabled for this camera")
 
             while camera.is_active:
                 # Wait for the next slot BEFORE reading rather than reading and discarding.
@@ -733,6 +788,38 @@ def process_v2_fall_detection(camera_id, config):
                 # person is most fall-like this frame (the detected one if any, else the max).
                 top = max(results, key=lambda r: r[2]) if results else (None, False, 0.0, "no_person", None)
                 _, detected, probability, label, _ = top
+
+                # Alone-detection, inline rather than as its own task. It used to be a second
+                # Celery task with its own VideoCapture and its own YOLO model, decoding the
+                # same camera a second time to answer "is exactly one person present" -- a
+                # question this loop's pose model can answer from the frame it already has.
+                # Measured on four CPU cores, running it separately cost 12% of this loop's
+                # frame rate (6.1 fps against 6.9), plus a model in memory and a prefork slot
+                # per camera, and on CPU frame rate is recall.
+                #
+                # The counting pass runs at its own input size because it is a different
+                # question: against Gemini-verified counts, pose at 960 gets "exactly one" right
+                # 83.1% of the time against the old detector's 80.5% and 74.0% at the 320 this
+                # profile detects at. Once every ALONE_DETECTION_CHECK_INTERVAL_S that costs
+                # under one per cent of the budget.
+                _now_mono = time.monotonic()
+                # Keep the claim alive, and stand down if somebody else has taken it.
+                if _now_mono - last_hold >= 10:
+                    last_hold = _now_mono
+                    if not hold_camera(camera_id, loop_token):
+                        print(f"[Camera {camera_id}] lost the camera claim -- exiting")
+                        break
+                if alone_enabled and (_now_mono - last_alone_check) >= ALONE_DETECTION_CHECK_INTERVAL_S:
+                    last_alone_check = _now_mono
+                    _t = time.monotonic()
+                    try:
+                        alone_count = fall_detector.count_people(frame)
+                    except Exception as exc:
+                        print(f"[Camera {camera_id}] alone-detection count failed: {exc}")
+                        alone_count = None
+                    t_rest += time.monotonic() - _t
+                    if alone_count is not None:
+                        _alone_check(camera, camera_id, alone_count, any_detected)
 
                 # Save detection log periodically
                 now = time.time()
@@ -821,6 +908,7 @@ def process_v2_fall_detection(camera_id, config):
             
             cap.release()
             clip_buffer.clear(camera_id)
+            release_camera(camera_id, loop_token)
             save_system_log('INFO', f'V2 Fall detection session ended for camera {camera.name}', 'DETECTION', camera.user_id)
             
         except Exception as e:

@@ -3684,3 +3684,63 @@ same container and settings, because a benchmark reuses twenty frames that stay 
 the loop decodes fresh 1080p ones. Speed claims here have to be confirmed in the loop before
 they mean anything, and a ratio between two runtimes measured in isolation can vanish entirely
 when the constant costs around it are added back.
+
+## 67. Alone-detection folded into the fall loop, and duplicate loops made impossible
+
+Two items off `docs/next_steps.md`, and the second one was not on it as a task -- it was a bug
+that surfaced while testing the first.
+
+### The second YOLO is gone, and counting got better
+
+`fall_v2` used to start two Celery tasks per camera. The second opened its own `VideoCapture`
+on the same camera and loaded `yolo26l.pt` to answer "is exactly one person present" -- a
+question the fall loop's pose model can answer from the frame it already has. Measured on four
+CPU cores, running it separately cost **12% of the fall loop's frame rate** (6.1 fps against
+6.9), plus a model in memory and a prefork slot per camera.
+
+The question is not the same as "is this person falling", though, and it was worth checking
+before swapping a component that had been tuned: `yolo26l @ 0.35` was chosen over five other
+variants against Gemini-verified counts on 77 frames. Re-running that comparison with the pose
+model at several input sizes:
+
+| counting pass | "is exactly one person present" |
+|---|---|
+| detect `yolo26l` — the model replaced | 80.5% |
+| pose @320 (what the CPU profile detects at) | 74.0% |
+| pose @480 | 81.8% |
+| **pose @640** | **81.8%** |
+| pose @800 / @960 | 83.1% |
+
+So counting at the detection input size would have been a **6.5-point regression** -- the
+obvious version of this change was the wrong one. The counting pass runs at its own size
+instead (`V3_COUNT_IMGSZ`, default 640), which is already better than the model it replaces and
+a quarter cheaper than the best. It runs once every `ALONE_DETECTION_CHECK_INTERVAL_S`, not per
+frame.
+
+That size matters more than the arithmetic suggested. At 960 the merged loop ran **6.5-6.9 fps
+against its 8 fps target and reported BELOW TARGET**; at 640 it holds **7.3-7.4**, the same rate
+as before the merge but now with alone-detection included rather than competing. Verified end
+to end: `alone / yellow / 1` rows in `detection_logs`, and `normal / 2` on the frames where two
+people are visible.
+
+The alone alert is also now suppressed while a fall alert is firing on the same frame --
+"someone is alone" is noise next to "someone may have fallen", and the separate task could
+never know.
+
+### A camera can only have one loop now, whatever dispatched it
+
+Testing the merge produced two `ForkPoolWorker`s logging for camera 12 and the frame rate
+halved. The dispatch-side guard added in `b5c683d` asks the workers what they are running,
+which is right for a UI question and **wrong as a guard**: during worker startup there is a
+window where a task is queued but not yet reported as active, and in it both `/start` and the
+resume-on-worker-start believe nothing is running.
+
+So the loop claims the camera itself, atomically, in the Redis the broker already provides:
+`claim_camera` / `hold_camera` / `release_camera` in `detection_dispatch`. A second loop exits
+immediately instead of competing, the claim is refreshed every ten seconds and expires thirty
+seconds after the last heartbeat, and if Redis cannot be reached the claim is granted -- losing
+detection because a lock could not be taken would be worse than the duplicate it prevents.
+
+Verified by dispatching a duplicate directly at Celery, bypassing the API guard entirely: the
+second loop logged "another loop already holds this camera -- exiting" and stopped. This is the
+failure that cost three wrong diagnoses in SS58 and it cannot happen again.

@@ -23,10 +23,16 @@ from app.config import Config
 
 # The tasks a camera of each detection_type needs. Names rather than imports, because importing
 # camera_manager at module scope would be circular -- it imports this module's siblings.
+# `fall_v2` is one task, not two. Alone-detection used to be its own task with its own
+# VideoCapture and its own YOLO model, decoding the same camera a second time to answer a
+# question the fall loop's pose model can answer from the frame it already has. Merging it
+# gave back 12% of the fall loop's frame rate on four CPU cores, freed a prefork slot per
+# camera, and is *more* accurate: against Gemini-verified counts, pose at 960 gets "exactly
+# one person" right 83.1% of the time against the old detector's 80.5%.
 TASKS_BY_TYPE = {
     'bed_exit': ['process_bed_exit_detection'],
     'fall': ['process_fall_detection', 'process_alone_detection'],
-    'fall_v2': ['process_v2_fall_detection', 'process_v2_alone_detection'],
+    'fall_v2': ['process_v2_fall_detection'],
 }
 DEFAULT_TASKS = ['process_fall_detection']
 
@@ -112,3 +118,68 @@ def resume_active_cameras():
         save_system_log('INFO', 'Detection resumed after worker start for: '
                         + ', '.join(resumed), 'CAMERA')
     return resumed
+
+# --- one loop per camera, enforced where it cannot be raced ------------------------------
+
+_LOCK_TTL_S = 30          # a dead loop's claim expires this long after its last heartbeat
+_LOCK_PREFIX = 'camera-loop:'
+
+
+def _redis():
+    """The broker's Redis, which every worker already talks to. None if it cannot be reached."""
+    try:
+        import redis
+        return redis.Redis.from_url(Config.CELERY_BROKER_URL)
+    except Exception:
+        return None
+
+
+def claim_camera(camera_id, token):
+    """Try to become the one loop for this camera. -> True if the claim is ours.
+
+    `running_camera_ids()` asks the workers what they are running, which is right for a UI
+    question and wrong as a guard: there is a window during worker startup where a task has
+    been queued but is not yet reported as active, and in that window `/start` and the
+    resume-on-worker-start both believe nothing is running and each dispatch a loop. Two loops
+    on one camera halve its frame rate, silently -- it has cost this project three wrong
+    diagnoses and, on the CPU profile, halving the rate is most of the recall.
+
+    So the loop itself claims the camera, atomically, and a second loop exits instead of
+    competing. If Redis is unreachable the claim is granted: dropping detection because a lock
+    could not be taken would be worse than the duplicate it prevents.
+    """
+    r = _redis()
+    if r is None:
+        return True
+    try:
+        return bool(r.set(_LOCK_PREFIX + str(camera_id), token, nx=True, ex=_LOCK_TTL_S))
+    except Exception:
+        return True
+
+
+def hold_camera(camera_id, token):
+    """Refresh our claim. -> False if someone else now holds it (then stop looping)."""
+    r = _redis()
+    if r is None:
+        return True
+    try:
+        current = r.get(_LOCK_PREFIX + str(camera_id))
+        if current is not None and current.decode() != token:
+            return False
+        r.set(_LOCK_PREFIX + str(camera_id), token, ex=_LOCK_TTL_S)
+        return True
+    except Exception:
+        return True
+
+
+def release_camera(camera_id, token):
+    """Give up the claim, but only if it is still ours."""
+    r = _redis()
+    if r is None:
+        return
+    try:
+        current = r.get(_LOCK_PREFIX + str(camera_id))
+        if current is not None and current.decode() == token:
+            r.delete(_LOCK_PREFIX + str(camera_id))
+    except Exception:
+        pass
