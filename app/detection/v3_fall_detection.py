@@ -176,6 +176,30 @@ def _ort_options():
         return None
 
 
+
+
+def _openvino_threads(model):
+    """-> the thread count the compiled OpenVINO model is actually using, or None.
+
+    Reported in the startup line because the whole point of the patch in cpu_tuning is a number
+    no log would otherwise show, and getting it wrong is a 2.4x difference.
+    """
+    try:
+        compiled = model.predictor.model.ov_compiled_model
+        return compiled.get_property("INFERENCE_NUM_THREADS")
+    except Exception:
+        return None
+
+
+def _tune_openvino():
+    """Give OpenVINO the container's CPU quota before anything compiles a model."""
+    try:
+        from app.services.cpu_tuning import tune_openvino
+        return tune_openvino()
+    except Exception:
+        return False
+
+
 def _tune_threads():
     """-> the CPU thread count actually set, or whatever torch is already using."""
     try:
@@ -249,7 +273,20 @@ class V3PoseFallDetector:
             self.extra_sessions.append(ort.InferenceSession(path, sess_options=sess_opts,
                                                             providers=providers))
 
-        self.pose_model = YOLO(yolopose_path)
+        # An OpenVINO export is a directory, and ultralytics cannot infer the task from one, so
+        # it has to be told. OpenVINO is 1.3-1.5x faster than PyTorch on CPU for the identical
+        # model -- 50.7 ms against 69.9 at input size 320 -- and its output matches: over the
+        # same frames, person-found agreed 12/12 and the keypoints differed by 0.00054 frame
+        # widths, which is ten times closer than the gap between two different pose models.
+        # The export bakes in its input size, so the directory and V3_IMGSZ must agree;
+        # tools/check_config_coherence.py checks that.
+        ov_threads = None
+        if os.path.isdir(yolopose_path):
+            _tune_openvino()
+            self.pose_model = YOLO(yolopose_path, task="pose")
+            ov_threads = _openvino_threads(self.pose_model)
+        else:
+            self.pose_model = YOLO(yolopose_path)
         # After YOLO(), never before: ultralytics sets torch's thread count itself while
         # building a model, from the host's core count, which inside a container is a number
         # of threads that cannot all run. Measured at 100 ms per detection against 68 ms with
@@ -263,6 +300,7 @@ class V3PoseFallDetector:
         members = 1 + len(self.extra_sessions)
         print(f"[V3] pose backend on {device}"
               + (f", {threads} CPU thread(s)" if threads else "")
+              + (f", OpenVINO using {ov_threads} thread(s)" if ov_threads else "")
               + (f", classifier ensemble of {members}" if members > 1 else ""))
 
     def extract_keypoints(self, frame_bgr):

@@ -131,6 +131,12 @@ Practical consequences worth knowing before installing a camera:
   system that works and one that does not. `docker-compose.gpu.yml` overlays the GPU settings
   (input size 960, 20 fps) and reaches 45 of 60 URFD falls. Do not run the GPU settings on a
   CPU host: one camera manages 1.5 fps there and almost nothing is caught.
+- **Point it at the camera's low-resolution substream, not the main stream.** Most IP cameras
+  publish a second, smaller RTSP stream. On a CPU host that one setting is the largest free
+  speed-up there is: measured on four cores, a 640x360 source runs the loop at **9.8 fps
+  against 8.0 fps from 1080p**, a 22% gain for no change to the system. The detector resizes
+  everything to `V3_IMGSZ` anyway, so the extra pixels are decoded and thrown away, and on CPU
+  that decoding and resizing is real work.
 - **Frame rate is the thing to watch.** The loop prints its achieved rate once a minute and
   says `<-- BELOW TARGET` when it cannot keep up. If it does, lower `V3_TARGET_FPS` to what the
   machine reaches and re-check the numbers rather than leaving it short.

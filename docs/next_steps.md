@@ -6,6 +6,8 @@ measured to get there; this file is what to pick up next.
 
 Three measured facts frame everything (SKILL.md SS60, SS62, SS63):
 
+- **A low-resolution camera substream is worth 22% of the frame rate, for free** (SS66) — the
+  first thing to check on any install.
 - **On CPU, speed and accuracy are the same thing.** At input size 320, URFD recall is 13/60 at
   6 fps, 32/60 at 8 fps, 34/60 at 9 fps. Every millisecond saved becomes recall.
 - **The current architecture's best point has been found.** Seven input sizes and two pose
@@ -37,14 +39,24 @@ frames per second decide whether a fall is caught. **Nothing else on this list c
 Verify first — the reading is from a previous session. Needs SSH, which is not stored anywhere;
 ask for it. `lscpu`, `nproc --all`, `/sys/devices/system/cpu/cpu*/online`.
 
-## 2. Try OpenVINO as the CPU runtime
-**Gain: typically 2-3x on Intel CPUs, untested here. Effort: two hours to find out.**
+## 2. ~~Try OpenVINO~~ — done, and rejected. Use the camera's low-resolution substream instead
+**Done 2026-09-22. The 22% went to a camera setting, not a runtime.**
 
-The single biggest software lever left. ONNX was tried and is **2.3x slower** than PyTorch on
-CPU (133 ms against 57 ms at imgsz 320), so that route is closed — but OpenVINO is Intel's own
-CPU runtime and is the usual reason people reach for it. Not installed in the image, so this
-means adding a dependency and exporting the pose model. **2x here is 16 fps, which is past the
-steep part of the curve and worth more than every accuracy idea below combined.**
+OpenVINO was measured (SKILL.md SS66). With its thread count fixed — it ignores the cgroup
+quota exactly as torch and onnxruntime do — it is 1.38x faster in isolation but only **9%** in
+the live loop, and it needs a dependency, an export and a patch on ultralytics.
+
+**Lowering the source resolution beats it and costs nothing**: on four cores, a 640x360 source
+runs the loop at **9.8 fps against 8.0 fps from 1080p, a 22% gain**, because the detector
+resizes everything to `V3_IMGSZ` anyway and the extra pixels are decoded and thrown away. The
+two do not stack — with a small source OpenVINO is *behind* PyTorch (9.3 against 9.8). Its win
+was absorbing a preprocessing cost that is better removed than optimised.
+
+**What is left of this item:** make sure the installed camera is actually pointed at its
+substream. That is now in README's installation notes, and it is the single largest free
+speed-up available on CPU.
+
+ONNX was also tried and is 2.3x *slower* on CPU. Both routes are closed.
 
 ## 3. Score a partially filled window instead of waiting for a full one
 **Gain: unlocks up to a quarter of falls the detector currently cannot score at all on CPU.

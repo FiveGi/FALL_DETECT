@@ -3626,3 +3626,61 @@ it actually achieves.
 - RTSP recovery has never been tested: if the camera drops, does the loop reconnect or does it
   sit there marked active? The same failure the worker-restart fix addressed (SS: commit
   `b5c683d`) could exist for a dropped stream.
+
+## 66. OpenVINO measured and not taken; the free 22% was a camera setting
+
+`docs/next_steps.md` had OpenVINO as item 2 on the CPU list, on the reasoning that it is
+Intel's own CPU runtime and typically 2-3x faster than PyTorch. It was measured properly and
+**it is not worth taking** -- and chasing it turned up something better that costs nothing.
+
+### The thread bug for the third time
+
+Out of the box OpenVINO was *slower* than PyTorch through ultralytics, 85.7 ms against 71.2 at
+input size 320. The reason is the same one torch and onnxruntime had: **it sizes its thread
+pool from the host's core count and ignores the cgroup quota.** Raw inference inside a
+four-CPU container:
+
+    default (host cores)  64.0 ms      threads = quota  26.3 ms      2.4x
+
+ultralytics builds its own `ov.Core` and hardcodes the compile config, so there is no argument
+to pass; `cpu_tuning.tune_openvino()` patches `Core.compile_model` to add the two keys.
+
+Setting CPU affinity instead was tried first and is much worse -- the container's quota is CFS
+time across all cores, not a set of cores, so pinning to three of them puts the process in a
+fight with everything else on the host. It measured **4.7 seconds per frame**.
+
+### A fixed-shape export is a trap
+
+With threads fixed, OpenVINO won the isolated benchmark at 1.38x (50.7 ms against 69.9). In the
+live loop it *lost*: 6.6 fps against PyTorch's 8.1. The cause is that the default
+`imgsz=320` export bakes in a **320x320** input, while PyTorch letterboxes a 16:9 frame to
+**320x192** -- 1.67x fewer pixels. Exporting with `dynamic=True`, or with `imgsz=(192,320)`,
+fixed it: 8.6 and 8.7 fps. Dynamic is the better of the two because it is not tied to the
+camera's aspect ratio and measures the same.
+
+### What it is actually worth, and what beat it
+
+Measured in the live loop, input size 320, alone-detection off, 3.5 cores, uncapped:
+
+| source resolution | PyTorch | OpenVINO |
+|---|---|---|
+| 1080p | 8.0 fps | 8.7 fps |
+| 640x360 | **9.8 fps** | 9.3 fps |
+
+**Lowering the source resolution gives 22% for free, and OpenVINO gives 9% for a dependency.**
+Worse, the two do not stack -- once the source is small, OpenVINO is *behind* PyTorch. Its win
+was never really about inference; it was absorbing a preprocessing cost that is better removed
+than optimised. Most IP cameras publish a low-resolution substream, so this is a setting on the
+camera rather than a change to the system, and it is now in README's installation notes.
+
+`tune_openvino()` and the directory-model support are kept so a retry needs no archaeology, but
+nothing deployed uses them.
+
+### The lesson for the rest of the list
+
+The isolated benchmarks in this project run **1.5x optimistic** against the live loop --
+`detect_v3_fall_multi` measures 72 ms standing alone and ~98 ms inside the camera loop, on the
+same container and settings, because a benchmark reuses twenty frames that stay in cache while
+the loop decodes fresh 1080p ones. Speed claims here have to be confirmed in the loop before
+they mean anything, and a ratio between two runtimes measured in isolation can vanish entirely
+when the constant costs around it are added back.

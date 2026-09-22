@@ -107,3 +107,44 @@ def ort_session_options():
     opts.intra_op_num_threads = cpu_quota()
     opts.inter_op_num_threads = 1
     return opts
+
+def tune_openvino():
+    """Make every OpenVINO model compiled in this process use the container's CPU quota.
+
+    Same failure as torch and onnxruntime, and the third library in a row to have it: OpenVINO
+    sizes its thread pool from the host's core count and ignores the cgroup quota. Measured
+    inside a four-CPU container, raw inference of the pose model at input size 320:
+
+        default (host cores)  64.0 ms
+        threads = quota       26.3 ms      2.4x
+
+    Ultralytics builds its own `ov.Core` and hardcodes the compile config, so there is no
+    argument to pass and no Core of ours to configure -- hence patching `compile_model` itself.
+    It is narrow: it adds two keys and calls the original. Returns True if OpenVINO is present
+    and the patch is in place, False if it is not installed (the GPU image does not need it).
+
+    Setting CPU affinity instead was tried and is much worse: the container's quota is CFS time
+    across all cores, not a set of cores, so pinning to three of them puts the process in a
+    fight with everything else on the host. It measured 4.7 seconds per frame.
+    """
+    try:
+        import openvino as ov
+    except ImportError:
+        return False
+    if getattr(ov.Core.compile_model, '_quota_patched', False):
+        return True
+
+    original = ov.Core.compile_model
+    threads = cpu_quota()
+
+    def compile_model(self, model, device_name=None, config=None, **kwargs):
+        cfg = dict(config or {})
+        cfg.setdefault('INFERENCE_NUM_THREADS', threads)
+        cfg.setdefault('NUM_STREAMS', 1)
+        if device_name is None:
+            return original(self, model, config=cfg, **kwargs)
+        return original(self, model, device_name, cfg, **kwargs)
+
+    compile_model._quota_patched = True
+    ov.Core.compile_model = compile_model
+    return True
