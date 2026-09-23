@@ -50,6 +50,8 @@ import os
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, 'training'))
+from urfd_split import clip_index, in_half_a, in_half_b  # noqa: E402  -- the one definition of the split
 
 GROUPS = [
     ('urfd_fall', 'URFD — falls caught', True),
@@ -76,12 +78,6 @@ def load(path):
 def score(rows, group, want_alert, keep=None):
     keys = [k for k in rows if k[0] == group and (keep is None or keep(k[1]))]
     return sum(1 for k in keys if rows[k] == want_alert), len(keys)
-
-
-def clip_index(name):
-    """`fall-07-cam0-rgb.mp4` -> 7. URFD's split-half key."""
-    digits = ''.join(c if c.isdigit() else ' ' for c in name).split()
-    return int(digits[0]) if digits else 0
 
 
 def row(cells):
@@ -142,8 +138,8 @@ def split_half_section(cols):
            'even-numbered ones are falls out of a chair, so an odd/even split compares two',
            'different tasks rather than two samples of one.', '',
            row(['half'] + names), row(['---'] * (len(names) + 1))]
-    for label, keep in [('A — may choose on', lambda n: ((clip_index(n) - 1) // 2) % 2 == 0),
-                        ('B — confirms only', lambda n: ((clip_index(n) - 1) // 2) % 2 == 1)]:
+    for label, keep in [('A — may choose on', in_half_a),
+                        ('B — confirms only', in_half_b)]:
         for group, what, want in [('urfd_fall', 'falls caught', True),
                                   ('urfd_adl', 'clean', False)]:
             cells, n = [], 0

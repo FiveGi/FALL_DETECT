@@ -21,6 +21,8 @@ Every script writes into whatever `RESULTS_DIR` points at, defaulting to this di
 | `urfd_window_fill.py` | Which URFD clips a given (window, frame rate) can score *at all*. Runs the pose pass once per frame and answers every pair by arithmetic afterwards. |
 | `testclips_current.py` | The 17 `Test/` clips through the deployed profiles, with peak scores. |
 | `original_no_collapse.py` | The original detector with its "the person vanished" rule disabled, which is how SS66 showed that rule contributed nothing to its recall. |
+| `cache_pose_streams.py` | Runs the pose pass once per clip and stores the keypoints, keyed on the input size, frame rate and pose model they came from. |
+| `replay_classifiers.py` | Replays a cached stream through the real pipeline, so two classifiers can be compared on byte-identical pose input. Minutes instead of hours, and the pose pass cannot contribute a difference of its own. |
 
 ## The comparison scripts
 
@@ -40,11 +42,26 @@ Every script writes into whatever `RESULTS_DIR` points at, defaulting to this di
 | `recalc_excel.ps1` | Recalculates a workbook with Excel and reports formula errors. The xlsx skill ships a LibreOffice version that cannot run on Windows (`socket.AF_UNIX`). |
 | `export_sheet_png.ps1` | Screenshots a worksheet range through Excel, so a sheet's layout can be looked at rather than assumed. |
 
+## Comparing two classifiers
+
+`rule_sweep_perclip.py` stays the measurement of record for anything that changes the pose
+pass -- input size, pose checkpoint, confidence, frame rate. For a change that touches only the
+classifier, run the pose pass once and replay it:
+
+```
+V3_IMGSZ=320 TARGET_FPS=8 python cache_pose_streams.py
+TEST_MODEL_DIR=<dir with fall_classifier_v3.onnx> V3_IMGSZ=320 TARGET_FPS=8     OUT=perclip/candidate.json python replay_classifiers.py
+```
+
+The replay refuses to run against a cache built at a different input size, rate or pose model,
+because those change the keypoints and a replay cannot recover them.
+
 ## Two rules these exist to enforce
 
 **Say which frame rate.** The classifier's window is a fixed number of frames, so the same
 model scores very differently at different rates. A number without its rate means nothing here.
 
 **Choose on one half of URFD, confirm on the other.** The split takes sequences two at a time
-(`((index - 1) // 2) % 2`) — *not* odd and even, because URFD alternates its fall types by
-sequence number and an odd/even split compares two different tasks (SKILL.md SS60).
+— *not* odd and even, because URFD alternates its fall types by sequence number and an
+odd/even split compares two different tasks (SKILL.md SS60). `training/urfd_split.py` is the
+one place that implements it; it used to be three copies in two different spellings.

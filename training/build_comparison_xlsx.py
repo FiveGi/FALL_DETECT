@@ -17,6 +17,7 @@ to the clips it came from.
 """
 import json
 import os
+import sys
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -24,6 +25,9 @@ from openpyxl.utils import get_column_letter
 
 # Per-clip results live in the session scratchpad, which is not part of the repository --
 # RESULTS_DIR points at whatever holds them. The workbook they produce IS committed.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__))))
+from urfd_split import in_half_b  # noqa: E402  -- the one definition of the split
+
 HERE = os.environ.get('RESULTS_DIR', os.path.dirname(os.path.abspath(__file__)))
 OUT = os.environ.get('XLSX_OUT', os.path.join(
     r'D:\project\PROJECT\Backend-Elderly-Surveillance-main', 'docs',
@@ -401,9 +405,9 @@ try:
         f = sum(1 for k in _d if k[0] == 'urfd_fall' and _d[k])
         c = sum(1 for k in _d if k[0] in ('urfd_adl', 'val_adl') and not _d[k])
         fb = sum(1 for k in _d if k[0] == 'urfd_fall' and _d[k]
-                 and ((int(k[1].split('-')[1]) - 1) // 2) % 2 == 1)
+                 and in_half_b(k[1]))
         cb = sum(1 for k in _d if k[0] == 'urfd_adl' and not _d[k]
-                 and ((int(k[1].split('-')[1]) - 1) // 2) % 2 == 1)
+                 and in_half_b(k[1]))
         THR['gpu'][-1] = ('0.75', f, c, fb, cb)
 except Exception:
     pass
