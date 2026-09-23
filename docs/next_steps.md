@@ -99,8 +99,24 @@ straight into frame rate when something does.
 not be gated out — that is exactly the state an alert needs to keep reporting. Gate the pose
 pass only, never the state machine, and hold the last known state through gated frames.
 
-## 5. Re-tune the alert threshold for 8 fps
-**Gain: free accuracy, no new code. Effort: three hours of sweeps.**
+## 5. ~~Re-tune the alert threshold for 8 fps~~ — swept, and 0.65 stands
+**Done 2026-09-23 (SS71). Seven thresholds x two smoothing rules, CPU profile, three minutes.**
+
+The premise was sound — 0.65 was chosen at 15 fps on a GPU and the CPU profile runs at 8 fps —
+but it is measurably not wrong. On the half of URFD a decision may be made on, 0.65 and 0.70
+are identical and nothing beats them; 0.50 buys one fall for one clean clip, and on the
+confirming half 0.65 is a fall ahead of 0.70. **Leave it.**
+
+The sweep did find something else: **`2 of 3` smoothing is catastrophic at 8 fps** — URFD 45/60
+falls down to 13/60 — because two positives out of three at that rate means two of three
+consecutive quarter-seconds, and partial-window scoring makes the early windows of an incident
+the weakest ones. At this rate 1-of-3 is a requirement, not a preference.
+
+**Still open:** the same sweep for the GPU profile at 20 fps. The pose cache for it is half
+built (`training/measure/cache_pose_streams.py`, `V3_IMGSZ=960 TARGET_FPS=20`); finish it and
+the sweep is another three minutes.
+
+<details><summary>the original reasoning</summary>
 
 Threshold 0.65 was chosen at **15 fps on a GPU** (SS51). The CPU profile runs at 8 fps, where
 the score distribution is different — that is exactly why SS51 had to pick a new threshold when
@@ -109,6 +125,8 @@ so is the GPU profile now that it is at 20 fps. This is a loose end created by S
 
 Sweep 0.50 / 0.55 / 0.60 / 0.65 / 0.70 at each profile's rate and input size. Choose on half of
 URFD (**pairs of sequences, not odd/even** — SS60), confirm on the other half.
+
+</details>
 
 ## 6. ~~Finish the pose-model comparison~~ — done. yolo26s-pose stays
 **Done 2026-09-22 (SS68). Nothing beat it at matched cost.**
@@ -190,6 +208,17 @@ reads honestly in the UI — "they got up" is a fact, not a confidence.
 - ~~**RTSP recovery has never been tested.**~~ — tested, and it was broken: one failed read
   ended the loop permanently while the row stayed active. Fixed in `0281d0b` with a backoff
   reconnect, verified against a stream that was really taken away and given back (SS69).
+
+## Closed by measurement, so they are not tried again
+
+- **Averaging three training seeds (`V3_ENSEMBLE`) is a threshold shift wearing a disguise**
+  (SS71). Three seeds at 0.60 and one seed at 0.70 are the same detector to the clip on both
+  held-out axes, and the single model is a clip ahead on the half a choice may be made on.
+  Everything the ensemble buys, the threshold already buys for free — against three ONNX
+  sessions per window per tracked person. Not taken on accuracy grounds; the speed question
+  never had to be asked.
+
+---
 
 ## Open, with no obvious next move
 

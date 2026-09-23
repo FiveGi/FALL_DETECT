@@ -3872,3 +3872,79 @@ URFD, the dataset nothing here was ever tuned against: **93% of falls on the GPU
 75% on four CPU cores**, against 75% and 53% before. `tools/check_config_coherence.py` now keys
 its measured-configurations table on `PARTIAL_MIN` as well, because the same input size, window
 and frame rate score very differently with and without it.
+
+## 71. Replaying a cached pose stream, and three questions it answered in an afternoon
+
+The pose pass is essentially the whole cost of this pipeline -- tens of milliseconds a frame
+against 0.2 ms for the classifier. Every classifier comparison so far paid for the expensive
+half twice and *measured* it twice: `rule_sweep_perclip.py` takes hours over the 220-clip set,
+and two runs of the same pose model over the same video do not have to agree to the last
+keypoint, so a difference of one or two clips -- the size of most claimed gains here -- could
+be the pose pass rather than the thing being compared.
+
+`training/measure/cache_pose_streams.py` writes the keypoints out once, keyed on everything
+they depend on: input size, frame rate, pose checkpoint, confidence, tracker.
+`replay_classifiers.py` feeds that identical stream through the real pipeline -- the same hip
+tracker, the same per-person windows, the same partial-window padding, the same 1-of-3
+smoothing, the same "did this clip ever alert" rule. Only `extract_all_keypoints` is
+substituted.
+
+**Verified against what it replaces before anything was measured with it.** Replayed the
+deployed model at the CPU profile and compared clip by clip with the video sweep: **220 of 220
+clips agree**, and the totals land on the published 45/60 URFD falls and 41/56 held-out clean.
+**12 seconds against hours.** It refuses to run against a cache built at a different input
+size, rate or pose model, because those change the keypoints and a replay cannot recover them;
+`rule_sweep_perclip.py` remains the measurement of record whenever the pose pass itself changes.
+
+`training/urfd_split.py` is now the one place that knows how URFD is split in half. The rule
+lived in three copies in two spellings -- a digit scan and a split on `-`. They agreed, but
+nothing made them agree, and this is the rule that protects the only dataset here with any
+independence left. Checked against both old implementations on all 100 clips: no disagreement.
+
+### The alert threshold was never tuned for the CPU profile. It turns out not to need it.
+
+`docs/next_steps.md` item 5, estimated at three hours of sweeps, took three minutes. Fourteen
+configurations, deployed model, CPU profile (320 @ 8 fps), URFD split as always -- half A is
+what a choice may be made on, half B only confirms it.
+
+| threshold | A: falls | A: clean | B: falls | B: clean | URFD falls | held-out clean |
+|---|---|---|---|---|---|---|
+| 0.50 | 25/32 | 16/20 | 24/28 | 15/20 | 49/60 | 38/56 |
+| 0.55 | 24/32 | 16/20 | 24/28 | 15/20 | 48/60 | 38/56 |
+| 0.60 | 24/32 | 16/20 | 22/28 | 15/20 | 46/60 | 38/56 |
+| **0.65 (deployed)** | **24/32** | **17/20** | **21/28** | **16/20** | 45/60 | 41/56 |
+| 0.70 | 24/32 | 17/20 | 20/28 | 16/20 | 44/60 | 42/56 |
+| 0.75 | 22/32 | 17/20 | 19/28 | 16/20 | 41/60 | 42/56 |
+| 0.80 | 17/32 | 18/20 | 16/28 | 17/20 | 33/60 | 45/56 |
+
+On the half a decision may be made on, 0.65 and 0.70 are identical and nothing beats them:
+0.50 buys one fall for one clean clip. On the confirming half 0.65 is ahead of 0.70 by a fall.
+**The inherited value is the right one for this profile**, which is a result and not a
+non-event -- the premise of the item was that a threshold chosen at 15 fps on a GPU would be
+wrong at 8 fps on four cores, and it is measurably not.
+
+**What the same sweep did find: `2 of 3` smoothing is catastrophic at 8 fps.** At the deployed
+threshold it takes URFD recall from 45/60 to **13/60** while buying three held-out clean clips.
+Two positive windows out of three at 8 fps means two of three consecutive *quarter-seconds*,
+and with partial-window scoring the early windows of an incident are exactly the ones that are
+padded and weakest. The rule and the frame rate are not independent, and at this rate 1-of-3 is
+not a preference but a requirement.
+
+### Averaging three seeds is a threshold shift wearing a disguise
+
+`V3_ENSEMBLE` has sat in the code unused since SS49, on the argument that seed variance moves
+1-3 clips on every surface and averaging is the standard way to spend it rather than gamble.
+Measured now that it costs 12 seconds:
+
+| configuration | A: falls | A: clean | URFD falls | held-out clean | GMDCSA24 val clean |
+|---|---|---|---|---|---|
+| single seed, 0.65 (deployed) | 24/32 | 17/20 | 45/60 | 41/56 | 8/16 |
+| single seed, 0.70 | 24/32 | 17/20 | 44/60 | 42/56 | 9/16 |
+| **3 seeds averaged, 0.60** | 23/32 | 17/20 | **44/60** | **42/56** | 9/16 |
+| 3 seeds averaged, 0.65 | 23/32 | 18/20 | 42/60 | 44/56 | 10/16 |
+
+The ensemble at 0.60 and the single model at 0.70 are **the same detector to the clip** on both
+held-out axes, and the single model is one clip ahead on the choosing half. Everything the
+ensemble does, the threshold knob already does, for free -- against three ONNX sessions per
+window per tracked person, on the machine where the classifier's cost is not obviously
+negligible. **Not taken, on accuracy grounds alone**; the speed question never had to be asked.
