@@ -3227,7 +3227,7 @@ seconds of end card — out of the domain this system is for, rather than eviden
 `Test/README.md` records all of this so nobody investigates them a fourth time.
 
 Every verdict was read twice: contact sheets looked at directly, and Gemini on the intact clips
-(`scratchpad/gemini_verify_test_clips.py`). They agreed on all seven, including `Test/17`.
+(`training/measure/gemini_verify_test_clips.py`). They agreed on all seven, including `Test/17`.
 Gemini's free tier is 20 requests a day and that ran out afterwards, which is worth knowing
 before planning a verification round.
 
@@ -3263,7 +3263,7 @@ person in 14 of them, a window that needs 15; the clip ends first.
 | 30-frame @24fps | 1.25 s | 9/60 | 37/51 (73%) |
 
 So the original's 27/60 at 15 fps is not "it got 33 wrong" — it is "it could not score 24 of
-them at all". `scratchpad/urfd_window_fill.py` runs the pose pass over every frame once and
+them at all". `training/measure/urfd_window_fill.py` runs the pose pass over every frame once and
 answers this for any (window, rate) by arithmetic, without another GPU pass.
 
 ### The original, fed every frame, is better than anything deployed since — and cannot be fed every frame
@@ -3276,14 +3276,14 @@ Two explanations were tried and both are wrong:
 - **"It is the collapse rule."** The original reports a fall when the classifier was confident
   and person detection then drops to zero, and MediaPipe loses people once they are prone,
   which describes the end of nearly every URFD fall clip. Measured by disabling the rule and
-  re-running (`scratchpad/original/original_no_collapse.py`): URFD recall is **54/60 either
+  re-running (`training/measure/original_no_collapse.py`): URFD recall is **54/60 either
   way**. The rule contributed one extra false alarm and nothing else. The recall is the
   classifier.
 - **"It is alerting more freely."** At threshold 0.50 the deployed model has a *better* clean
   rate than the original (36/56 against 33/56) and still catches only 43/60.
 
 What settles it is speed — with one correction to how it was first measured here. In the same
-host process on the same 1080p frames (`scratchpad/bench_original_vs_deployed_speed.py`) the
+host process on the same 1080p frames (`training/measure/bench_original_vs_deployed_speed.py`) the
 original needs **70.3 ms/frame** against the deployed pipeline's **54.4 ms**: MediaPipe on the
 CPU is **1.3x slower** than YOLO26s-pose on the GPU. Those absolute figures were then written
 into the docs as deployment rates, and they are not. **The same deployed code inside its own
@@ -3320,7 +3320,7 @@ at 24 and 25 fps. Against the deployed 15-frame configuration at 15 fps:
 Its one win is `Test/13`, the single real fall the deployed configuration misses — and that
 clip is a poor witness. It is a **moving, zooming camera**, measured at 4.8 px/frame of
 background optical flow against 0.03 for the fixed-camera clips in the same set
-(`scratchpad/test_camera_motion.py`); the subject is a young adult, not an elderly person; and
+(`training/measure/test_camera_motion.py`); the subject is a young adult, not an elderly person; and
 he ends on hands and knees rather than on the ground. Nothing in this pipeline is built for a
 moving camera — every training clip is a fixed one and the features are torso-normalised.
 Seed variance alone moves one to three clips per surface, which is what caused the SS47
@@ -3337,7 +3337,7 @@ argument for a rollback.
 
 ### A lead worth following: 18 fps looks free
 
-Across every per-clip sweep in `scratchpad/perclip/`, the same model scores better fed 18 fps
+Across every per-clip sweep in `training/measure/perclip/`, the same model scores better fed 18 fps
 than 15 — the 15-frame model at threshold 0.50 reads 45/60 at 18 fps against 43/60 at 15, and
 with 2-of-3 smoothing 39/60 against 33/60, with clean rates equal or better. The deployed
 detector benchmarks at 18.4 fps of detector time, so the rate is plausibly available. This has
@@ -3510,7 +3510,7 @@ frames, 74%), which is external keypoints that neither backend produced and is i
 both arms. Re-extracting 3% of the data would not remove the mismatch; it would only make the
 claim harder to read.
 
-So the premise was measured instead (`scratchpad/diff_s_vs_n_pose.py`), both extractors over
+So the premise was measured instead (`training/measure/diff_s_vs_n_pose.py`), both extractors over
 the same frames of seven clips from URFD, GMDCSA24 and `Test/`:
 
 - they agree on **whether anybody is in the frame 95.5%** of the time
@@ -3523,7 +3523,7 @@ sees is nearly the same from either model, so the mismatch is not what cost n it
 **What did** is the other kind of disagreement. A frame where the pose model finds nobody is a
 zero row, not a slightly different elbow, and n produces more of them. Measured over whole
 evaluation clips at the input size each would deploy at for the same cost
-(`scratchpad/person_found_s_vs_n.py`):
+(`training/measure/person_found_s_vs_n.py`):
 
 | | URFD falls | GMDCSA24 falls |
 |---|---|---|
@@ -3586,7 +3586,7 @@ before the window holds enough frames with a person in them (SS60, SS62). The ru
 In a home this is not a dataset artefact: somebody walking into a room and falling within the
 first second is exactly the case the window cannot see. Padding a short window with its first
 observed frame, or scoring on a shorter prefix with a higher threshold, would cover it.
-`scratchpad/urfd_window_fill.py` already measures how many clips each variant would unlock.
+`training/measure/urfd_window_fill.py` already measures how many clips each variant would unlock.
 
 ### 4. A motion gate, for the CPU server and for running more than one camera
 
@@ -3805,7 +3805,7 @@ watched again without anyone pressing anything. A stop request is still honoured
 attempts.
 
 **Tested against a stream that could really be taken away**, since there is no ffmpeg in the
-image: a small MJPEG server (`scratchpad/mjpeg_server.py`) inside the worker container, a
+image: a small MJPEG server (`training/measure/mjpeg_server.py`) inside the worker container, a
 camera pointed at `http://celery_worker:8090/s` (no dot in the host, so the loop classifies it
 as a network stream rather than a file), detection confirmed running, then the server killed:
 

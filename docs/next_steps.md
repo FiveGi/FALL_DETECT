@@ -79,7 +79,7 @@ not a dataset artefact — somebody walking into a room and falling within the f
 exactly the case the window cannot see, and on a slower machine it gets worse, not better.
 
 Pad a short window with its first observed frame, or score a shorter prefix at a higher
-threshold. `scratchpad/urfd_window_fill.py` already measures how many clips each variant
+threshold. `training/measure/urfd_window_fill.py` already measures how many clips each variant
 unlocks at each rate. **This is the best accuracy-per-hour item on the list for CPU** and it
 costs nothing at runtime, because on a camera that is already running the window is full
 anyway — it only changes the first seconds after a person appears.
