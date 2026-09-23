@@ -13,13 +13,16 @@ import torch
 import torch.nn as nn
 
 NUM_LANDMARKS = 17  # unified COCO-17 keypoint set (see dataset.py)
-# 7 channels per joint with USE_HIP_MOTION, which appends the hip centre's own displacement;
-# see the flag's comment in dataset.py. Read from the environment rather than imported so
-# this module stays free of the training-only dataset code.
-# Values accepted by the flag are listed in dataset.py; anything other than "0"/unset
-# adds the two hip-motion channels.
+# 5 channels per joint by default: x, y, confidence, vx, vy. Two optional blocks of two add
+# to that -- USE_HIP_MOTION appends the hip centre's own displacement, USE_FRAME_POSITION
+# appends where the person is in the frame. Both are explained where they are defined, in
+# dataset.py. Read from the environment rather than imported so this module stays free of the
+# training-only dataset code; the two must agree, and tools/check_config_coherence.py checks
+# the result against the deployed ONNX's input shape.
 FEATURES_PER_FRAME = NUM_LANDMARKS * (
-    7 if os.environ.get("USE_HIP_MOTION", "0") in ("1", "dy") else 5)
+    5
+    + (2 if os.environ.get("USE_HIP_MOTION", "0") in ("1", "dy") else 0)
+    + (2 if os.environ.get("USE_FRAME_POSITION", "0") == "1" else 0))
 
 
 class FallClassifier(nn.Module):

@@ -103,9 +103,28 @@ def _smooth_keypoints(raw_window, kernel=SMOOTH_KERNEL):
     return smoothed
 
 
+# V3_FRAME_POSITION: feed the classifier where the person is in the frame, as two extra
+# channels per joint -- the hip centre's height and the apparent torso size, both before
+# normalisation removes them.
+#
+# It must match the classifier file. The two layouts differ only in the width of the
+# classifier's input, so a mismatch is not a crash but a silently wrong number; __init__
+# reads the width out of the ONNX and refuses to load a model that disagrees with this flag.
+# The training-side flag of the same purpose is USE_FRAME_POSITION in training/dataset.py,
+# where the reasoning is written out in full.
+FRAME_POSITION = os.environ.get("V3_FRAME_POSITION", "0") == "1"
+FEATURES_PER_FRAME = NUM_KEYPOINTS * (5 + (2 if FRAME_POSITION else 0))
+
+
 def _normalize_and_velocity(raw_window):
     """raw_window: (WINDOW_SIZE, 17, 3) raw [x, y, visibility] -> (WINDOW_SIZE, 17, 5)
-    [x, y, confidence, vx, vy], torso-relative and scale-normalized per frame."""
+    [x, y, confidence, vx, vy], torso-relative and scale-normalized per frame.
+
+    With FRAME_POSITION, (WINDOW_SIZE, 17, 7): the hip centre's height in the frame and the
+    apparent torso size are appended, repeated across every joint. They are read here, before
+    the hip-centring below throws them away -- which is the whole point, since a body lying on
+    a bed and a body lying on the floor are the same picture once centred.
+    """
     raw_window = _smooth_keypoints(raw_window)
     xy = raw_window[:, :, :2]
     vis = raw_window[:, :, 2:3]
@@ -118,7 +137,31 @@ def _normalize_and_velocity(raw_window):
     norm_seq = np.concatenate([xy_norm, vis], axis=-1)
 
     vel = np.diff(xy_norm, axis=0, prepend=xy_norm[:1])
-    return np.concatenate([norm_seq, vel], axis=-1)
+    out = np.concatenate([norm_seq, vel], axis=-1)
+    if FRAME_POSITION:
+        fp = np.stack([hip_center[:, 1], torso_size], axis=1)[:, None, :]   # (T, 1, 2)
+        out = np.concatenate([out, np.repeat(fp, out.shape[1], axis=1)], axis=-1)
+    return out
+
+
+def _check_feature_width(session, path):
+    """Refuse a classifier whose input width disagrees with V3_FRAME_POSITION.
+
+    The failure this prevents is silent. Both layouts are a (1, WINDOW_SIZE, N) float tensor
+    and onnxruntime will happily run the wrong N only if it happens to match -- but when the
+    flag and the file disagree, the width disagrees too, and the alternative to this check is
+    an exception from deep inside onnxruntime naming no cause. Worse, a future model trained
+    with hip motion instead would have the SAME width as this one and run without complaint,
+    so the message says which flag produced the expectation.
+    """
+    shape = session.get_inputs()[0].shape
+    width = shape[-1]
+    if isinstance(width, int) and width != FEATURES_PER_FRAME:
+        raise ValueError(
+            f"{os.path.basename(path)} takes {width} features per frame but "
+            f"V3_FRAME_POSITION={'1' if FRAME_POSITION else '0'} produces {FEATURES_PER_FRAME}"
+            f" ({NUM_KEYPOINTS} joints x {FEATURES_PER_FRAME // NUM_KEYPOINTS}). The flag and "
+            f"the model file have to be set together.")
 
 
 # Input resolution handed to YOLO-pose. Ultralytics' default is 640, which downsamples a
@@ -268,6 +311,7 @@ class V3PoseFallDetector:
         sess_opts = _ort_options()
         self.session = ort.InferenceSession(onnx_path, sess_options=sess_opts,
                                             providers=providers)
+        _check_feature_width(self.session, onnx_path)
 
         # V3_ENSEMBLE: comma-separated extra classifier files (paths, or bare names inside
         # model_dir) whose sigmoid outputs are averaged with the main one. Training the same
@@ -280,8 +324,9 @@ class V3PoseFallDetector:
         self.extra_sessions = []
         for name in filter(None, (n.strip() for n in os.environ.get("V3_ENSEMBLE", "").split(","))):
             path = name if os.path.isabs(name) or os.sep in name else os.path.join(model_dir, name)
-            self.extra_sessions.append(ort.InferenceSession(path, sess_options=sess_opts,
-                                                            providers=providers))
+            extra = ort.InferenceSession(path, sess_options=sess_opts, providers=providers)
+            _check_feature_width(extra, path)
+            self.extra_sessions.append(extra)
 
         # An OpenVINO export is a directory, and ultralytics cannot infer the task from one, so
         # it has to be told. OpenVINO is 1.3-1.5x faster than PyTorch on CPU for the identical

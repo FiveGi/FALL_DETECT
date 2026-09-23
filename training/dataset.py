@@ -71,7 +71,33 @@ TEMPORAL_STRIDE = int(os.environ.get("TEMPORAL_STRIDE", 2))   # train on every 2
 # chance of surviving that noise.
 HIP_MOTION = os.environ.get("USE_HIP_MOTION", "0")
 USE_HIP_MOTION = HIP_MOTION in ("1", "dy")
-FEAT_DIM = 7 if USE_HIP_MOTION else 5
+
+# USE_FRAME_POSITION: append where the person IS in the frame -- the hip centre's height and
+# the apparent torso size -- as two more channels.
+#
+# Why: normalize_sequence() subtracts the hip centre and divides by torso size every frame, so
+# the classifier cannot tell lying on a bed from lying on the floor. Both are a horizontal
+# body, and once centred they are the same picture. What separates them is height in the frame
+# (a bed is raised) and apparent scale (how far away the person is), and normalisation is
+# exactly what throws both away. Six of the seven GMDCSA24 val false alarms are beds, and they
+# have survived every decision rule tried on top of the classifier.
+#
+# Neither channel changes under a horizontal flip, so the flip augmentation needs no new case
+# for them -- the hip's *horizontal* position was deliberately left out, both for that reason
+# and because it carries no physical meaning, only room layout.
+#
+# THE RISK IS OVERFITTING, NOT SPEED. Absolute position lets the model memorise the four rooms
+# GMDCSA24 was filmed in rather than learn that beds are higher than floors. Train three seeds
+# and let URFD -- filmed somewhere else entirely -- decide: if URFD does not improve, it
+# learned the rooms.
+USE_FRAME_POSITION = os.environ.get("USE_FRAME_POSITION", "0") == "1"
+
+# Channel order is [x, y, conf, vx, vy] + [hip dx, hip dy] + [hip height, torso size], each
+# optional block appended only when its flag is on, so an index means the same thing whichever
+# combination is selected.
+FEAT_DIM = 5 + (2 if USE_HIP_MOTION else 0) + (2 if USE_FRAME_POSITION else 0)
+HIP_MOTION_AT = 5 if USE_HIP_MOTION else None
+FRAME_POSITION_AT = (7 if USE_HIP_MOTION else 5) if USE_FRAME_POSITION else None
 
 # Index to swap with for a left-right mirror flip (self-pairs for Nose, which has no
 # left/right counterpart). Used by flip_horizontal_window() below.
@@ -121,6 +147,20 @@ def hip_motion(raw_seq):
     return delta
 
 
+def frame_position(raw_seq):
+    """raw_seq: (T, 17, 3) raw keypoints normalised to the frame -> (T, 2).
+
+    Column 0 is the hip centre's height in the frame (0 at the top, 1 at the bottom) and
+    column 1 is the apparent torso size as a fraction of the frame. Both are read from the RAW
+    sequence, before normalize_sequence() removes them.
+    """
+    xy = raw_seq[:, :, :2]
+    hip_center = (xy[:, LEFT_HIP] + xy[:, RIGHT_HIP]) / 2.0
+    shoulder_center = (xy[:, LEFT_SHOULDER] + xy[:, RIGHT_SHOULDER]) / 2.0
+    torso = np.clip(np.linalg.norm(shoulder_center - hip_center, axis=1), 1e-3, None)
+    return np.stack([hip_center[:, 1], torso], axis=1)
+
+
 def add_velocity(norm_seq, raw_seq=None):
     """norm_seq: (T, 17, 3) torso-normalized [x, y, confidence].
     Returns (T, 17, 5): [x, y, confidence, vx, vy] where velocity is the frame-to-frame
@@ -139,6 +179,11 @@ def add_velocity(norm_seq, raw_seq=None):
             raise ValueError("USE_HIP_MOTION needs the raw sequence to measure hip movement")
         hm = hip_motion(raw_seq)[:, None, :]              # (T, 1, 2)
         out = np.concatenate([out, np.repeat(hm, out.shape[1], axis=1)], axis=-1)
+    if USE_FRAME_POSITION:
+        if raw_seq is None:
+            raise ValueError("USE_FRAME_POSITION needs the raw sequence for frame coordinates")
+        fp = frame_position(raw_seq)[:, None, :]          # (T, 1, 2)
+        out = np.concatenate([out, np.repeat(fp, out.shape[1], axis=1)], axis=-1)
     return out
 
 
@@ -253,8 +298,11 @@ def flip_horizontal_window(feat, num_keypoints=NUM_KEYPOINTS, feat_dim=None):
     seq = seq[:, FLIP_PAIRS, :]
     seq[:, :, 0] = -seq[:, :, 0]   # x
     seq[:, :, 3] = -seq[:, :, 3]   # vx
-    if feat_dim >= 7:
-        seq[:, :, 5] = -seq[:, :, 5]   # hip dx -- the body now travels the other way too
+    # Keyed off the flag rather than off feat_dim: with USE_FRAME_POSITION alone the feature
+    # dimension is also 7, but channel 5 is then the hip's HEIGHT, which a horizontal flip
+    # must leave alone. Negating it would have taught the model that beds are upside down.
+    if HIP_MOTION_AT is not None:
+        seq[:, :, HIP_MOTION_AT] = -seq[:, :, HIP_MOTION_AT]   # hip dx travels the other way
     return seq.reshape(T, -1)
 
 

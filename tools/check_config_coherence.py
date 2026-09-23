@@ -151,8 +151,14 @@ def main():
           v3.WINDOW_SIZE == frames, f'{v3.WINDOW_SIZE} vs {frames}')
     check('training window matches the deployed ONNX',
           ds.WINDOW_SIZE == frames, f'{ds.WINDOW_SIZE} vs {frames}')
-    check('feature count matches the deployed ONNX',
+    check('training feature count matches the deployed ONNX',
           md.FEATURES_PER_FRAME == features, f'{md.FEATURES_PER_FRAME} vs {features}')
+    # Three places have to agree on how wide a frame's feature vector is, and two of them are
+    # set by environment flags -- USE_FRAME_POSITION for training, V3_FRAME_POSITION for the
+    # runtime. Setting one and forgetting the other produces a model that loads and scores
+    # nonsense, so the third place, the deployed file itself, is the arbiter for both.
+    check('runtime feature count matches the deployed ONNX',
+          v3.FEATURES_PER_FRAME == features, f'{v3.FEATURES_PER_FRAME} vs {features}')
     train_seconds = ds.WINDOW_SIZE * ds.TEMPORAL_STRIDE / SOURCE_FPS
     for name in ('cpu', 'gpu'):
         imgsz, fps = profiles[name]
