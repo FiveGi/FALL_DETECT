@@ -23,6 +23,8 @@ Every script writes into whatever `RESULTS_DIR` points at, defaulting to this di
 | `original_no_collapse.py` | The original detector with its "the person vanished" rule disabled, which is how SS66 showed that rule contributed nothing to its recall. |
 | `cache_pose_streams.py` | Runs the pose pass once per clip and stores the keypoints, keyed on the input size, frame rate and pose model they came from. |
 | `replay_classifiers.py` | Replays a cached stream through the real pipeline, so two classifiers can be compared on byte-identical pose input. Minutes instead of hours, and the pose pass cannot contribute a difference of its own. |
+| `summarise_perclip.py` | Prints result files as a table with URFD kept split into the half a choice may be made on and the half that only confirms it. |
+| `pick_threshold.py` | Gives each classifier its own threshold, chosen on URFD half A, before comparing it with another. Two models at one fixed threshold are two operating points, not two detectors. |
 
 ## The comparison scripts
 
@@ -55,6 +57,12 @@ TEST_MODEL_DIR=<dir with fall_classifier_v3.onnx> V3_IMGSZ=320 TARGET_FPS=8     
 
 The replay refuses to run against a cache built at a different input size, rate or pose model,
 because those change the keypoints and a replay cannot recover them.
+
+Then compare them **each at its own threshold**, not at a shared one. Two models trained by the
+same recipe with different seeds sit at different places on the score axis, and at a fixed
+threshold the gap between them reads as nine URFD clips that vanish once each model is given
+its own operating point (SKILL.md SS72). `pick_threshold.py` does the choosing on half A and
+reports half B.
 
 ## Two rules these exist to enforce
 
