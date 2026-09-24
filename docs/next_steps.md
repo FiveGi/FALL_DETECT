@@ -19,6 +19,61 @@ Three measured facts frame everything (SKILL.md SS60, SS62, SS63):
 
 ---
 
+## Stopped mid-run, pick these up first
+
+Two measurements were interrupted rather than finished. Both resume; neither needs a decision
+first.
+
+### A. The frame-position A/B (item 8 below)
+**3 of 6 training runs done. About 35 minutes of GPU to finish, then 10 minutes to decide.**
+
+`USE_FRAME_POSITION` / `V3_FRAME_POSITION` are committed and **both default to off**, so the
+deployed detector is untouched. The feature construction is verified — training and runtime
+produce bit-identical windows, the flip augmentation leaves the two new channels alone, and a
+model that disagrees with the flag is refused rather than scored.
+
+Done: `fp0_seed42`, `fp0_seed7`, `fp0_seed123` (val F1 0.588 / 0.588 / 0.598).
+Left: the three `fp1` seeds, plus two control runs with `SKIP_POSE_DIRS=poses_fallvision`.
+
+```
+bash <scratchpad>/fp/train_all.sh        # skips runs whose ONNX already exists
+bash <scratchpad>/fp/train_controls.sh   # the COORD_SCALE control
+bash <scratchpad>/fp/sweep_all.sh        # threshold curve per model, ~12s each
+python training/measure/pick_threshold.py "baseline=...fp0*" "frame position=...fp1*"
+```
+
+**Decide with `pick_threshold.py`, never at a shared threshold.** Two models trained the same
+way sit at different places on the score axis, and at a fixed threshold that gap reads as nine
+URFD clips which vanish once each model is given its own operating point (SS72).
+
+The control matters: FallVision stores keypoints in pixels and is 58% of the training set, so
+`dataset.COORD_SCALE` divides it by 640. That 640 is measured from the coordinates rather than
+documented, and the arm trained without FallVision is what checks it. **If the two arms
+disagree about frame position, the scale is wrong, not the idea.**
+
+### B. Does preprocessing change an ALERT, or only the person-found rate?
+**Interrupted while re-caching. About 25 minutes, unattended.**
+
+`V3_PREPROCESS` is committed and off by default. Person-found is measured and small: +10 frames
+out of 7067 at the best setting. Whether that moves a single alert is the number that decides
+whether the setting is worth anything, and it is not measured yet.
+
+```
+bash <scratchpad>/fp/preprocess_alerts.sh
+```
+
+It re-caches both settings because `cache_pose_streams.py` now keys the cache on the
+preprocessing setting — the old caches predate that and are orphaned by design, since a replay
+answering from a cache built with a different setting would never say so.
+
+**Expected result: no change at all.** Say so plainly if that is what comes out; +10 frames on
+ADL clips almost certainly cannot flip a clip's alert, and a null result here is the finding,
+not a failure.
+
+---
+
+---
+
 ## 0. Before trusting any number here: measure on the server itself
 **Effort: two hours. Gain: none directly — but without it every figure below is provisional.**
 
@@ -190,6 +245,72 @@ The tier keys off escalation rather than the score (SS53), but nothing uses the 
 evidence available: the pipeline tracks people across frames, so it knows whether the person who
 triggered an alert is upright again thirty seconds later. That is how a human judges it, and it
 reads honestly in the UI — "they got up" is a fact, not a confidence.
+
+
+## 10. Is the alert TIER right, and where exactly does it go wrong?
+**Gain: the honest answer to "does it cry wolf". Effort: two days, most of it ground truth.**
+
+`alert_tier()` returns `check` for every fresh alert and `confirmed` only once nobody
+acknowledged it. That was deliberate — the highest-scoring alert in the whole corpus, 0.96, is
+a man getting up from a bed, so the score cannot assert a fall (SS53). But nothing has measured
+the tier as a *classifier*: of the alerts that say "please check", how many were real, and of
+the real falls, how many never reached the urgent wording because somebody acknowledged a
+different alert first.
+
+What is needed that does not exist yet: per-alert ground truth at the instant the alert fires,
+not per clip. `training/measure_alert_tier.py` already emits one row per rising edge with its
+score — the missing half is a label on each of those rows, and the frame it fired on, so a
+wrong tier can be looked at rather than counted.
+
+Report it as a confusion matrix over tiers, plus the frames of every disagreement.
+
+## 11. Cut the compilations into single incidents
+**Gain: turns 12 unscoreable clips into a real test set. Effort: two days.**
+
+`Test/1`-`12` hold several incidents each with no per-incident ground truth, so today they are
+counted and never scored — `test_result/README.md` says so, and reporting them as accuracy
+would be inventing a denominator. Cutting them into one-incident clips with a start and end
+time, and labelling each as fall / not-fall, makes them scoreable and roughly triples the
+amount of real (non-lab) footage this project can measure against.
+
+Method, agreed: **all of them** — Gemini reads each clip first, then every proposed boundary is
+checked by eye on rendered frames before it becomes ground truth. Gemini's free tier is 20
+requests a day, so this spans several days or needs a paid key.
+
+Then re-run the comparison against the MediaPipe original on the cut clips, which is the
+number worth presenting.
+
+## 12. Choose the model and the preprocessing from the web UI
+**Gain: the settings stop being an SSH job. Effort: a day.**
+
+`V3_POSE_MODEL`, `V3_IMGSZ`, `V3_PREPROCESS` and `V3_THRESHOLD` are environment variables read
+at import, so changing one means editing `.env` and restarting a container. They belong on the
+camera or system settings page.
+
+**The hard part is not the form.** These values are not free choices: input size and frame rate
+are one decision on CPU, the threshold is not independent of the window or the rate, and
+`tools/check_config_coherence.py` exists because a combination that was never measured end to
+end is a detector nobody has tested. A UI that lets someone pick any combination silently
+un-measures the system. Offer named profiles that are each measured — "GPU", "CPU server",
+"CPU server, dark room" — rather than free-form knobs, and show what each one scored.
+
+## 13. LINE alerts into a group
+**Gain: the family sees it, not one person. Effort: half a day.**
+
+Most of this already exists: `LineSettings` stores a per-user channel token and target, the
+web UI has the form, the toggle is off by default and the test button refuses to fire while it
+is off. What is missing is the group:
+
+- the target field is labelled `LINE User ID` and the UI tells the user to add the bot as a
+  friend; a group needs the group ID, which begins with `C`.
+- `line_webhook` only handles `postback` events, so when the bot is added to a group the group
+  ID is never captured. Handle `join` and store it, which is the only way a user can get that
+  ID without reading raw webhook logs.
+- the push target is a single value; sending to a person *and* a group means a list.
+
+**Do not send a real message while building this.** The toggle exists so that switching it on
+is a deliberate act, and a test push lands on somebody's actual phone.
+
 
 ---
 
