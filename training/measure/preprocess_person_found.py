@@ -64,7 +64,7 @@ def clips():
 def measure(mod, det, path, rgb_half):
     """-> (frames read, frames with a person, mean luminance of the frames as read)."""
     cap = cv2.VideoCapture(path)
-    seen, total, lums, i = 0, 0, [], 0
+    seen, total, touched, lums, i = 0, 0, 0, [], 0
     while True:
         ok, frame = cap.read()
         if not ok:
@@ -75,13 +75,19 @@ def measure(mod, det, path, rgb_half):
         if rgb_half:
             frame = frame[:, frame.shape[1] // 2:]
         lums.append(mod.frame_luminance(frame))
+        # How many frames the setting actually altered. Without this the "lit clips must be
+        # identical" control cannot be read: the darkness gate is per FRAME and the grouping is
+        # by clip MEAN, so a clip averaging 100 can still contain frames below the threshold,
+        # and a difference in the lit row could mean either that or a broken gate.
+        if mod.preprocess_frame(frame)[1]:
+            touched += 1
         # extract_all_keypoints applies the preprocessing itself, which is the point: this
         # measures the real entry point, not a reimplementation of it.
         total += 1
         if det.extract_all_keypoints(frame):
             seen += 1
     cap.release()
-    return total, seen, float(np.mean(lums)) if lums else 0.0
+    return total, seen, touched, float(np.mean(lums)) if lums else 0.0
 
 
 def main():
@@ -100,8 +106,9 @@ def main():
             key = '%s/%s' % (group, os.path.basename(path))
             if key in row:
                 continue
-            total, seen, lum = measure(mod, det, path, rgb_half)
-            row[key] = {'frames': total, 'person_found': seen, 'luminance': round(lum, 1)}
+            total, seen, touched, lum = measure(mod, det, path, rgb_half)
+            row[key] = {'frames': total, 'person_found': seen, 'touched': touched,
+                        'luminance': round(lum, 1)}
             results[setting] = row
             with open(OUT, 'w', encoding='utf-8') as fh:
                 json.dump(results, fh, indent=1)
@@ -131,7 +138,9 @@ def report(results):
         for s in settings:
             found = sum(results[s][k]['person_found'] for k in ks if k in results[s])
             total = sum(results[s][k]['frames'] for k in ks if k in results[s])
-            cells.append('%-18s' % ('%d/%d  %.1f%%' % (found, total, 100.0 * found / max(total, 1))))
+            hit = sum(results[s][k].get('touched', 0) for k in ks if k in results[s])
+            cells.append('%-22s' % ('%d/%d %.1f%% (%d altered)'
+                                    % (found, total, 100.0 * found / max(total, 1), hit)))
         print('%-26s %6d | %s' % (label, len(ks), '  '.join(cells)))
     print()
     print('per clip, dark clips only:')

@@ -269,10 +269,18 @@ def _clahe():
 
 
 def _gamma_lut():
+    """out = (in/255) ** gamma, so gamma < 1 LIFTS shadows.
+
+    Not ** (1/gamma), which is the form in most OpenCV snippets and expects gamma > 1 to
+    brighten. Written that way with this default it took a mean luminance of 27 down to 8 --
+    the first version of this shipped that, and because CLAHE runs first and brightens, the two
+    cancelled and the whole setting measured as doing nothing at all on the dark clips. The
+    exponent and the default have to agree about which direction "gamma" means.
+    """
     global _GAMMA_LUT
     if _GAMMA_LUT is None:
-        inv = 1.0 / max(PREPROCESS_GAMMA, 1e-3)
-        _GAMMA_LUT = np.array([((i / 255.0) ** inv) * 255 for i in range(256)], dtype=np.uint8)
+        g = max(PREPROCESS_GAMMA, 1e-3)
+        _GAMMA_LUT = np.array([((i / 255.0) ** g) * 255 for i in range(256)], dtype=np.uint8)
     return _GAMMA_LUT
 
 
