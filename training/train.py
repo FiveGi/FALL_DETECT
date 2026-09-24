@@ -48,6 +48,17 @@ if os.environ.get("USE_OMNIFALL_ADL") == "1":
 # URFD recall remains a clean measurement.
 if os.environ.get("USE_URFD_ADL") == "1":
     POSE_DIRS.append(os.path.join(os.path.dirname(__file__), "data", "poses_urfd_adl_train"))
+# SKIP_POSE_DIRS: comma-separated directory names to drop from POSE_DIRS. It exists for one
+# control in particular: USE_FRAME_POSITION reads raw frame coordinates, and FallVision -- 58%
+# of the videos -- stores them in pixels, so dataset.COORD_SCALE has to put it in the same
+# space as everything else. That scale is measured rather than documented, so the arm that
+# checks it is one trained with `SKIP_POSE_DIRS=poses_fallvision`, where no scale is applied
+# because the data is not there. If the two arms disagree, the scale is wrong.
+_skip = {n.strip() for n in os.environ.get("SKIP_POSE_DIRS", "").split(",") if n.strip()}
+if _skip:
+    POSE_DIRS = [d for d in POSE_DIRS if os.path.basename(d) not in _skip]
+    print(f"SKIP_POSE_DIRS dropped {sorted(_skip)}; {len(POSE_DIRS)} pose directories left")
+
 CKPT_PATH = os.environ.get(
     "CKPT_PATH", os.path.join(os.path.dirname(__file__), "data", "best_model.pt")
 )

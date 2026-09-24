@@ -104,6 +104,34 @@ FRAME_POSITION_AT = (7 if USE_HIP_MOTION else 5) if USE_FRAME_POSITION else None
 FLIP_PAIRS = [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15]
 
 
+# COORD_SCALE: the coordinate space the stored keypoints are in, by pose directory.
+#
+# Everything here except FallVision stores x and y already normalised to [0,1] of the frame,
+# because extract_poses.py and yolopose_extractor.py divide by the frame size on the way out.
+# FallVision ships pre-extracted keypoint CSVs in PIXELS and parse_fallvision.py copies them
+# through unchanged -- and it is 5845 of the 10102 training videos, 58% of the set.
+#
+# **This never mattered before.** normalize_sequence() divides by a torso size measured in the
+# same units, so any uniform scale cancels exactly and all five original channels are identical
+# either way. USE_FRAME_POSITION is the first thing that reads a raw coordinate for its own
+# sake, and unscaled it would hand the classifier a hip height around 200 for FallVision and
+# around 0.5 for everything else: a dataset-identity flag with four hundred times the magnitude
+# of the signal it is supposed to carry, and a value the runtime can never produce.
+#
+# 640 is measured, not taken from the dataset's documentation, which does not state it:
+#   - over 2.4M detected keypoints, 99.6% of x and 99.99% of y land inside [0, 640], and what
+#     lies outside is the small negative and over-range excursion a pose model extrapolates.
+#   - the space is square rather than letterboxed: 35% of y values fall outside the [140, 500]
+#     band that a 16:9 image would occupy inside a 640x640 letterbox.
+#   - dividing by it puts FallVision's torso size on top of every other directory's -- median
+#     0.111 against 0.113-0.156 elsewhere -- and torso size as a fraction of frame width is a
+#     physical quantity that should agree across datasets framed similarly.
+#
+# The control that keeps this honest: train one arm with FallVision dropped entirely
+# (`SKIP_POSE_DIRS=poses_fallvision`). If the scale were wrong, the two would disagree.
+COORD_SCALE = {"poses_fallvision": 640.0}
+
+
 def to_coco17(raw_seq):
     """raw_seq: (T, 33, 3) MediaPipe or (T, 17, 3) already-COCO17 -> (T, 17, 3) COCO17."""
     if raw_seq.shape[1] == NUM_KEYPOINTS:
@@ -213,9 +241,15 @@ def load_all_videos(pose_dirs):
 
     videos = []
     for pose_dir in pose_dirs:
+        scale = COORD_SCALE.get(os.path.basename(os.path.normpath(pose_dir)))
         for path in sorted(glob.glob(os.path.join(pose_dir, "*.npz"))):
             data = np.load(path, allow_pickle=True)
             raw = to_coco17(data["keypoints"].astype(np.float32))
+            if scale:
+                # Into the same [0,1]-of-the-frame space every other directory is already in,
+                # and the space the runtime feeds. See COORD_SCALE above.
+                raw = raw.copy()
+                raw[:, :, :2] /= scale
             if TEMPORAL_STRIDE > 1:
                 # Before velocity: vx/vy must be the delta between two frames the runtime
                 # actually sees in sequence, not between two 30fps neighbours.
