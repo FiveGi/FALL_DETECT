@@ -51,6 +51,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'training'))
+import test_clips  # noqa: E402
 from urfd_split import clip_index, in_half_a, in_half_b  # noqa: E402  -- the one definition of the split
 
 GROUPS = [
@@ -60,14 +61,12 @@ GROUPS = [
     ('gmdcsa_fall', 'GMDCSA24 — falls caught (mostly training clips)', True),
     ('train50_adl', 'GMDCSA24 train50 — normal clips clean (training clips)', False),
 ]
-# Test/13-16 each contain exactly one real fall; Test/17 contains none. It sat in the "real
-# elderly falls" group for days as a clip every configuration missed, which made the deployed
-# detector look worse than it is and made a 4/5 configuration look better. Watching it settles
-# it: it is a crowd of people doing an outdoor exercise routine, filmed from across a
-# courtyard, with a lot of deep-squat motion and nobody falling. Gemini reads it the same way.
-REAL = ['Test/%d.mp4' % n for n in range(13, 17)]
-NEGATIVE = ['Test/17.mp4']
-COMPILATION = ['Test/%d.mp4' % n for n in range(1, 13)]
+# What each Test/ clip contains, and therefore how it is scored, lives in
+# training/test_clips.py -- one definition, shared with training/measure/testclips_current.py,
+# which writes test_result/. Test/17 sat in the "real elderly falls" group for days as a clip
+# every configuration missed, and having that classification in two places is how it stayed
+# wrong in one of them.
+REAL, NEGATIVE, COMPILATION = test_clips.REAL, test_clips.NEGATIVE, test_clips.COMPILATION
 
 
 def load(path):
