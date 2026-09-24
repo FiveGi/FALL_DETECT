@@ -40,10 +40,17 @@ DARK_BELOW = float(os.environ.get('DARK_BELOW', 70))
 
 
 def load_detector(setting):
-    """A fresh module per setting: V3_PREPROCESS is read at import, like every other knob."""
-    os.environ['V3_PREPROCESS'] = setting
+    """A fresh module per setting: V3_PREPROCESS is read at import, like every other knob.
+
+    "auto@40" runs auto with V3_PREPROCESS_DARK_BELOW=40. The threshold is the setting's most
+    important parameter -- the first measurement showed it helping below 30 and hurting
+    between there and 70 -- so it has to be sweepable without editing anything.
+    """
+    name, _, dark_below = setting.partition('@')
+    os.environ['V3_PREPROCESS'] = name
+    os.environ['V3_PREPROCESS_DARK_BELOW'] = dark_below or str(DARK_BELOW)
     spec = importlib.util.spec_from_file_location(
-        'v3_%s' % setting.replace(',', '_'),
+        'v3_%s' % setting.replace(',', '_').replace('@', '_'),
         os.path.join(ROOT, 'app/detection/v3_fall_detection.py'))
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)

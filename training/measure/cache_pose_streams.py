@@ -69,6 +69,11 @@ def cache_key():
         'tracker': v3.TRACKER,
         'num_poses': v3.NUM_POSES,
         'fps': FPS,
+        # V3_PREPROCESS alters the frame before the pose model sees it, so it changes the
+        # keypoints as surely as the input size does. Without it in the key, a replay would
+        # answer for a cache built with a different setting and never say so.
+        'preprocess': list(v3.PREPROCESS),
+        'dark_below': v3.PREPROCESS_DARK_BELOW,
     }
 
 

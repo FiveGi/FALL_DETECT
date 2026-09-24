@@ -247,9 +247,29 @@ POSE_CONF = float(os.environ.get("V3_POSE_CONF", 0.3))
 # a capability the data cannot score, stated as such rather than dressed up as an accuracy win.
 PREPROCESS = [p.strip() for p in os.environ.get("V3_PREPROCESS", "off").split(",") if p.strip()]
 # Below this mean luminance (0-255) "auto" considers a frame dark enough to be worth altering.
-# 70 is where the URFD ADL clips separate: twelve sit below it, the rest of the corpus sits at
-# 100+, and the darkest fall clip anywhere is 76.
-PREPROCESS_DARK_BELOW = float(os.environ.get("V3_PREPROCESS_DARK_BELOW", 70))
+#
+# 32, measured, not the 70 this started at. The threshold is the setting's most important
+# parameter and the first value was measurably WORSE THAN DOING NOTHING. Person-found over
+# 7067 frames of 57 clips (training/measure/preprocess_person_found.py):
+#
+#     setting            dark 931 frames   lit 6136 frames   total
+#     off                543 (58.3%)       4236 (69.0%)      4779
+#     auto, below 70     561 (+18)         4214 (-22)        4775   (-4, worse than off)
+#     auto, below 40     553 (+10)         4234  (-2)        4787
+#     auto, below 32     553 (+10)         4236  (+-0)       4789
+#     clahe, always      564 (+21)         4195 (-41)        4759   (-20, worst)
+#
+# The pattern is consistent and it is the whole finding: **enhancing a frame that was already
+# light enough costs more than it earns.** "clahe always" gains the most on dark frames of any
+# setting and still comes out twenty frames behind doing nothing. At 32 the lit clips come back
+# bit-identical, so whatever the setting does, it does it only where it was meant to.
+#
+# HOW BIG THE WIN ACTUALLY IS: +10 frames out of 7067, which is 0.14%. On the twelve genuinely
+# dark URFD clips it is 63.0% -> 64.3% person-found, eight clips better and four worse. That is
+# small, and it is why this stays off by default: on the footage available it cannot be shown
+# to change a single alert. It is kept because a real bedroom at night is darker than anything
+# in this corpus, and at 32 it is provably harmless to everything else.
+PREPROCESS_DARK_BELOW = float(os.environ.get("V3_PREPROCESS_DARK_BELOW", 32))
 PREPROCESS_GAMMA = float(os.environ.get("V3_PREPROCESS_GAMMA", 0.65))
 PREPROCESS_CLIP_LIMIT = float(os.environ.get("V3_PREPROCESS_CLIP_LIMIT", 2.0))
 PREPROCESS_TILE = int(os.environ.get("V3_PREPROCESS_TILE", 8))
