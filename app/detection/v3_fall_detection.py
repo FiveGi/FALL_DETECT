@@ -211,6 +211,120 @@ TRACKER = os.environ.get("V3_TRACKER", "hip")
 POSE_CONF = float(os.environ.get("V3_POSE_CONF", 0.3))
 
 
+# V3_PREPROCESS: clean up the frame before the pose model sees it. Comma-separated, applied in
+# the order given. **Default "off", and it stays off until it is measured**: every accuracy
+# number published for this detector was measured without it, and a default that alters frames
+# would quietly make those numbers describe a detector nobody measured. check_config_coherence
+# cannot catch that, so the default is the guard.
+#
+#   off        hand the frame through untouched.
+#   clahe      CLAHE on the L channel of LAB -- local contrast, which is what a backlit or
+#              dim room actually lacks. Global histogram equalisation was not used: it drags
+#              the whole frame and wrecks a well-exposed background to fix a dark subject.
+#   gamma      gamma < 1 lifts the shadows without clipping the highlights, unlike adding a
+#              constant.
+#   auto       clahe + gamma, but ONLY on a frame whose mean luminance is below
+#              PREPROCESS_DARK_BELOW. A well-exposed frame is passed through untouched.
+#
+# WHY "auto" RATHER THAN PLAIN "clahe" WHEN IT IS TURNED ON. Nothing in training/ was preprocessed, so
+# altering a frame the pose model would have handled fine is a train/inference mismatch with
+# nothing to show for it -- the same kind of mismatch _smooth_keypoints is, except that one was
+# measured to earn its place. Gating on measured darkness means the mismatch only exists on
+# frames the model was going to struggle with anyway.
+#
+# WHAT THE AVAILABLE DATA CAN AND CANNOT SAY ABOUT THIS. Mean luminance across every clip here
+# (scratchpad brightness survey, 12 frames per clip):
+#
+#     URFD falls    60 clips   min 76    median 104    0 clips below 70
+#     URFD ADL      40 clips   min 28    median 117   12 clips below 70
+#     GMDCSA24      95 clips   min 108   median 123    0 clips below 70
+#     Test/         17 clips   min 62    median 101    1 clip  below 70
+#
+# **No fall clip in any dataset here is dark.** So this cannot improve fall recall on the
+# available data, and any claim that it does would be noise. The only measurable upside is
+# false alarms on the twelve dark URFD ADL clips. It is in the pipeline because the deployment
+# target is an elderly person's home at night, which is darker than anything in this corpus --
+# a capability the data cannot score, stated as such rather than dressed up as an accuracy win.
+PREPROCESS = [p.strip() for p in os.environ.get("V3_PREPROCESS", "off").split(",") if p.strip()]
+# Below this mean luminance (0-255) "auto" considers a frame dark enough to be worth altering.
+# 70 is where the URFD ADL clips separate: twelve sit below it, the rest of the corpus sits at
+# 100+, and the darkest fall clip anywhere is 76.
+PREPROCESS_DARK_BELOW = float(os.environ.get("V3_PREPROCESS_DARK_BELOW", 70))
+PREPROCESS_GAMMA = float(os.environ.get("V3_PREPROCESS_GAMMA", 0.65))
+PREPROCESS_CLIP_LIMIT = float(os.environ.get("V3_PREPROCESS_CLIP_LIMIT", 2.0))
+PREPROCESS_TILE = int(os.environ.get("V3_PREPROCESS_TILE", 8))
+
+# Built once: cv2.createCLAHE allocates, and this runs on every frame of every camera.
+_CLAHE = None
+# 256-entry lookup table, so gamma costs one cv2.LUT instead of a pow over every pixel.
+_GAMMA_LUT = None
+
+
+def _clahe():
+    global _CLAHE
+    if _CLAHE is None:
+        _CLAHE = cv2.createCLAHE(clipLimit=PREPROCESS_CLIP_LIMIT,
+                                 tileGridSize=(PREPROCESS_TILE, PREPROCESS_TILE))
+    return _CLAHE
+
+
+def _gamma_lut():
+    global _GAMMA_LUT
+    if _GAMMA_LUT is None:
+        inv = 1.0 / max(PREPROCESS_GAMMA, 1e-3)
+        _GAMMA_LUT = np.array([((i / 255.0) ** inv) * 255 for i in range(256)], dtype=np.uint8)
+    return _GAMMA_LUT
+
+
+def _apply_clahe(frame_bgr):
+    """Local contrast on luminance only, so colour is left alone."""
+    lab = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2LAB)
+    lab[:, :, 0] = _clahe().apply(lab[:, :, 0])
+    return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+
+
+def frame_luminance(frame_bgr, step=8):
+    """Mean luminance 0-255, read from every 8th pixel in each direction.
+
+    The full-frame version costs 2.5 ms at 1080p and runs on every frame of every camera even
+    when nothing is going to be done with the answer. Every 8th pixel is 1/64 of the work and
+    the two agree to well under a digit on a real frame -- this decides a threshold at 70
+    against a corpus sitting at 27 or 100+, so a fraction of a level cannot change the answer.
+    """
+    small = frame_bgr[::step, ::step]
+    # BGR to luma with the same weights cv2.COLOR_BGR2GRAY uses, without allocating a
+    # converted copy of the frame.
+    return float(small[:, :, 0].mean() * 0.114
+                 + small[:, :, 1].mean() * 0.587
+                 + small[:, :, 2].mean() * 0.299)
+
+
+def preprocess_frame(frame_bgr):
+    """-> (frame, what_was_applied). The frame is returned unchanged when nothing applies.
+
+    Every entry point that hands a frame to the pose model goes through here, so a setting
+    cannot end up applied to detection but not to people-counting.
+    """
+    if not PREPROCESS or PREPROCESS == ["off"]:
+        return frame_bgr, ()
+    ops = PREPROCESS
+    if "auto" in ops:
+        if frame_luminance(frame_bgr) >= PREPROCESS_DARK_BELOW:
+            return frame_bgr, ()
+        ops = [o for o in ops if o != "auto"] + ["clahe", "gamma"]
+    applied = []
+    out = frame_bgr
+    for op in ops:
+        if op == "clahe":
+            out = _apply_clahe(out)
+        elif op == "gamma":
+            out = cv2.LUT(out, _gamma_lut())
+        else:
+            continue
+        applied.append(op)
+    return out, tuple(applied)
+
+
 def _autodetect_device():
     try:
         import torch
@@ -373,6 +487,7 @@ class V3PoseFallDetector:
         """-> list of (kpts17 (17,3) [x, y, confidence], hip_center (2,)) for every
         person detected this frame, up to NUM_POSES, sorted by detection confidence
         (highest first). Empty list if nobody detected."""
+        frame_bgr, _ops = preprocess_frame(frame_bgr)   # V3_PREPROCESS; a no-op unless it is configured
         h, w = frame_bgr.shape[:2]
         result = self.pose_model.predict(frame_bgr, verbose=False, conf=POSE_CONF, classes=[0],
                                          device=self.device, imgsz=IMGSZ)[0]
@@ -413,6 +528,7 @@ class V3PoseFallDetector:
         Not capped to NUM_POSES: that cap exists to bound tracking work, and here a crowd of
         thirteen needs to read as "not one person", not as "NUM_POSES people".
         """
+        frame_bgr, _ops = preprocess_frame(frame_bgr)   # V3_PREPROCESS; a no-op unless it is configured
         result = self.pose_model.predict(
             frame_bgr, verbose=False, conf=POSE_CONF, classes=[0],
             device=self.device, imgsz=imgsz or COUNT_IMGSZ)[0]
@@ -429,6 +545,7 @@ class V3PoseFallDetector:
         frames of a new track) are skipped rather than given a synthetic id, so a person only
         enters a window once their identity is stable.
         """
+        frame_bgr, _ops = preprocess_frame(frame_bgr)   # V3_PREPROCESS; a no-op unless it is configured
         h, w = frame_bgr.shape[:2]
         result = self.pose_model.track(
             frame_bgr, persist=True, tracker="bytetrack.yaml", verbose=False,
