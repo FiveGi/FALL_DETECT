@@ -3948,3 +3948,79 @@ held-out axes, and the single model is one clip ahead on the choosing half. Ever
 ensemble does, the threshold knob already does, for free -- against three ONNX sessions per
 window per tracked person, on the machine where the classifier's cost is not obviously
 negligible. **Not taken, on accuracy grounds alone**; the speed question never had to be asked.
+
+
+## 72. Frame position: a sound hypothesis, measured properly, and wrong
+
+`_normalize_and_velocity` subtracts the hip centre and divides by torso size every frame, so
+the classifier **cannot** tell a body on a bed from a body on the floor: once centred they are
+the same picture. Six of the seven GMDCSA24 val false alarms are beds and they have survived
+every decision rule tried on top of the classifier. Height in the frame is what separates them
+and normalisation is exactly what removes it. `USE_FRAME_POSITION` adds it back as two channels
+per joint -- the hip centre's height and the apparent torso size -- read before normalisation.
+
+Hip *x* was deliberately excluded: it is the one of the three a horizontal flip changes, and it
+carries no physics, only room layout.
+
+### What had to be got right before any of it could be measured
+
+**FallVision stores keypoints in pixels, and it is 5845 of the 10102 training videos.** Caught
+by checking what the new channels actually contained in every pose directory rather than
+trusting the `.npz` convention: hip height ran 0 to 629 there and 0 to 1 everywhere else. It
+had never mattered, because `normalize_sequence` divides by a torso size in the same units so
+any uniform scale cancels exactly, and the labelling peak is an `argmax` so it does not move.
+`USE_FRAME_POSITION` is the first thing that reads a raw coordinate for its own sake, and
+unscaled it would have handed the model a dataset-identity flag with four hundred times the
+magnitude of the signal -- and returned "frame position does not help" for entirely the wrong
+reason. `dataset.COORD_SCALE` divides FallVision by 640, which is measured from the coordinates
+(99.6% of x and 99.99% of y inside [0,640]; not letterboxed, since 35% of y falls outside the
+band a 16:9 image would occupy; and dividing by it puts FallVision's torso size on top of every
+other directory's). Because 640 is inferred rather than documented, both arms were also trained
+with FallVision dropped entirely, as a control on the scale itself.
+
+**Two models trained by the same recipe do not sit at the same place on the score axis.** The
+deployed model catches 45/60 URFD falls at 0.65; the same recipe retrained with the same seed
+catches 36/60 at that threshold and 47/60 at its own 0.50, landing identically to the deployed
+model on the confirming half. Nine clips of apparent difference that were an operating point,
+against the "seed variance is 1-3 clips" this project had been working from. Every comparison
+below gives each model its own threshold, chosen on URFD half A by balanced accuracy and read
+on half B afterwards (`training/measure/pick_threshold.py`).
+
+The first sweep also had three of eight models peaking at an edge of its range, which is not a
+peak but a truncation; the range was widened to 0.15-0.85 before anything was concluded.
+
+### The result
+
+| view of URFD half B | baseline | frame position | |
+|---|---|---|---|
+| threshold chosen on half A | 1.452 | 1.502 | +0.050, against a within-arm spread of 0.20 |
+| best achievable | 1.564 | 1.552 | **-0.012** |
+| mean over every threshold | 1.444 | 1.417 | **-0.027** |
+
+Two of three views say worse, one says better by less than the spread between seeds within
+either arm. That is what no difference looks like.
+
+And on the specific hypothesis, at **matched URFD recall of 45/60**:
+
+| | baseline | frame position |
+|---|---|---|
+| GMDCSA24 val clean, the bed clips | **8.7/16** | 7.7/16 |
+| held-out clean | **39.3/56** | 34.7/56 |
+
+**Worse on exactly the failure it was built to fix.** The controls agree: with FallVision
+dropped from both arms, baseline reaches 1.650 on half B against 1.586.
+
+The pre-declared rule was that URFD decides and that no improvement there means it learned the
+rooms rather than the physics. It did not improve. Whether it memorised GMDCSA24's four rooms
+or simply added noise beside the 85 channels already present, the answer is the same and the
+idea is closed. The flags stay in the tree, off, so the next person does not spend a day
+finding this out again.
+
+### What survives it
+
+`dataset.COORD_SCALE`, which is a real bug fix for a file that will matter to any future
+feature reading raw coordinates. `pick_threshold.py` and the operating-point finding, which
+change how every model comparison here has to be read. And the feature-width guard, which
+refuses to load a classifier that disagrees with the flag instead of scoring nonsense -- tested
+by setting the flag against the 85-feature model and watching both it and
+`check_config_coherence.py` fail.

@@ -231,32 +231,67 @@ person present", which the fall loop already answers through `fall_state.seen_co
 on four cores: 6.9 fps without it against 6.1 with. On CPU, 12% of the frame rate is real
 recall.
 
-## 8. Let the classifier see where the person is in the frame
-**Gain: targets the dominant false-alarm mode. Effort: a retrain plus three seeds, a day.
-Runtime cost: about 0.007 ms per window against a 125 ms budget.**
+## 8. ~~Let the classifier see where the person is in the frame~~ — measured, and it does not help
+**Done 2026-09-26 (SS72). Six training runs plus two controls. The flags ship off.**
 
-Six of seven GMDCSA24 val false alarms are beds, and they have survived every decision rule
-tried. The cause is structural: `_normalize_and_velocity` subtracts the hip centre and divides
-by torso size, so **the model cannot distinguish lying on a bed from lying on the floor** —
-both are a horizontal body, identical once centred. Height in the frame is what separates them,
-and it is deliberately discarded.
+The reasoning was sound: `_normalize_and_velocity` subtracts the hip centre and divides by
+torso size, so a body on a bed and a body on the floor are the same picture, and height in the
+frame is exactly what normalisation throws away. Six of seven GMDCSA24 val false alarms are
+beds. Adding the hip's height and the apparent torso size back should have separated them.
 
-The stored `.npz` keypoints are normalised to [0,1] of the frame, so hip height, hip x and
-apparent torso size are **already in the training data**. A retrain, not a re-extraction —
-which matters, because the source videos for 97% of the training frames are gone (SS64).
+It does not. Three seeds each arm, each model given **its own threshold** (two models trained
+the same way sit at different points on the score axis, so a shared threshold compares
+operating points rather than detectors — SS72):
 
-**The risk is overfitting, not speed.** Absolute position lets the model memorise the four rooms
-GMDCSA24 was filmed in. Three seeds, and URFD decides: if URFD does not improve, it learned the
-rooms rather than the physics.
+| view of URFD half B | baseline | frame position | |
+|---|---|---|---|
+| threshold chosen on half A | 1.452 | 1.502 | +0.050, inside a within-arm spread of 0.20 |
+| best achievable | 1.564 | 1.552 | **−0.012** |
+| mean over every threshold | 1.444 | 1.417 | **−0.027** |
 
-## 9. Cancel an alert when the person gets up
-**Gain: fewer false alarms, no model change, no runtime cost. Effort: half a day.**
+And on the thing it was actually built for, compared at **matched URFD recall of 45/60**, which
+is the only fair way to ask:
 
-The tier keys off escalation rather than the score (SS53), but nothing uses the strongest
-evidence available: the pipeline tracks people across frames, so it knows whether the person who
-triggered an alert is upright again thirty seconds later. That is how a human judges it, and it
-reads honestly in the UI — "they got up" is a fact, not a confidence.
+| at 45/60 URFD falls | baseline | frame position |
+|---|---|---|
+| GMDCSA24 val clean (the bed clips) | **8.7/16** | 7.7/16 |
+| held-out clean | **39.3/56** | 34.7/56 |
 
+**Worse on exactly the failure it was meant to fix.** The control arms, trained with FallVision
+dropped from both sides, agree: baseline 1.650 against 1.586.
+
+Whether it memorised the four rooms GMDCSA24 was filmed in or simply added noise next to the
+85 channels that were already there, the answer to "does this help" is no, and the pre-declared
+rule was that URFD decides. `USE_FRAME_POSITION` and `V3_FRAME_POSITION` stay in the tree, off,
+so nobody spends another day finding this out again.
+
+**Two things worth keeping came out of it.** FallVision stores keypoints in pixels and is 58%
+of the training set, which had never mattered because every existing channel is scale
+invariant — `dataset.COORD_SCALE` fixes that for good. And `pick_threshold.py`, which exists
+because the first comparison read nine URFD clips of difference that turned out to be an
+operating point.
+
+## 9. Escalate when the person is STILL down — never cancel when they get up
+**Direction corrected by measurement 2026-09-26. The detector already counts it; nothing acts on it yet.**
+
+The original idea was to cancel an alert once the person who triggered it is upright again.
+Measured on the cached pose stream, the signal separates — 6% of real falls against 50% of
+false alarms get back up — but **six per cent of real falls cancelled is not a trade this
+system can make**, and it would be made silently by a rule nobody sees.
+
+The same signal the other way round costs nothing and asserts nothing false: **still on the
+floor ten seconds later** holds for 94% of real falls and half the false alarms, and it can
+only ever raise urgency. That is the footing the tier already stands on — escalate because
+nobody answered, not because the model was confident.
+
+Also learned, and it bounds what this can ever do: only five of URFD's forty-five alerting fall
+clips run sixteen scored frames past the alert, and **zero** of the ceiling-camera ones do. The
+clips end too soon to ask. GMDCSA24 is the only surface with enough footage after the event, so
+anything built on this is confirmed on the dataset this project has tuned against most.
+
+`V3FallDetectionState.frames_since_upright` and `ever_upright` are counted per person now.
+What is left is the alerting side: carry it onto the notification, let escalation use it, and
+say "still on the floor" in the message rather than a number.
 
 ## 10. Is the alert TIER right, and where exactly does it go wrong?
 **Gain: the honest answer to "does it cry wolf". Effort: two days, most of it ground truth.**
