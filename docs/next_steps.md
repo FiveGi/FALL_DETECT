@@ -371,6 +371,34 @@ what it costs on lit footage, which is the trade 32 was picked to avoid. That sw
 thing to run. If it does, the honest conclusion is that this threshold is an installation
 setting rather than a constant -- a bedroom at night and a day room are not the same problem.
 
+## 15. Crop to the people and shrink the input — real, but not yet better than what ships
+**Measured 2026-09-26. The technique works; the operating point does not beat 320 yet.**
+
+Ultralytics resizes whatever it is given to `imgsz`, so cropping alone saves nothing — it
+raises the effective resolution on the person. Cropping *and* lowering `imgsz` trades area for
+compute. On four threads at the 640×360 substream:
+
+| | ms/frame | fps where the deployed profile gets 8.0 |
+|---|---|---|
+| whole frame, imgsz 320 (deployed) | 36.7 | 8.0 |
+| crop, imgsz 288 | 34.1 | 8.6 |
+| crop, imgsz 256 | 30.5 | **9.6** |
+| crop, imgsz 192 | 23.2 | 12.7 |
+
+**At equal cost the crop is worth four falls.** Whole frame at 192 catches 34/60 URFD falls;
+the crop at 192 catches **38/60**, with held-out clean identical at 42/56. That is the
+technique working exactly as intended.
+
+**It still loses to what ships.** The deployed whole frame at 320 catches 45/60 at 43/56.
+Dropping 320→192 costs more than the crop recovers, and spending the saving on frame rate does
+not close it either: crop@192 at 13 fps reaches 43/60 but gives up five clean clips (38/56).
+
+`crop@256` is the point that has not been tried and the one that should win if anything does —
+20% more frames at a resolution close to 320. That run is queued. If it does not beat 45/60 at
+43/56, the honest conclusion is that this pipeline's accuracy is dominated by input size rather
+than by frame rate in this range, and `V3_ROI_IMGSZ` stays off as a measured negative with the
+mechanism proven.
+
 ## 11. Cut the compilations into single incidents
 **Gain: turns 12 unscoreable clips into a real test set. Effort: two days.**
 
