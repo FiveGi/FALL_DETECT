@@ -40,6 +40,34 @@ spec.loader.exec_module(v3)
 from eval_v3_frame_drop import TRAIN_ADL  # noqa: E402
 
 FPS = float(os.environ.get('TARGET_FPS', 8))
+# SIMULATE_DARK: scale every frame's brightness before the detector sees it, to ask a question
+# the corpus cannot answer on its own -- how does this behave in a room at night?
+#
+# Not one clip here is dark except twelve URFD ADL clips and one out-of-domain Test clip, and
+# none of the fall clips are. But the deployment is a bedroom at night. Darkening footage whose
+# correct answer is already known is the only way to measure the thing that matters without new
+# recordings: how much accuracy is lost as the light goes, and how much of it the preprocessing
+# gets back.
+#
+# A scale, plus shot noise that grows as the signal falls. A real sensor in low light does not
+# simply output a dimmer picture -- it outputs a dimmer, noisier one, and the noise is what
+# actually breaks pose estimation. Leaving it out would make this test too kind.
+#
+# This lives in the measurement, never in the detector: it is a way of asking a question, not
+# something any deployment should do to its own frames.
+SIMULATE_DARK = float(os.environ.get('SIMULATE_DARK', 1.0))
+DARK_NOISE = float(os.environ.get('SIMULATE_DARK_NOISE', 6.0))
+
+
+def darken(frame):
+    """Scale brightness to SIMULATE_DARK and add sensor noise proportional to the loss."""
+    if SIMULATE_DARK >= 0.999:
+        return frame
+    out = frame.astype(np.float32) * SIMULATE_DARK
+    if DARK_NOISE > 0:
+        sigma = DARK_NOISE * (1.0 - SIMULATE_DARK)
+        out += np.random.normal(0.0, sigma, out.shape).astype(np.float32)
+    return np.clip(out, 0, 255).astype(np.uint8)
 CACHE_DIR = os.environ.get('CACHE_DIR', os.path.join(ROOT, 'training', 'data', 'pose_cache'))
 
 
@@ -74,6 +102,9 @@ def cache_key():
         # answer for a cache built with a different setting and never say so.
         'preprocess': list(v3.PREPROCESS),
         'dark_below': v3.PREPROCESS_DARK_BELOW,
+        # A darkened run is a different question, not the same one measured twice.
+        'simulate_dark': SIMULATE_DARK,
+        'dark_noise': DARK_NOISE if SIMULATE_DARK < 0.999 else 0.0,
     }
 
 
@@ -96,11 +127,14 @@ def sampled_frames(path, fps, rgb_half):
         if slot == last_slot:
             continue
         last_slot = slot
-        yield frame[:, frame.shape[1] // 2:] if rgb_half else frame
+        yield darken(frame[:, frame.shape[1] // 2:] if rgb_half else frame)
     cap.release()
 
 
 def main():
+    # Same seed every run, so "darkened to 40%" is the same footage each time and two settings
+    # can be compared on it rather than on two different draws of noise.
+    np.random.seed(int(os.environ.get('SIMULATE_DARK_SEED', 0)))
     key = cache_key()
     out_dir = cache_dir_for(key)
     os.makedirs(out_dir, exist_ok=True)
