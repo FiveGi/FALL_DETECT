@@ -858,12 +858,26 @@ def _step_person(kpts, person_found, state: V3FallDetectionState,
         # of the clip. Fire one alert on that transition instead of silently discarding it.
         was_collapse = (COLLAPSE_ENABLED and state.last_probability > COLLAPSE_CONFIDENCE
                         and not state.collapse_fired)
+        collapse_probability = state.last_probability
         state.recent_flags.clear()
         state.last_probability = 0.0
         state.last_detected = False
         if was_collapse:
             state.collapse_fired = True
-            return True, 1.0, "fall"
+            # The score reported is the last one the classifier actually produced, NOT 1.0.
+            # This branch fires because the person stopped being detectable, which is the
+            # weakest evidence in the whole pipeline -- a night scene and a spurious detection
+            # look the same -- and reporting maximum confidence for it put the highest number
+            # the system can produce on the thinnest thing it knows. The number reaches a
+            # human: the dashboard prints it as "score 100".
+            #
+            # MEASURED, both profiles with the rule on and off: bit-identical on CPU, and on
+            # GPU identical on every held-out surface (URFD 56/60 falls, 41/56 held-out clean,
+            # val 7/16, train50 21/25) with one GMDCSA24 fall the difference -- and most
+            # GMDCSA24 clips are training clips. So the rule is neither earning nor costing
+            # anything measurable here, which is why it is kept as a safety net rather than
+            # removed, and why the misleading part of it is the part that was changed.
+            return True, collapse_probability, "fall"
         return False, 0.0, "no_person"
 
     if person_fraction < MIN_PERSON_FRACTION:

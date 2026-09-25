@@ -223,13 +223,17 @@ no accuracy sweep needed.
 
 </details>
 
-## 7. Remove the second YOLO in alone-detection
-**Gain: 12% of the frame rate back, plus a model and a worker slot per camera. Effort: half a day.**
+## 7. ~~Remove the second YOLO in alone-detection~~ — done for the deployed path
+**Done 2026-09-22 (SS67). What is left is dead weight on the v1 path, not a cost anyone pays.**
 
-Alone-detection loads `yolo26l.pt` and opens a second video stream to answer "is exactly one
-person present", which the fall loop already answers through `fall_state.seen_count`. Measured
-on four cores: 6.9 fps without it against 6.1 with. On CPU, 12% of the frame rate is real
-recall.
+A `fall_v2` camera -- which is every camera -- runs one task, and alone-detection is answered
+inline from the frame the fall loop already has. It cost 12% of the frame rate on four cores as
+a separate task with its own stream and its own model, and on CPU frame rate is recall.
+
+`process_alone_detection` and `yolo26l.pt` still exist for `detection_type='fall'`, the
+MediaPipe v1 path that nothing selects. Deleting them is a tidy-up with a small risk attached
+and no measurable gain, so it is not on this list as work -- it is here so the next person
+reading `detection_dispatch.py` knows why there are two answers to the same question.
 
 ## 8. ~~Let the classifier see where the person is in the frame~~ — measured, and it does not help
 **Done 2026-09-26 (SS72). Six training runs plus two controls. The flags ship off.**
