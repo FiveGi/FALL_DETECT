@@ -37,6 +37,21 @@ The detector resizes everything to `V3_IMGSZ` anyway, so the extra pixels are de
 thrown away — and on a CPU that decoding and resizing is real work. There is nothing to gain
 from a higher-resolution stream and 22% of the frame rate to lose.
 
+**This is now a requirement rather than an optimisation.** The detector lifts the shadows on a
+frame that is genuinely dark before the pose model sees it (`V3_PREPROCESS=auto`, on by
+default), and that costs in proportion to the pixels it is given:
+
+| source | cost of a dark frame | of the per-frame budget |
+|---|---|---|
+| 1920×1080 | 47.2 ms | **38%** |
+| 1280×720 | 20.8 ms | 17% |
+| **640×360** | **5.0 ms** | **4%** |
+
+A lit frame costs 0.16 ms either way, because the check reads every eighth pixel and then does
+nothing. If the camera can only give a main stream, set `V3_PREPROCESS=off` rather than lose
+the frame rate — on this machine frame rate is recall, and that trade is worse than the false
+alarms the preprocessing removes.
+
 ## 3. Set the admin password before anyone can reach it
 
 ```sh
@@ -81,6 +96,15 @@ end to end, which is the point of it.
   frames against 78-88% from a wall, and the classifier never runs at all.
 - **Fewer falls than a GPU host**: 45 of 60 URFD falls against 56, at the same false-alarm
   rate. The gap is frame rate, not a different model — the same weights run in both.
+- **A lit room.** Those numbers are measured on well-exposed footage, and the difference is
+  not small: dimming the same clips to half their brightness costs 45 of 60 falls → **40**, and
+  to 30% → **35**. The preprocessing does not recover it, because its gate only fires below
+  luminance 32 and a dimly lit room sits above that. A night light is not decoration here; it
+  is the difference between catching three quarters of falls and catching a little over half.
+- **It never says "go now" on its own.** An alert asks a human to look. It is raised to urgent
+  by one of two facts — nobody acknowledged it, or the person has not got up after ten
+  seconds — and never by how confident the model was, because the highest-scoring alert ever
+  recorded here was a man getting up from a bed.
 
 ## Things that were tried and are not worth doing
 
@@ -96,3 +120,9 @@ Recorded so nobody spends the afternoon again:
   input down to where a person four metres away is a few dozen pixels. SS64 and SS68.
 - **Pinning CPU affinity** instead of thread counts: catastrophic, 4.7 seconds per frame. The
   container's quota is CFS time across all cores, not a set of cores.
+- **Giving the classifier the person's position in the frame**, to separate a bed from a
+  floor: measured over six training runs and two controls and it is *worse* on exactly those
+  bed false alarms. SS72.
+- **Cancelling an alert when the person gets back up**: the signal separates, and it would
+  suppress six per cent of real falls to do it. The same signal is used to raise urgency
+  instead, which cannot suppress anything.
