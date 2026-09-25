@@ -51,24 +51,35 @@ The control matters: FallVision stores keypoints in pixels and is 58% of the tra
 documented, and the arm trained without FallVision is what checks it. **If the two arms
 disagree about frame position, the scale is wrong, not the idea.**
 
-### B. Does preprocessing change an ALERT, or only the person-found rate?
-**Interrupted while re-caching. About 25 minutes, unattended.**
+### B. ~~Does preprocessing change an ALERT?~~ — it does, and it is a clean win
+**Done 2026-09-25. One measurement left before it can be switched on.**
 
-`V3_PREPROCESS` is committed and off by default. Person-found is measured and small: +10 frames
-out of 7067 at the best setting. Whether that moves a single alert is the number that decides
-whether the setting is worth anything, and it is not measured yet.
+I predicted no change at all. Wrong, in the good direction. CPU profile, 220 clips:
 
-```
-bash <scratchpad>/fp/preprocess_alerts.sh
-```
+| | URFD falls | held-out clean | URFD half A clean | half B clean |
+|---|---|---|---|---|
+| off | 45/60 | 41/56 | 17/20 | 16/20 |
+| **auto (below 32)** | **45/60** | **43/56** | **18/20** | **17/20** |
 
-It re-caches both settings because `cache_pose_streams.py` now keys the cache on the
-preprocessing setting — the old caches predate that and are orphaned by design, since a replay
-answering from a cache built with a different setting would never say so.
+**Not one fall lost on any surface, two false alarms gone**, and the gain shows on both halves
+of URFD including the half reserved for confirming. The clips are `adl-22` and `adl-23`, the
+two darkest in the corpus.
 
-**Expected result: no change at all.** Say so plainly if that is what comes out; +10 frames on
-ADL clips almost certainly cannot flip a clip's alert, and a null result here is the finding,
-not a failure.
+**The mechanism is not the one it was built for.** Person-found on those clips barely moved
+(29→30 and 28→30 frames), so the metric I picked as decisive under-reported it by almost
+everything. What changed is that the keypoints the model *does* find are steadier: in a dark
+room joint jitter reads as high velocity, which is what a fall looks like. It is a false-alarm
+feature, not a recall feature.
+
+**Cost is entirely the source resolution**, and the fix is a setting the README already asks
+for: 47 ms at 1080p (38% of the CPU budget, unaffordable), **5 ms at the 640×360 substream
+(4%)**, 0.16 ms on any lit frame. That makes the substream a prerequisite for turning this on,
+not a nice-to-have.
+
+**What is left:** the same measurement on the GPU profile (960 @ 20 fps), which is one cache
+and one replay, about 25 minutes. Then `V3_PREPROCESS=auto` can become the default and the
+published numbers re-stated. Until then it stays off, because a default that alters frames
+makes every published number describe a detector nobody measured.
 
 ---
 

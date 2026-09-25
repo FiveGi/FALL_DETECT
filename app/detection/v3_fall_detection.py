@@ -264,11 +264,38 @@ PREPROCESS = [p.strip() for p in os.environ.get("V3_PREPROCESS", "off").split(",
 # setting and still comes out twenty frames behind doing nothing. At 32 the lit clips come back
 # bit-identical, so whatever the setting does, it does it only where it was meant to.
 #
-# HOW BIG THE WIN ACTUALLY IS: +10 frames out of 7067, which is 0.14%. On the twelve genuinely
-# dark URFD clips it is 63.0% -> 64.3% person-found, eight clips better and four worse. That is
-# small, and it is why this stays off by default: on the footage available it cannot be shown
-# to change a single alert. It is kept because a real bedroom at night is darker than anything
-# in this corpus, and at 32 it is provably harmless to everything else.
+# PERSON-FOUND WAS THE WRONG METRIC, AND IT UNDER-REPORTED THIS BADLY. It moves +10 frames of
+# 7067 (0.14%), which reads as nothing. Measured on ALERTS instead -- the number that matters --
+# on the CPU profile over the 220-clip set:
+#
+#                       URFD falls   held-out clean   URFD half A clean   half B clean
+#     off                 45/60          41/56            17/20              16/20
+#     auto (below 32)     45/60          43/56            18/20              17/20
+#
+# **Not one fall lost on any surface, and two false alarms gone**, with the gain showing on
+# both halves of URFD including the half reserved for confirming. The two clips are adl-22 and
+# adl-23, the darkest in the corpus at luminance 29 and 31.
+#
+# And the mechanism is not the one this was built for. Person-found on those two clips barely
+# moved (29->30 and 28->30 frames). What changed is that the keypoints the model does find are
+# steadier: in a dark room joint jitter reads as high velocity, which is what a fall looks
+# like, and _smooth_keypoints damps that but cannot remove it. Lifting the shadows fixes the
+# input rather than the symptom. **It is a false-alarm feature, not a recall feature.**
+#
+# COST IS ENTIRELY THE SOURCE RESOLUTION, and the fix is a setting the README already asks for:
+#
+#     1920x1080  47.2 ms   38% of the CPU server's per-frame budget
+#     1280x720   20.8 ms   17%
+#     640x360     5.0 ms    4%   <- the substream SS66 already recommends
+#     320x240     1.7 ms    1%
+#
+# A lit frame costs 0.16 ms either way, because the darkness check reads every 8th pixel and
+# then does nothing. So on a correctly installed camera this is 4% of the budget, and on a
+# 1080p main stream it is unaffordable on CPU -- which makes the substream a prerequisite for
+# turning this on there, not a nice-to-have.
+#
+# Still off by default: the numbers above are the CPU profile, and the GPU profile has not been
+# measured on alerts yet. Turning it on is a one-line change once it has been.
 PREPROCESS_DARK_BELOW = float(os.environ.get("V3_PREPROCESS_DARK_BELOW", 32))
 PREPROCESS_GAMMA = float(os.environ.get("V3_PREPROCESS_GAMMA", 0.65))
 PREPROCESS_CLIP_LIMIT = float(os.environ.get("V3_PREPROCESS_CLIP_LIMIT", 2.0))
