@@ -104,7 +104,7 @@ rate each deployment profile actually runs at:
 | | with a GPU (20 fps) | four CPU cores (8 fps) |
 |---|---|---|
 | falls caught | **56 of 60 (93%)** | **45 of 60 (75%)** |
-| normal-activity clips with no false alarm | 33 of 40 (83%) | 33 of 40 (83%) |
+| normal-activity clips with no false alarm | 34 of 40 (85%) | 35 of 40 (88%) |
 
 The gap between the columns is frame rate, not a different model: the same weights run in both.
 A CPU machine cannot feed the detector as many frames per second, and the classifier's window
@@ -121,6 +121,17 @@ is **already on the floor when the camera first sees them**, not only on the mom
 fall. For this job that is the right behaviour — a person who fell before the camera could see
 them still needs help — and it is why it costs a false alarm or two on people who lie down
 deliberately.
+
+The false-alarm numbers moved too, and for a different reason: the detector now **lifts the
+shadows on a frame that is genuinely dark** before the pose model sees it, and only on such a
+frame. In a dark room the joint positions jitter, and jitter reads as fast motion, which is
+what a fall looks like. Measured on both profiles it costs no falls at all and removes false
+alarms — three of them across the two, on the darkest clips in the set.
+
+That is free on a well-exposed frame, which is nearly all of them, but it costs real time on a
+dark one, in proportion to the resolution the camera sends. **On a CPU machine, point the
+camera at its low-resolution substream** — the detector downsizes everything anyway, and at
+1080p this one feature would take 38% of the per-frame budget, where at 640×360 it takes 4%.
 
 Two numbers you will see quoted elsewhere for systems like this, and why they are not these:
 

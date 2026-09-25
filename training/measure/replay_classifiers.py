@@ -34,7 +34,8 @@ spec.loader.exec_module(v3)
 import cache_pose_streams as cache  # noqa: E402
 
 MODEL_DIR = os.environ.get('TEST_MODEL_DIR', os.path.join(ROOT, 'models'))
-OUT = os.environ['OUT']
+# Read in main(), not at import: load_stream() is useful to other measurement scripts and a
+# module that cannot be imported without an environment variable set is a trap for them.
 
 
 def load_stream(npz_path):
@@ -64,6 +65,7 @@ def alerted(det, frames):
 
 
 def main():
+    out = os.environ['OUT']
     key = cache.cache_key()
     cache_dir = cache.cache_dir_for(key)
     key_file = os.path.join(cache_dir, 'key.json')
@@ -83,13 +85,13 @@ def main():
             'partial_min': v3.PARTIAL_MIN, 'replay_of': key}
 
     rows = []
-    if os.path.exists(OUT):
-        prev = json.load(open(OUT))
+    if os.path.exists(out):
+        prev = json.load(open(out))
         if prev.get('meta') == meta:
             rows = prev['rows']
             print('resuming: %d clips already measured' % len(rows), flush=True)
         else:
-            raise SystemExit('%s holds a different configuration' % OUT)
+            raise SystemExit('%s holds a different configuration' % out)
     done = {(r[0], r[1]) for r in rows}
 
     for group, paths, _rgb_half in cache.clip_groups():
@@ -103,11 +105,11 @@ def main():
                 raise SystemExit('clip missing from the cache: %s' % npz)
             rows.append([group, name, alerted(det, load_stream(npz))])
             todo += 1
-        json.dump({'meta': meta, 'rows': rows}, open(OUT, 'w'), indent=1)
+        json.dump({'meta': meta, 'rows': rows}, open(out, 'w'), indent=1)
         print('  %-14s %d clips (%d replayed now)' % (group, len(paths), todo), flush=True)
 
-    json.dump({'meta': meta, 'rows': rows}, open(OUT, 'w'), indent=1)
-    print('wrote', OUT, flush=True)
+    json.dump({'meta': meta, 'rows': rows}, open(out, 'w'), indent=1)
+    print('wrote', out, flush=True)
 
 
 if __name__ == '__main__':

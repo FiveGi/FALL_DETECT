@@ -212,10 +212,22 @@ POSE_CONF = float(os.environ.get("V3_POSE_CONF", 0.3))
 
 
 # V3_PREPROCESS: clean up the frame before the pose model sees it. Comma-separated, applied in
-# the order given. **Default "off", and it stays off until it is measured**: every accuracy
-# number published for this detector was measured without it, and a default that alters frames
-# would quietly make those numbers describe a detector nobody measured. check_config_coherence
-# cannot catch that, so the default is the guard.
+# the order given. **Default "auto"**, which was earned rather than assumed -- it shipped off
+# until both profiles had been measured on alerts, because a default that alters frames makes
+# every published number describe a detector nobody measured.
+#
+# MEASURED ON ALERTS, both profiles, the full 220-clip set:
+#
+#                    URFD falls   held-out clean   URFD half A clean   half B clean
+#     CPU  off          45/60         41/56             17/20            16/20
+#     CPU  auto         45/60         43/56             18/20            17/20
+#     GPU  off          56/60         40/56             17/20            16/20
+#     GPU  auto         56/60         41/56             18/20            16/20
+#
+# **Not one fall lost on either profile, and three false alarms gone between them.** On the CPU
+# profile the gain shows on both halves of URFD including the half reserved for confirming,
+# which is what a real effect looks like rather than noise. The clips are adl-22 and adl-23,
+# the two darkest in the corpus at luminance 29 and 31.
 #
 #   off        hand the frame through untouched.
 #   clahe      CLAHE on the L channel of LAB -- local contrast, which is what a backlit or
@@ -245,7 +257,7 @@ POSE_CONF = float(os.environ.get("V3_POSE_CONF", 0.3))
 # false alarms on the twelve dark URFD ADL clips. It is in the pipeline because the deployment
 # target is an elderly person's home at night, which is darker than anything in this corpus --
 # a capability the data cannot score, stated as such rather than dressed up as an accuracy win.
-PREPROCESS = [p.strip() for p in os.environ.get("V3_PREPROCESS", "off").split(",") if p.strip()]
+PREPROCESS = [p.strip() for p in os.environ.get("V3_PREPROCESS", "auto").split(",") if p.strip()]
 # Below this mean luminance (0-255) "auto" considers a frame dark enough to be worth altering.
 #
 # 32, measured, not the 70 this started at. The threshold is the setting's most important
@@ -294,8 +306,10 @@ PREPROCESS = [p.strip() for p in os.environ.get("V3_PREPROCESS", "off").split(",
 # 1080p main stream it is unaffordable on CPU -- which makes the substream a prerequisite for
 # turning this on there, not a nice-to-have.
 #
-# Still off by default: the numbers above are the CPU profile, and the GPU profile has not been
-# measured on alerts yet. Turning it on is a one-line change once it has been.
+# On by default now that both profiles are measured. What has to stay true for it to be
+# affordable under CPU is the camera setting: at 1080p it is 38% of the per-frame budget, and
+# a CPU deployment feeding the main stream instead of the substream should set V3_PREPROCESS=off
+# rather than lose the frame rate -- on CPU, frame rate is recall.
 PREPROCESS_DARK_BELOW = float(os.environ.get("V3_PREPROCESS_DARK_BELOW", 32))
 PREPROCESS_GAMMA = float(os.environ.get("V3_PREPROCESS_GAMMA", 0.65))
 PREPROCESS_CLIP_LIMIT = float(os.environ.get("V3_PREPROCESS_CLIP_LIMIT", 2.0))
