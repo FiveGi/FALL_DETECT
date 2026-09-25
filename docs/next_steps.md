@@ -336,40 +336,44 @@ period a carer cares about. It blocked item 9's confirmation the same way. Real 
 keeps running for half a minute after the event is the single most useful thing that could be
 added to this project's data, and it is exactly what item 11 would produce.
 
-## 14. The dark costs ten falls in sixty, and the current gate does not get them back
-**Measured 2026-09-26. Not yet resolved — the first real number on night-time behaviour.**
+## 14. The dark costs ten falls in sixty, and the gate that ships does not get them back
+**Measured 2026-09-26. A better gate is measured too — the last cell is running.**
 
 Not one fall clip in any dataset here is dark, so every claim about darkness was an
-extrapolation from thirteen clips containing no falls. `SIMULATE_DARK` in
-`training/measure/cache_pose_streams.py` dims footage whose correct answer is already known and
-adds sensor noise as the signal falls, which is what actually breaks pose estimation.
+extrapolation from thirteen clips containing no falls. `SIMULATE_DARK` dims footage whose
+correct answer is already known and adds sensor noise as the signal falls, which is what
+actually breaks pose estimation.
 
-CPU profile, URFD:
+**What the dark costs** (CPU profile, URFD):
 
-| light | URFD falls | held-out clean |
-|---|---|---|
-| full | 45/60 | 43/56 |
-| 50% | **40/60** | 41/56 |
-| 30% | **35/60** | 43/56 |
-| 30% + preprocessing | 34/60 | 44/56 |
-
-**A fifth of the falls go with the light, and the preprocessing recovers none of them.** The
-reason is arithmetic rather than mystery: the darkness gate fires below luminance 32, and
-
-| URFD fall clips | median luminance | below 32 | below 70 |
+| light | falls, gate off | gate 32 (ships) | **gate 70** |
 |---|---|---|---|
-| full light | 104.5 | 0/60 | 0/60 |
-| 50% | 52.2 | **0/60** | 44/60 |
-| 30% | 31.3 | 30/60 | 60/60 |
+| full | 45/60 | 45/60 | *running* |
+| 50% | 40/60 | 40/60 | **43/60** |
+| 30% | 35/60 | 34/60 | 34/60 |
 
-At half light the gate **never fires at all**, and at 30% it fires on exactly half the clips.
-32 was chosen because it is provably harmless on the natural corpus — and the natural corpus
-has almost nothing in the 30-to-70 band, which is precisely where a dimly lit room sits.
+and held-out clean at the same points:
 
-**The open question is whether a gate that engages on dim footage gets those falls back**, and
-what it costs on lit footage, which is the trade 32 was picked to avoid. That sweep is the next
-thing to run. If it does, the honest conclusion is that this threshold is an installation
-setting rather than a constant -- a bedroom at night and a day room are not the same problem.
+| light | gate off | gate 32 | **gate 70** |
+|---|---|---|---|
+| 50% | 41/56 | 43/56 | **45/56** |
+| 30% | 43/56 | 44/56 | **47/56** |
+
+**At half light, a gate of 70 is better on both axes at once** — three of the five lost falls
+back and four more clean clips — and both halves of URFD agree (falls 17→19, clean 16→17 on the
+confirming half). At 30% it recovers no falls but still gains four clean clips.
+
+The reason the shipped gate does nothing is arithmetic: it fires below luminance 32, and at
+half light **zero of the sixty fall clips are below it**. 32 was chosen because it is provably
+harmless on the natural corpus, which has almost nothing between 30 and 70 — the exact band a
+dimly lit room sits in.
+
+**The decision this overturns, and why.** Gate 70 was rejected earlier the same night, on
+person-found: it came out four frames behind doing nothing across 7067 frames. Person-found was
+then shown to under-report this effect almost entirely — the same setting that moves it by ten
+frames removes two false alarms. **Gate 70 has never been measured on alerts at full light.**
+That run is the last cell, and if it is neutral-or-better there it should be the default: a
+setting that is equal in the light and clearly better in the dark is not a trade.
 
 ## 15. Crop to the people and shrink the input — real, but not yet better than what ships
 **Measured 2026-09-26. The technique works; the operating point does not beat 320 yet.**
