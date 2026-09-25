@@ -72,9 +72,9 @@ def send_line_message_async(camera_id, camera_name, room_name, detection_type, t
                 return
 
             token = settings.channel_access_token
-            user_id = settings.line_user_id
-            if not token or not user_id:
-                print("[LINE] Missing channel access token or LINE user id -- not sent")
+            targets = settings.targets()
+            if not token or not targets:
+                print("[LINE] Missing channel access token or a target -- not sent")
                 return
 
             headers = {
@@ -119,18 +119,24 @@ def send_line_message_async(camera_id, camera_name, room_name, detection_type, t
                 else:
                     print("[LINE] PUBLIC_BASE_URL not set -- sending text only, no image")
 
-            try:
-                resp = requests.post(
-                    "https://api.line.me/v2/bot/message/push",
-                    headers=headers,
-                    json={"to": user_id, "messages": messages},
-                    timeout=10,
-                )
-                if resp.status_code == 200:
-                    print(f"[Camera {camera_id}] LINE alert sent")
-                else:
-                    print(f"[Camera {camera_id}] LINE error {resp.status_code}: {resp.text}")
-            except Exception as e:
-                print(f"[Camera {camera_id}] LINE error: {e}")
+            # One push per target, and a failure on one does not stop the others: the whole
+            # reason a group is worth having is that the individual phone may be asleep, out
+            # of signal or have blocked the bot, and an alert that reached the family group is
+            # still an alert that reached someone.
+            for target in targets:
+                try:
+                    resp = requests.post(
+                        "https://api.line.me/v2/bot/message/push",
+                        headers=headers,
+                        json={"to": target, "messages": messages},
+                        timeout=10,
+                    )
+                    if resp.status_code == 200:
+                        print(f"[Camera {camera_id}] LINE alert sent to ...{target[-8:]}")
+                    else:
+                        print(f"[Camera {camera_id}] LINE error for ...{target[-8:]} "
+                              f"{resp.status_code}: {resp.text}")
+                except Exception as e:
+                    print(f"[Camera {camera_id}] LINE error for ...{target[-8:]}: {e}")
 
     Thread(target=_send).start()

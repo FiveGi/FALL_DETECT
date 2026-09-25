@@ -12,6 +12,7 @@ import requests
 from app import db
 from app.config import Config
 from app.models.line_settings import LineSettings
+from app.models.line_target import LineDiscoveredTarget
 from app.models.notification_history import NotificationHistory
 
 bp = Blueprint('line', __name__, url_prefix='/api/line')
@@ -33,6 +34,13 @@ def get_line_settings():
         data['public_base_url'] = base
         data['channel_secret_set'] = bool(Config.LINE_CHANNEL_SECRET)
         data['webhook_url'] = f'{base}/api/line/webhook' if base else ''
+        # A group id appears nowhere a caregiver can read it -- it arrives only in a webhook
+        # event when the bot is invited. The settings page offers what the webhook has seen
+        # instead of asking someone to read raw logs.
+        data['discovered_targets'] = [
+            t.to_dict() for t in LineDiscoveredTarget.query.order_by(
+                LineDiscoveredTarget.last_seen.desc()).limit(20).all()
+        ]
         return jsonify({'success': True, 'data': data}), 200
     except Exception as e:
         return jsonify({'success': False, 'error': f'Failed to get LINE settings: {str(e)}'}), 500
@@ -47,9 +55,10 @@ def update_line_settings():
 
         token = data.get('channel_access_token')
         line_user_id = data.get('line_user_id')
+        line_group_id = data.get('line_group_id')
         enabled = data.get('enabled')
 
-        if token is None and line_user_id is None and enabled is None:
+        if token is None and line_user_id is None and line_group_id is None and enabled is None:
             return jsonify({'success': False, 'error': 'Nothing to update'}), 400
 
         # An empty token from the UI means "leave the stored one alone" -- the field is
@@ -58,22 +67,29 @@ def update_line_settings():
         # after only flipping the toggle.
         if token is not None and token.strip() == '':
             token = None
-        if line_user_id is not None and line_user_id.strip() == '':
-            return jsonify({'success': False, 'error': 'LINE user ID cannot be empty'}), 400
-
         settings = LineSettings.get_settings(user_id)
+        # An empty string here means "stop sending to this one", which is how a user drops the
+        # individual target and keeps the group, or the other way round. It is only rejected
+        # when it would leave nowhere to send to at all.
         will_have_token = bool(token) or bool(settings.channel_access_token)
-        will_have_user = bool(line_user_id) or bool(settings.line_user_id)
-        if enabled and not (will_have_token and will_have_user):
+        after_user = settings.line_user_id if line_user_id is None else line_user_id.strip()
+        after_group = settings.line_group_id if line_group_id is None else line_group_id.strip()
+        if enabled and not will_have_token:
             return jsonify({
                 'success': False,
-                'error': 'Cannot enable LINE alerts without both a channel access token and a LINE user ID'
+                'error': 'Cannot enable LINE alerts without a channel access token'
+            }), 400
+        if enabled and not (after_user or after_group):
+            return jsonify({
+                'success': False,
+                'error': 'Cannot enable LINE alerts without a LINE user ID or a group to send to'
             }), 400
 
         settings = LineSettings.update_settings(
             user_id=user_id,
             channel_access_token=token.strip() if token else None,
-            line_user_id=line_user_id.strip() if line_user_id else None,
+            line_user_id=None if line_user_id is None else line_user_id.strip(),
+            line_group_id=None if line_group_id is None else line_group_id.strip(),
             enabled=enabled,
         )
         return jsonify({'success': True, 'message': 'LINE settings updated', 'data': settings.to_dict()}), 200
@@ -95,26 +111,43 @@ def test_line_settings():
 
         if not settings.enabled:
             return jsonify({'success': False, 'error': 'LINE alerts are turned off. Turn them on first.'}), 400
-        if not settings.channel_access_token or not settings.line_user_id:
-            return jsonify({'success': False, 'error': 'Channel access token and LINE user ID are required'}), 400
+        targets = settings.targets()
+        if not settings.channel_access_token or not targets:
+            return jsonify({'success': False,
+                            'error': 'Channel access token and at least one target are required'}), 400
 
-        resp = requests.post(
-            'https://api.line.me/v2/bot/message/push',
-            headers={
-                'Authorization': f'Bearer {settings.channel_access_token}',
-                'Content-Type': 'application/json',
-            },
-            json={
-                'to': settings.line_user_id,
-                'messages': [{'type': 'text', 'text': 'ทดสอบการแจ้งเตือนจากระบบเฝ้าระวังผู้สูงอายุ'}],
-            },
-            timeout=10,
-        )
-        if resp.status_code == 200:
-            return jsonify({'success': True, 'message': 'Test message sent'}), 200
-        # LINE's own error body is the only thing that explains a bad token or user id,
-        # so pass it through rather than flattening it to "failed".
-        return jsonify({'success': False, 'error': f'LINE API {resp.status_code}: {resp.text}'}), 400
+        # One push per target: LINE's multicast endpoint would take several recipients in one
+        # call but refuses group ids, so a person and a group cannot share a request.
+        sent, failures = [], []
+        for target in targets:
+            resp = requests.post(
+                'https://api.line.me/v2/bot/message/push',
+                headers={
+                    'Authorization': f'Bearer {settings.channel_access_token}',
+                    'Content-Type': 'application/json',
+                },
+                json={
+                    'to': target,
+                    'messages': [{'type': 'text', 'text': 'ทดสอบการแจ้งเตือนจากระบบเฝ้าระวังผู้สูงอายุ'}],
+                },
+                timeout=10,
+            )
+            if resp.status_code == 200:
+                sent.append(target)
+            else:
+                # LINE's own error body is the only thing that explains a bad token or a group
+                # the bot is not in, so pass it through rather than flattening it to "failed".
+                failures.append(f'...{target[-8:]}: LINE API {resp.status_code}: {resp.text}')
+
+        if sent and not failures:
+            return jsonify({'success': True,
+                            'message': f'Test message sent to {len(sent)} target(s)'}), 200
+        if sent:
+            # Partial success is its own answer: one target working and another not is exactly
+            # the case a single "failed" would hide.
+            return jsonify({'success': False,
+                            'error': f'Sent to {len(sent)}, failed for: ' + '; '.join(failures)}), 400
+        return jsonify({'success': False, 'error': '; '.join(failures)}), 400
     except Exception as e:
         return jsonify({'success': False, 'error': f'Failed to send test message: {str(e)}'}), 500
 
@@ -167,6 +200,20 @@ def line_webhook():
         events = []
 
     for event in events:
+        # join / leave carry the only copy of a group id this system will ever see. LINE sends
+        # join when the bot is invited, and message events from the group afterwards; both are
+        # recorded so a group added before this code existed still shows up as soon as anyone
+        # posts in it. Recording is not consent -- nothing is ever sent to a target until it is
+        # chosen in the settings page and the switch is on.
+        source = event.get('source', {}) or {}
+        source_type = source.get('type')
+        if source_type in ('group', 'room'):
+            target_id = source.get('groupId') or source.get('roomId')
+            if event.get('type') == 'leave':
+                LineDiscoveredTarget.departed(target_id)
+            else:
+                LineDiscoveredTarget.seen(source_type, target_id)
+
         if event.get('type') != 'postback':
             continue
         data = event.get('postback', {}).get('data', '')

@@ -203,7 +203,8 @@ def create_app():
             return False
 
 
-    from .models import user, camera, detection_log, system_log, notification_history, line_settings, token_blocklist, thai_frat_assessment
+    from .models import (user, camera, detection_log, system_log, notification_history, line_settings,
+                         line_target, token_blocklist, thai_frat_assessment)
    
     with app.app_context():
         try:
@@ -211,39 +212,38 @@ def create_app():
             from app.models.user import User, UserRole
 
 
-            # Automatically add telegram_chat_id column if it is missing in existing DB
+            # db.create_all() creates tables it has never seen, but it never alters one that
+            # already exists, so every column added after a table shipped has to be filled in
+            # here or an existing database errors the first time that column is read.
+            #
+            # This was two copies of the same loop in two different shapes before a third
+            # column needed adding. They are one list now, so the next one is a line rather
+            # than another copy.
             inspector = inspect(db.engine)
-            if 'users' in inspector.get_table_names() and 'telegram_chat_id' not in [c['name'] for c in inspector.get_columns('users')]:
+            tables = set(inspector.get_table_names())
+            for table, column, ddl_type in (
+                ('users', 'telegram_chat_id', 'VARCHAR(255)'),
+                ('notification_history', 'confidence', 'FLOAT'),
+                ('notification_history', 'acknowledged_at', 'TIMESTAMP'),
+                ('notification_history', 'acknowledged_by', 'INTEGER'),
+                ('notification_history', 'escalation_count', 'INTEGER NOT NULL DEFAULT 0'),
+                ('notification_history', 'clip_path', 'VARCHAR(512)'),
+                # A LINE group to alert alongside the individual user -- see
+                # app/models/line_settings.LineSettings.targets().
+                ('line_settings', 'line_group_id', 'VARCHAR(255)'),
+            ):
+                if table not in tables:
+                    continue
+                if column in [c['name'] for c in inspector.get_columns(table)]:
+                    continue
                 try:
-                    db.session.execute(text('ALTER TABLE users ADD COLUMN telegram_chat_id VARCHAR(255)'))
+                    db.session.execute(text(
+                        f'ALTER TABLE {table} ADD COLUMN {column} {ddl_type}'))
                     db.session.commit()
-                    print('Added missing column telegram_chat_id to users table')
+                    print(f'Added missing column {column} to {table} table')
                 except Exception as e:
                     db.session.rollback()
-                    print(f'Could not add telegram_chat_id column automatically: {e}')
-
-
-            # Same pattern as telegram_chat_id above: add the notification_history columns
-            # introduced after the table shipped, so alert history keeps loading on an
-            # existing database instead of erroring on a missing column.
-            if 'notification_history' in inspector.get_table_names():
-                existing = [c['name'] for c in inspector.get_columns('notification_history')]
-                for column, ddl in (
-                    ('confidence', 'ALTER TABLE notification_history ADD COLUMN confidence FLOAT'),
-                    ('acknowledged_at', 'ALTER TABLE notification_history ADD COLUMN acknowledged_at TIMESTAMP'),
-                    ('acknowledged_by', 'ALTER TABLE notification_history ADD COLUMN acknowledged_by INTEGER'),
-                    ('escalation_count', 'ALTER TABLE notification_history ADD COLUMN escalation_count INTEGER NOT NULL DEFAULT 0'),
-                    ('clip_path', 'ALTER TABLE notification_history ADD COLUMN clip_path VARCHAR(512)'),
-                ):
-                    if column in existing:
-                        continue
-                    try:
-                        db.session.execute(text(ddl))
-                        db.session.commit()
-                        print(f'Added missing column {column} to notification_history table')
-                    except Exception as e:
-                        db.session.rollback()
-                        print(f'Could not add {column} column automatically: {e}')
+                    print(f'Could not add {table}.{column} automatically: {e}')
 
             # ADMIN_PASSWORD seeds the first admin. The default stays `admin123` so a fresh
             # clone still works exactly as the README says and the smoke tests keep passing --

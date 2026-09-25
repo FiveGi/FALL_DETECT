@@ -79,7 +79,10 @@
             <ol>
               <li>สร้าง Messaging API channel ที่ <strong>LINE Developers Console</strong></li>
               <li>คัดลอก <code>Channel access token</code> มาใส่ในช่องด้านล่าง</li>
-              <li>เพิ่มบอทเป็นเพื่อนใน LINE แล้วนำ <code>User ID</code> ของคุณมากรอก</li>
+              <li>
+                เลือกปลายทางอย่างน้อยหนึ่งอย่าง — เพิ่มบอทเป็นเพื่อนแล้วกรอก <code>User ID</code>
+                ของคุณ และ/หรือ <strong>เชิญบอทเข้ากลุ่ม LINE</strong> แล้วเลือกกลุ่มจากรายการที่ขึ้นมา
+              </li>
               <li>เปิดสวิตช์ แล้วกดบันทึก</li>
             </ol>
           </div>
@@ -112,7 +115,6 @@
 
             <label for="line-user-id" class="form-label">
               LINE User ID
-              <span class="required">*</span>
             </label>
             <input
               type="text"
@@ -122,6 +124,44 @@
               placeholder="เช่น Uxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
               :disabled="isLineLoading"
             />
+
+            <label for="line-group-id" class="form-label">
+              LINE Group ID (ส่งเข้ากลุ่ม)
+            </label>
+            <input
+              type="text"
+              id="line-group-id"
+              v-model="lineSettings.line_group_id"
+              class="form-input"
+              placeholder="เช่น Cxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+              :disabled="isLineLoading"
+            />
+            <small class="form-hint">
+              กรอกอย่างน้อยหนึ่งช่อง จะกรอกทั้งสองก็ได้ ระบบจะส่งไปทุกปลายทางที่กรอกไว้ —
+              คนเดียวอาจหลับหรือไม่มีสัญญาณ การที่กลุ่มเห็นด้วยคือเหตุผลที่มีช่องนี้
+            </small>
+
+            <div class="discovered" v-if="currentLineSettings && currentLineSettings.discovered_targets && currentLineSettings.discovered_targets.length">
+              <p class="discovered-title">กลุ่มที่บอทถูกเชิญเข้าไปแล้ว — กดเพื่อใช้</p>
+              <button
+                v-for="t in currentLineSettings.discovered_targets"
+                :key="t.target_id"
+                type="button"
+                class="discovered-item"
+                :class="{ 'is-left': t.left }"
+                :disabled="isLineLoading"
+                @click="lineSettings.line_group_id = t.target_id"
+              >
+                <span class="discovered-id">{{ t.target_id }}</span>
+                <span class="discovered-note">
+                  {{ t.left ? 'บอทออกจากกลุ่มแล้ว' : (t.target_type === 'room' ? 'ห้องแชท' : 'กลุ่ม') }}
+                </span>
+              </button>
+            </div>
+            <small class="form-hint form-hint-spaced" v-else>
+              ยังไม่พบกลุ่ม — Group ID หาจากที่ไหนไม่ได้เลยนอกจากตอนบอทเข้ากลุ่ม
+              เชิญบอทเข้ากลุ่มก่อน แล้วกดโหลดหน้านี้ใหม่ ต้องตั้ง Webhook URL ให้ LINE เรียกเข้ามาได้ด้วย
+            </small>
           </div>
 
           <div class="line-actions">
@@ -162,6 +202,18 @@
           <div class="setting-item">
             <span class="setting-label">LINE User ID:</span>
             <span class="setting-value">{{ currentLineSettings.line_user_id || 'ยังไม่ได้ตั้งค่า' }}</span>
+          </div>
+
+          <div class="setting-item">
+            <span class="setting-label">LINE Group ID:</span>
+            <span class="setting-value">{{ currentLineSettings.line_group_id || 'ยังไม่ได้ตั้งค่า' }}</span>
+          </div>
+
+          <div class="setting-item">
+            <span class="setting-label">ส่งไปกี่ปลายทาง:</span>
+            <span class="setting-value" :class="currentLineSettings.target_count ? 'status-ready' : 'status-not-set'">
+              {{ currentLineSettings.target_count || 0 }}
+            </span>
           </div>
 
           <div class="setting-item">
@@ -250,6 +302,7 @@ const settings = ref({
 const lineSettings = ref({
   channel_access_token: '',
   line_user_id: '',
+  line_group_id: '',
   enabled: false
 })
 const currentLineSettings = ref(null)
@@ -261,6 +314,7 @@ const lineErrorMessage = ref('')
 function applyLineSettings(data) {
   currentLineSettings.value = data
   lineSettings.value.line_user_id = data.line_user_id || ''
+  lineSettings.value.line_group_id = data.line_group_id || ''
   lineSettings.value.enabled = !!data.enabled
   lineSettings.value.channel_access_token = ''
 }
@@ -282,6 +336,7 @@ async function saveLineSettings() {
     const res = await lineService.updateLineSettings({
       channel_access_token: lineSettings.value.channel_access_token,
       line_user_id: lineSettings.value.line_user_id,
+      line_group_id: lineSettings.value.line_group_id,
       enabled: lineSettings.value.enabled
     })
     applyLineSettings(res.data)
@@ -464,6 +519,43 @@ function resetTimeSettings() {
 </script>
 
 <style scoped>
+/* The two hints under the group field are separate thoughts -- "you may fill in either" and
+   "here is why the list is empty" -- and with no gap they render as one wall of Thai. */
+.form-hint-spaced { display: block; margin-top: 0.5rem; }
+.discovered {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.discovered-title {
+  margin: 0 0 0.15rem;
+  font-size: 0.85rem;
+  color: #555;
+}
+.discovered-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #d5d5d5;
+  border-radius: 6px;
+  background: #fafafa;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+.discovered-item:hover:not(:disabled) { border-color: #06c755; background: #f2fbf5; }
+.discovered-item:disabled { cursor: default; opacity: 0.6; }
+.discovered-item.is-left { opacity: 0.55; }
+.discovered-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+.discovered-note { font-size: 0.75rem; color: #666; white-space: nowrap; }
+
 .notification-settings {
   padding-bottom: 2rem;
 }
