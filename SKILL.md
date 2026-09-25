@@ -4024,3 +4024,97 @@ change how every model comparison here has to be read. And the feature-width gua
 refuses to load a classifier that disagrees with the flag instead of scoring nonsense -- tested
 by setting the flag against the 85-feature model and watching both it and
 `check_config_coherence.py` fail.
+
+## 73. A night of measuring what ships: three defaults changed, two ideas closed
+
+### Frame preprocessing, measured on alerts and turned on
+
+CLAHE plus gamma on a frame that is genuinely dark, and only on such a frame. Measured on both
+profiles over the 220-clip set:
+
+| | URFD falls | held-out clean | half A clean | half B clean |
+|---|---|---|---|---|
+| CPU off | 45/60 | 41/56 | 17/20 | 16/20 |
+| **CPU auto** | 45/60 | **43/56** | 18/20 | 17/20 |
+| GPU off | 56/60 | 40/56 | 17/20 | 16/20 |
+| **GPU auto** | 56/60 | **41/56** | 18/20 | 16/20 |
+
+No fall lost on either profile, three false alarms gone. On CPU the gain appears on both halves
+of URFD including the reserved one.
+
+**It got there through two bugs of mine and one wrong metric.** The gamma LUT used
+`(in/255) ** (1/gamma)` -- the form in every OpenCV snippet, which expects gamma > 1 to
+brighten -- so with the default of 0.65 it *darkened* 27 to 8. CLAHE runs first and brightens,
+the two cancelled, and the first measurement came back as a perfectly clean null result. Then
+the darkness threshold, picked by eye at 70, measured **worse than doing nothing**: enhancing a
+frame that was already light enough costs more than it earns, every time, and "clahe always"
+gains more on dark frames than any other setting while finishing twenty frames behind off.
+
+The wrong metric was person-found. It was chosen as decisive on the sound reasoning that
+everything downstream only sees frames where a person was found -- and it moved by +10 frames
+of 7067, which reads as nothing. On alerts the same setting removes two false alarms. What
+changes is not how often the pose model finds the person but **how steady the keypoints are
+once it does**: in a dark room joint jitter reads as fast motion, which is what a fall looks
+like. It is a false-alarm feature, not a recall feature.
+
+Cost needed no optimisation, only the camera setting the README already asks for: 47.2 ms at
+1080p, 5.0 ms at the 640x360 substream, 0.16 ms on any lit frame.
+
+### "Did they get up?" separates, and must never cancel
+
+`docs/next_steps.md` item 9 proposed cancelling an alert once the person is upright again. The
+signal does separate -- 6% of real falls against 50% of false alarms get back up -- but six per
+cent of real falls suppressed, silently, by a rule nobody sees, is not a trade this system can
+make. The same signal the other way costs nothing and asserts nothing false: **still on the
+floor ten seconds later** holds for 94% of real falls and can only raise urgency.
+
+The first version of that measurement reported it would cancel 17 real falls and that the rates
+were identical. Both were artefacts of clips that end within a second of the fall: several
+"recoveries" were judged on two to four frames. Unknown has to be reported as unknown.
+
+### Live testing found three defects the measurements could not
+
+Running a real camera against a real clip through the real worker:
+
+1. **It answered before it asked** -- resolved on the same frame as the alert, because a person
+   mid-fall still reads as upright by torso angle for a moment.
+2. **The seconds conversion could never reach its own threshold.** The frame counter starts at
+   zero on the alert frame and the loop runs under target, so at 3.0s of wall time a 19 fps
+   loop has 57 frames and reports 2.85. Every clip came back "they got up" while the detector's
+   own counter was climbing correctly from 3 to 66.
+3. **The stored value undercounted the same way**, so the fact would have been recorded and
+   then ignored by the threshold it is compared against.
+
+And a diagnostic of mine read `people[0]` from `extract_all_keypoints` and concluded the fallen
+man was upright. `people[0]` is sorted by detection confidence and was the woman standing in
+the foreground. Rendering the frames showed it in one look.
+
+### The tier never reaches 'confirmed' on its own evidence
+
+Over all 130 alerts in the 220-clip set, at the deployed ten seconds, every single one stays at
+'check'. At 8 fps a ten-second window needs eighty scored frames after the alert and almost no
+clip runs that long. Sweeping down: 3 s confirms 14 of 112 real falls at 93% precision, 2 s
+confirms 32 at 89%, 7 s and above confirm nothing at all.
+
+**Ten seconds stays.** Lowering it so the corpus can score it would be fitting the rule to the
+clip lengths of a lab dataset. The finding is the data gap: every clip here ends within a
+second or two of the event, so nothing in this corpus can measure the period *after* a fall,
+which is the period a carer cares about.
+
+### The collapse rule was reporting 1.00 for the thinnest evidence in the pipeline
+
+Measured on both profiles with it on and off, which its own comment had been asking for since
+it was written: bit-identical on CPU, and on GPU identical on every held-out surface with one
+GMDCSA24 fall the difference. It neither earns nor costs anything measurable, so it stays as a
+safety net -- but it fired at probability 1.0, the highest the system can express, because a
+person **stopped being detectable**, which a night scene and a spurious detection also look
+like. It reports the last real classifier score now.
+
+The lab corpus was blind to this: the alert outcome never changed. The `Test/` clips showed it
+immediately -- six of twelve compilations had their CPU peak drop from 1.00 to between 0.80 and
+0.93 once the rule stopped inflating it. That number reaches a person as "score 100".
+
+### Frame position: closed
+
+See SS72. Sound hypothesis, measured properly over six training runs and two controls, and
+wrong -- worse on exactly the bed false alarms it was built for.
