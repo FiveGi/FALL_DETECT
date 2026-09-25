@@ -21,3 +21,5 @@ def register_blueprints(app):
     app.register_blueprint(stream_bp)
     from .alert_images import bp as alert_images_bp
     app.register_blueprint(alert_images_bp)
+    from .detector_info import bp as detector_info_bp
+    app.register_blueprint(detector_info_bp)

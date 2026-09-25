@@ -183,3 +183,63 @@ def release_camera(camera_id, token):
             r.delete(_LOCK_PREFIX + str(camera_id))
     except Exception:
         pass
+
+
+# The detector's settings are read from the environment when the worker imports it, and the
+# backend container does not share that environment -- the GPU overlay sets V3_DEVICE,
+# V3_IMGSZ and V3_TARGET_FPS on celery_worker alone. So the API cannot answer "what is this
+# system running" by looking at itself; the first version of /api/detector did exactly that and
+# reported input size 960 with no frame rate at all, which is nothing that runs anywhere.
+#
+# The worker publishes what it actually loaded, once, when it starts. Nothing reads it but the
+# status endpoint, and a missing key is reported as "no worker has said" rather than filled in
+# from a guess.
+DETECTOR_CONFIG_KEY = 'detector:config'
+# Long enough to outlive an idle night, short enough that a key left by a worker that is gone
+# does not describe the system forever.
+DETECTOR_CONFIG_TTL_S = 7 * 24 * 3600
+
+
+def publish_detector_config():
+    """Record the detector settings this worker actually imported. Never raises."""
+    import json
+    import os
+    import socket
+    from datetime import datetime
+
+    try:
+        from app.detection import v3_fall_detection as v3
+        target_fps = float(os.environ.get('V3_TARGET_FPS', 0)) or None
+        payload = {
+            'reported_by': socket.gethostname(),
+            'reported_at': datetime.now().isoformat(timespec='seconds'),
+            'pose_model': os.environ.get('V3_POSE_MODEL', 'yolo26s-pose.pt'),
+            'device': v3.__dict__.get('LOADED_DEVICE') or os.environ.get('V3_DEVICE', 'auto'),
+            'input_size': v3.IMGSZ,
+            'counting_input_size': v3.COUNT_IMGSZ,
+            'target_fps': target_fps,
+            'window_frames': v3.WINDOW_SIZE,
+            'threshold': v3.THRESHOLD,
+            'smoothing': '%d of %d' % (v3.SMOOTH_NEED, v3.SMOOTH_OF),
+            'partial_window_from': v3.PARTIAL_MIN,
+            'preprocess': list(v3.PREPROCESS) or ['off'],
+            'preprocess_dark_below': v3.PREPROCESS_DARK_BELOW,
+            'features_per_frame': v3.FEATURES_PER_FRAME,
+            'pose_confidence': v3.POSE_CONF,
+            'collapse_rule': v3.COLLAPSE_ENABLED,
+            'still_down_seconds': float(os.environ.get('STILL_DOWN_SECONDS', 10)),
+        }
+        _redis().set(DETECTOR_CONFIG_KEY, json.dumps(payload), ex=DETECTOR_CONFIG_TTL_S)
+    except Exception as exc:
+        print('[Celery Worker] could not publish the detector configuration: %s' % exc,
+              flush=True)
+
+
+def read_detector_config():
+    """-> the dict a worker published, or None if none has."""
+    import json
+    try:
+        raw = _redis().get(DETECTOR_CONFIG_KEY)
+        return json.loads(raw) if raw else None
+    except Exception:
+        return None

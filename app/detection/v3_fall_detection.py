@@ -394,6 +394,10 @@ def preprocess_frame(frame_bgr):
     return out, tuple(applied)
 
 
+# Set by V3PoseFallDetector.__init__ once a detector exists in this process.
+LOADED_DEVICE = None
+
+
 def _autodetect_device():
     try:
         import torch
@@ -482,6 +486,10 @@ class V3PoseFallDetector:
         if device is None:
             device = os.environ.get("V3_DEVICE") or _autodetect_device()
         self.device = device
+        # Module level too, so the status endpoint can report the device the detector really
+        # loaded on rather than the string someone may or may not have set in the environment.
+        global LOADED_DEVICE
+        LOADED_DEVICE = device
 
         providers = ["CPUExecutionProvider"]
         if device == "cuda" and "CUDAExecutionProvider" in ort.get_available_providers():

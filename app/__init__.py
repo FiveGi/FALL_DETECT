@@ -70,7 +70,11 @@ if os.environ.get('RESUME_ACTIVE_CAMERAS') == '1':
 
     @_worker_ready.connect
     def _resume_cameras_on_start(**_):
-        from app.services.detection_dispatch import resume_active_cameras
+        from app.services.detection_dispatch import (resume_active_cameras,
+                                                     publish_detector_config)
+        # What this worker actually loaded, so the API can report the running detector rather
+        # than the backend container's own unrelated environment.
+        publish_detector_config()
         try:
             with get_worker_app().app_context():
                 resumed = resume_active_cameras()
