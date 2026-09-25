@@ -103,6 +103,10 @@ def cache_key():
         'preprocess': list(v3.PREPROCESS),
         'dark_below': v3.PREPROCESS_DARK_BELOW,
         # A darkened run is a different question, not the same one measured twice.
+        # A cropped run is a different pose pass, not the same one measured again.
+        'roi_imgsz': v3.ROI_IMGSZ,
+        'roi_full_every': v3.ROI_FULL_EVERY if v3.ROI_IMGSZ else 0,
+        'roi_pad': v3.ROI_PAD if v3.ROI_IMGSZ else 0,
         'simulate_dark': SIMULATE_DARK,
         'dark_noise': DARK_NOISE if SIMULATE_DARK < 0.999 else 0.0,
     }

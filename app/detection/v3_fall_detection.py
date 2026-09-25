@@ -398,6 +398,51 @@ def preprocess_frame(frame_bgr):
 LOADED_DEVICE = None
 
 
+# V3_ROI_IMGSZ: run the pose pass on a crop around where the people were last seen, at a
+# smaller input size, instead of on the whole frame at the full one.
+#
+# The idea, and why it is not just "make the input smaller": ultralytics resizes whatever it is
+# given to `imgsz`, so cropping alone saves nothing -- it only raises the effective resolution
+# on the person. Cropping AND lowering imgsz together is what trades area for compute: if the
+# people occupy a quarter of the frame, a quarter-sized crop at half the input size puts the
+# same number of pixels on the body for a quarter of the work. On four CPU cores the pose pass
+# is 63% of the frame budget and frame rate is recall, so that is the trade worth measuring.
+#
+# The failure it must not have is losing somebody who was never in the crop. So:
+#   - the crop is the union of the last seen boxes, padded, never one person's box;
+#   - a full-frame pass runs every V3_ROI_FULL_EVERY frames regardless, which is what finds
+#     anyone new, and after any frame where nobody was found;
+#   - a crop is only used when the last full pass actually found someone.
+# Whether that cadence is enough is a question for measurement, not for this comment.
+#
+# Off by default until measured. 0 disables it.
+ROI_IMGSZ = int(os.environ.get("V3_ROI_IMGSZ", 0))
+# How often to look at the whole frame anyway. 8, one second at the CPU profile's rate.
+ROI_FULL_EVERY = int(os.environ.get("V3_ROI_FULL_EVERY", 8))
+# Fraction of the crop's own size added on each side. Generous: a person who falls moves fast
+# and horizontally, and a body leaving the crop mid-fall is the whole event leaving.
+ROI_PAD = float(os.environ.get("V3_ROI_PAD", 0.6))
+
+
+def _roi_from_boxes(boxes, w, h):
+    """boxes: list of (x1, y1, x2, y2) in pixels -> a padded, clamped crop covering them all."""
+    if not boxes:
+        return None
+    x1 = min(b[0] for b in boxes)
+    y1 = min(b[1] for b in boxes)
+    x2 = max(b[2] for b in boxes)
+    y2 = max(b[3] for b in boxes)
+    pad_x = (x2 - x1) * ROI_PAD
+    pad_y = (y2 - y1) * ROI_PAD
+    x1 = int(max(0, x1 - pad_x))
+    y1 = int(max(0, y1 - pad_y))
+    x2 = int(min(w, x2 + pad_x))
+    y2 = int(min(h, y2 + pad_y))
+    if x2 - x1 < 32 or y2 - y1 < 32:
+        return None
+    return x1, y1, x2, y2
+
+
 def _autodetect_device():
     try:
         import torch
@@ -563,23 +608,53 @@ class V3PoseFallDetector:
     def extract_all_keypoints(self, frame_bgr):
         """-> list of (kpts17 (17,3) [x, y, confidence], hip_center (2,)) for every
         person detected this frame, up to NUM_POSES, sorted by detection confidence
-        (highest first). Empty list if nobody detected."""
+        (highest first). Empty list if nobody detected.
+
+        With V3_ROI_IMGSZ set, most frames are a crop around where the people were, run at a
+        smaller input size -- see ROI_IMGSZ. Keypoints are mapped back to the whole frame
+        before they are returned, so nothing downstream can tell the difference.
+        """
         frame_bgr, _ops = preprocess_frame(frame_bgr)   # V3_PREPROCESS; a no-op unless it is configured
         h, w = frame_bgr.shape[:2]
-        result = self.pose_model.predict(frame_bgr, verbose=False, conf=POSE_CONF, classes=[0],
-                                         device=self.device, imgsz=IMGSZ)[0]
+
+        roi, imgsz = None, IMGSZ
+        if ROI_IMGSZ:
+            self._roi_frame = getattr(self, '_roi_frame', 0) + 1
+            due_full = (self._roi_frame % max(ROI_FULL_EVERY, 1)) == 0
+            if not due_full:
+                roi = _roi_from_boxes(getattr(self, '_roi_boxes', None), w, h)
+            if roi is not None:
+                imgsz = ROI_IMGSZ
+
+        source = frame_bgr[roi[1]:roi[3], roi[0]:roi[2]] if roi is not None else frame_bgr
+        result = self.pose_model.predict(source, verbose=False, conf=POSE_CONF, classes=[0],
+                                         device=self.device, imgsz=imgsz)[0]
         people = []
         if result.keypoints is None or len(result.keypoints.xy) == 0:
+            # Nobody in the crop is not nobody in the room. Drop the crop so the next frame
+            # looks at everything: holding a stale one here is how a person who walked out of
+            # it would stay invisible indefinitely.
+            if ROI_IMGSZ:
+                self._roi_boxes = None
             return people
         box_confs = result.boxes.conf.cpu().numpy()
         order = np.argsort(-box_confs)[:NUM_POSES]
+        # Where to look next time, in whole-frame pixels. Taken from every detection rather
+        # than the best one, so a second person keeps the crop open for both.
+        if ROI_IMGSZ:
+            xyxy = result.boxes.xyxy.cpu().numpy()
+            off_x, off_y = (roi[0], roi[1]) if roi is not None else (0, 0)
+            self._roi_boxes = [(b[0] + off_x, b[1] + off_y, b[2] + off_x, b[3] + off_y)
+                               for b in xyxy]
         for i in order:
             kxy = result.keypoints.xy[i].cpu().numpy()
             kconf = (result.keypoints.conf[i].cpu().numpy()
                      if result.keypoints.conf is not None else np.ones(NUM_KEYPOINTS, dtype=np.float32))
             kpts17 = np.zeros((NUM_KEYPOINTS, 3), dtype=np.float32)
-            kpts17[:, 0] = kxy[:, 0] / w
-            kpts17[:, 1] = kxy[:, 1] / h
+            # Back to whole-frame coordinates before normalising, so a crop never changes what
+            # anything downstream sees -- the classifier is trained on frame-relative values.
+            kpts17[:, 0] = (kxy[:, 0] + (roi[0] if roi is not None else 0)) / w
+            kpts17[:, 1] = (kxy[:, 1] + (roi[1] if roi is not None else 0)) / h
             kpts17[:, 2] = kconf
             hip_center = (kpts17[LEFT_HIP, :2] + kpts17[RIGHT_HIP, :2]) / 2.0
             people.append((kpts17, hip_center))
