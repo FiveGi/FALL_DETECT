@@ -293,22 +293,44 @@ anything built on this is confirmed on the dataset this project has tuned agains
 What is left is the alerting side: carry it onto the notification, let escalation use it, and
 say "still on the floor" in the message rather than a number.
 
-## 10. Is the alert TIER right, and where exactly does it go wrong?
-**Gain: the honest answer to "does it cry wolf". Effort: two days, most of it ground truth.**
+## 10. ~~Is the alert TIER right?~~ — measured, and the honest answer is "it never says go now"
+**Done 2026-09-26. `training/measure/tier_accuracy.py`. The finding is a data gap, not a bug.**
 
-`alert_tier()` returns `check` for every fresh alert and `confirmed` only once nobody
-acknowledged it. That was deliberate — the highest-scoring alert in the whole corpus, 0.96, is
-a man getting up from a bed, so the score cannot assert a fall (SS53). But nothing has measured
-the tier as a *classifier*: of the alerts that say "please check", how many were real, and of
-the real falls, how many never reached the urgent wording because somebody acknowledged a
-different alert first.
+Two facts can raise a fresh alert to `confirmed`, and only one of them can be measured from a
+recording: **the person is still on the floor.** "Nobody acknowledged" is about the people
+receiving the alert and no clip can answer it. So the tier a clip reaches on its own evidence
+is the floor of the tier, never the ceiling.
 
-What is needed that does not exist yet: per-alert ground truth at the instant the alert fires,
-not per clip. `training/measure_alert_tier.py` already emits one row per rising edge with its
-score — the missing half is a label on each of those rows, and the frame it fired on, so a
-wrong tier can be looked at rather than counted.
+Over all 130 alerts in the 220-clip set, at the deployed ten-second threshold:
 
-Report it as a confusion matrix over tiers, plus the frames of every disagreement.
+| | `confirmed` | `check` |
+|---|---|---|
+| alerts on a real fall (112) | **0** | 112 |
+| alerts that are false alarms (18) | **0** | 18 |
+
+**It never fires.** Not because the rule is wrong, but because at 8 fps a ten-second window
+needs eighty scored frames after the alert and almost no clip in this corpus runs that long.
+Sweeping the threshold shows exactly where the data runs out:
+
+| threshold | real falls confirmed | false alarms confirmed | precision of "go now" |
+|---|---|---|---|
+| 2 s | 32/112 (29%) | 4/18 (22%) | 89% |
+| 3 s | 14/112 (12%) | 1/18 (6%) | **93%** |
+| 5 s | 4/112 (4%) | 1/18 (6%) | 80% |
+| 7 s | 0 | 0 | — |
+| **10 s (deployed)** | **0** | **0** | **unmeasurable here** |
+
+**Ten seconds stays.** Lowering it to two so the corpus can score it would be fitting the rule
+to the clip lengths of a lab dataset, which is the mistake this project keeps catching itself
+making — and two seconds is weak evidence anyway, since somebody who trips and gets up takes
+longer than that. The physical argument for ten seconds is strong: nobody who merely bent over
+is still down after ten seconds.
+
+**What this actually exposes is the data gap.** Every lab clip ends within a second or two of
+the event, so nothing here can measure anything about the period *after* a fall — which is the
+period a carer cares about. It blocked item 9's confirmation the same way. Real footage that
+keeps running for half a minute after the event is the single most useful thing that could be
+added to this project's data, and it is exactly what item 11 would produce.
 
 ## 11. Cut the compilations into single incidents
 **Gain: turns 12 unscoreable clips into a real test set. Effort: two days.**
