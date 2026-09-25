@@ -614,6 +614,12 @@ class V3PoseFallDetector:
         smaller input size -- see ROI_IMGSZ. Keypoints are mapped back to the whole frame
         before they are returned, so nothing downstream can tell the difference.
         """
+        # Known inefficiency, left alone deliberately: with a crop configured this still
+        # preprocesses the WHOLE frame and then uses a part of it. Preprocessing a dark 1080p
+        # frame is 47 ms, so anyone enabling V3_ROI_IMGSZ on CPU should move this below the
+        # crop -- which also changes what "dark" means, from the room's average to the
+        # person's own lighting, and that is a different setting needing its own measurement.
+        # Not done here because the crop measured as not worth deploying (docs/next_steps 15).
         frame_bgr, _ops = preprocess_frame(frame_bgr)   # V3_PREPROCESS; a no-op unless it is configured
         h, w = frame_bgr.shape[:2]
 

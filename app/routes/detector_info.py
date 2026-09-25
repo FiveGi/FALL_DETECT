@@ -28,8 +28,18 @@ bp = Blueprint('detector_info', __name__, url_prefix='/api/detector')
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
+_MEASURED_CACHE = None
+
+
 def _measured_table():
-    """The same table tools/check_config_coherence.py checks against, loaded not copied."""
+    """The same table tools/check_config_coherence.py checks against, loaded not copied.
+
+    Cached after the first call: the file is a constant on disk, and re-executing it on every
+    request would make a status page do work proportional to how often anyone looks at it.
+    """
+    global _MEASURED_CACHE
+    if _MEASURED_CACHE is not None:
+        return _MEASURED_CACHE
     path = os.path.join(ROOT, 'tools', 'check_config_coherence.py')
     if not os.path.exists(path):
         return {}
@@ -41,7 +51,8 @@ def _measured_table():
         spec.loader.exec_module(module)
     except Exception:
         return {}
-    return getattr(module, 'MEASURED', {})
+    _MEASURED_CACHE = getattr(module, 'MEASURED', {})
+    return _MEASURED_CACHE
 
 
 @bp.route('', methods=['GET'])
