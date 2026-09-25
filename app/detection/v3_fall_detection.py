@@ -724,6 +724,49 @@ MAX_HELD_RUN = int(os.environ.get("V3_MAX_HELD_RUN", 5))
 # because it was shown to fix anything -- do not cite it as an accuracy improvement.
 
 
+# UPRIGHT_COS: how close to vertical a torso has to be to count as standing, as the cosine of
+# its angle from vertical -- 0.70 is about 45 degrees. Read straight from the keypoints, so it
+# needs no calibration, no reference height and no knowledge of where the camera is.
+#
+# It exists so the alerting side can use the one piece of evidence a human uses and the
+# classifier cannot see: **is the person STILL on the floor, some seconds after the alert.**
+# A window is one second long; this is about the ten that follow it.
+#
+# MEASURED, on the cached pose stream (training/measure/recovery_after_alert.py), counting only
+# alerts with at least sixteen scored frames afterwards:
+#
+#     real falls, GMDCSA24        35 usable    2 got back up  ( 6%)
+#     false alarms, val ADL        6 usable    3 got back up  (50%)
+#     false alarms, train50        2 usable    1 got back up  (50%)
+#     real falls, URFD wall cam    5 usable    2 got back up
+#     real falls, URFD ceiling     0 usable    the clips end too soon to ask
+#
+# **This must never cancel an alert.** It separates, but six per cent of real falls would be
+# suppressed by it, silently, by a rule nobody sees -- and a suppressed fall is the exact
+# failure this system exists to prevent. Used the other way round it costs nothing and asserts
+# nothing false: "still on the floor after ten seconds" is a fact, it holds for 94% of real
+# falls, and it can only raise urgency. That is the same footing the tier already stands on --
+# escalate because nobody answered, not because the model was confident.
+UPRIGHT_COS = float(os.environ.get("V3_UPRIGHT_COS", 0.70))
+
+
+def torso_cos(kpts):
+    """cos of the torso's angle from vertical, or None when the torso is not measurable."""
+    hip = (kpts[LEFT_HIP, :2] + kpts[RIGHT_HIP, :2]) / 2.0
+    shoulder = (kpts[LEFT_SHOULDER, :2] + kpts[RIGHT_SHOULDER, :2]) / 2.0
+    vec = shoulder - hip
+    length = float(np.linalg.norm(vec))
+    if length < 1e-3:
+        return None
+    return abs(float(vec[1])) / length
+
+
+def is_upright(kpts):
+    """-> True / False / None (not measurable this frame)."""
+    cos = torso_cos(kpts)
+    return None if cos is None else cos >= UPRIGHT_COS
+
+
 class V3FallDetectionState:
     """Per-camera state: rolling keypoint buffer + smoothing history."""
 
@@ -738,6 +781,13 @@ class V3FallDetectionState:
         self.collapse_fired = False
         self.last_good_kpts = None
         self.held_run = 0
+        # Frames since this person was last seen upright, and whether they ever have been.
+        # Counted only on frames where the torso was actually measurable, so a tracking
+        # dropout does not accumulate evidence that the person is still down -- see
+        # UPRIGHT_COS. frames_since_upright is what the alerting side reads; it is a count of
+        # observations, and the camera loop knows its own frame rate to turn it into seconds.
+        self.frames_since_upright = 0
+        self.ever_upright = False
 
     def is_ready(self):
         return len(self.raw_buffer) == WINDOW_SIZE
@@ -754,6 +804,12 @@ def _step_person(kpts, person_found, state: V3FallDetectionState,
         state.last_good_kpts = kpts
         state.held_run = 0
         state.raw_buffer.append(kpts)
+        upright = is_upright(kpts)
+        if upright is True:
+            state.frames_since_upright = 0
+            state.ever_upright = True
+        elif upright is False:
+            state.frames_since_upright += 1
     else:
         # A momentary tracking dropout (1-2 frames, common mid-fall/near occlusion --
         # see MIN_PERSON_FRACTION above) makes extract_keypoints return an all-zero

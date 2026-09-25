@@ -44,7 +44,9 @@ from replay_classifiers import load_stream  # noqa: E402
 MODEL_DIR = os.environ.get('TEST_MODEL_DIR', os.path.join(ROOT, 'models'))
 OUT = os.environ.get('OUT', os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                          'recovery_after_alert.json'))
-UPRIGHT_COS = float(os.environ.get('UPRIGHT_COS', 0.70))
+# The detector owns this definition now, so the measurement and the thing it
+# measures cannot drift apart.
+UPRIGHT_COS = v3.UPRIGHT_COS
 # Seconds after the alert to watch. Long enough that someone who was only bending has
 # straightened up, short enough that it is still the same event.
 WINDOW_S = float(os.environ.get('RECOVERY_WINDOW_S', 10.0))
@@ -56,17 +58,6 @@ NEED_FRACTION = float(os.environ.get('RECOVERY_NEED', 0.5))
 # which is a different thing from "no" and has to be reported separately or the rates are
 # meaningless.
 MIN_FRAMES_AFTER = int(os.environ.get('RECOVERY_MIN_FRAMES', 16))
-
-
-def torso_cos(kpts):
-    """cos of the torso's angle from vertical, or None when the torso is not measurable."""
-    hip = (kpts[v3.LEFT_HIP, :2] + kpts[v3.RIGHT_HIP, :2]) / 2.0
-    sho = (kpts[v3.LEFT_SHOULDER, :2] + kpts[v3.RIGHT_SHOULDER, :2]) / 2.0
-    vec = sho - hip
-    length = float(np.linalg.norm(vec))
-    if length < 1e-3:
-        return None
-    return abs(float(vec[1])) / length
 
 
 def run_clip(det, frames, fps):
@@ -98,7 +89,7 @@ def run_clip(det, frames, fps):
             kp = by_hip.get(tuple(np.round(np.asarray(centroid), 6)))
             if kp is None:
                 continue          # the track is being held through a dropout: no new evidence
-            cos = torso_cos(kp)
+            cos = v3.torso_cos(kp)
             if cos is None:
                 continue
             seen_after += 1
