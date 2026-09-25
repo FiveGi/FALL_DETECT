@@ -336,6 +336,41 @@ period a carer cares about. It blocked item 9's confirmation the same way. Real 
 keeps running for half a minute after the event is the single most useful thing that could be
 added to this project's data, and it is exactly what item 11 would produce.
 
+## 14. The dark costs ten falls in sixty, and the current gate does not get them back
+**Measured 2026-09-26. Not yet resolved — the first real number on night-time behaviour.**
+
+Not one fall clip in any dataset here is dark, so every claim about darkness was an
+extrapolation from thirteen clips containing no falls. `SIMULATE_DARK` in
+`training/measure/cache_pose_streams.py` dims footage whose correct answer is already known and
+adds sensor noise as the signal falls, which is what actually breaks pose estimation.
+
+CPU profile, URFD:
+
+| light | URFD falls | held-out clean |
+|---|---|---|
+| full | 45/60 | 43/56 |
+| 50% | **40/60** | 41/56 |
+| 30% | **35/60** | 43/56 |
+| 30% + preprocessing | 34/60 | 44/56 |
+
+**A fifth of the falls go with the light, and the preprocessing recovers none of them.** The
+reason is arithmetic rather than mystery: the darkness gate fires below luminance 32, and
+
+| URFD fall clips | median luminance | below 32 | below 70 |
+|---|---|---|---|
+| full light | 104.5 | 0/60 | 0/60 |
+| 50% | 52.2 | **0/60** | 44/60 |
+| 30% | 31.3 | 30/60 | 60/60 |
+
+At half light the gate **never fires at all**, and at 30% it fires on exactly half the clips.
+32 was chosen because it is provably harmless on the natural corpus — and the natural corpus
+has almost nothing in the 30-to-70 band, which is precisely where a dimly lit room sits.
+
+**The open question is whether a gate that engages on dim footage gets those falls back**, and
+what it costs on lit footage, which is the trade 32 was picked to avoid. That sweep is the next
+thing to run. If it does, the honest conclusion is that this threshold is an installation
+setting rather than a constant -- a bedroom at night and a day room are not the same problem.
+
 ## 11. Cut the compilations into single incidents
 **Gain: turns 12 unscoreable clips into a real test set. Effort: two days.**
 
