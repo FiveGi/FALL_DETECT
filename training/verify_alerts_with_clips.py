@@ -64,16 +64,9 @@ PROMPT = (
 )
 
 
-SHOT_CUT_DIFF = float(os.environ.get('SHOT_CUT_DIFF', 45.0))
-
-
-def _is_shot_cut(a, b):
-    """Hard cut detector: mean absolute difference between consecutive frames, on a small
-    grayscale thumbnail so ordinary motion and noise stay well under the threshold while a
-    change of scene goes far above it."""
-    ga = cv2.cvtColor(cv2.resize(a, (64, 36)), cv2.COLOR_BGR2GRAY).astype(np.int16)
-    gb = cv2.cvtColor(cv2.resize(b, (64, 36)), cv2.COLOR_BGR2GRAY).astype(np.int16)
-    return float(np.mean(np.abs(ga - gb))) > SHOT_CUT_DIFF
+# The cut detector lives in training/shot_cuts.py, because the compilation-cutting work needs
+# the same one and a second copy of a validated threshold is how two answers start to disagree.
+from shot_cuts import SHOT_CUT_DIFF, is_shot_cut as _is_shot_cut  # noqa: F401,E402
 
 
 def cut_clip(video_path, t, out_path):
