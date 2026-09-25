@@ -1133,7 +1133,9 @@ async function fetchAllNotifications() {
           activityType: 'notification',
           risk_level: riskLevel,
           confidence: notification.confidence,
-          tier: getAlertTier(notification.detection_type, notification.escalation_count || 0),
+          tier: getAlertTier(notification.detection_type, notification.escalation_count || 0,
+                             notification.still_down_seconds),
+          still_down_seconds: notification.still_down_seconds,
           notification_id: notification.id,
           clip_url: notification.clip_path
             ? `${import.meta.env.VITE_API_BASE_URL}/alert-images/${encodeURIComponent(String(notification.clip_path).split('/').pop())}`
@@ -1603,6 +1605,13 @@ function getUserCameraCount(userId) {
                 <span v-if="activity.escalation_count > 0" class="escalation-badge">
                   แจ้งซ้ำ {{ activity.escalation_count }} ครั้ง
                 </span>
+                <span
+                  v-if="activity.still_down_seconds != null"
+                  class="stilldown-badge"
+                  title="กล้องเห็นว่าคนที่ทำให้เกิดการแจ้งเตือนนี้ยังไม่ลุกขึ้นเลย — เป็นสิ่งที่กล้องเห็น ไม่ใช่คะแนนของโมเดล"
+                >
+                  ยังไม่ลุก {{ Math.round(activity.still_down_seconds) }} วินาที
+                </span>
                 <div
                   v-if="activity.activityType === 'notification' && activity.detection_type && activity.detection_type.includes('fall')"
                   class="ack-row"
@@ -1802,6 +1811,20 @@ function getUserCameraCount(userId) {
 </template>
 
 <style scoped>
+/* Deliberately louder than the tier badge beside it: this is the only thing on the row that
+   the camera actually observed about the person, rather than about the model or the system. */
+.stilldown-badge {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  background: #c62828;
+  white-space: nowrap;
+}
+
 .monitor-view {
   padding-bottom: 2rem;
 }

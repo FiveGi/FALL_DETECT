@@ -4,7 +4,7 @@ from app.detection.fall_detection import (
     detect_fall_legacy, FallDetectionState, FallONNXDetector, AlonePersonDetector
 )
 from app.services.logging_service import save_detection_log, save_system_log
-from app.services.notification_service import notify_alert
+from app.services.notification_service import notify_alert, STILL_DOWN_SECONDS
 from app.services import clip_buffer
 from app.services.alert_service import save_alert_log
 from app.models.camera import Camera
@@ -948,7 +948,7 @@ def process_v2_fall_detection(camera_id, config):
                             awaiting_still_down.pop(tid, None)
                             continue
                         seconds = person.frames_since_upright / max(rate, 1e-6)
-                        if seconds < Config.STILL_DOWN_SECONDS:
+                        if seconds < STILL_DOWN_SECONDS:
                             continue
                         notification_id = awaiting_still_down.pop(tid)
                         try:

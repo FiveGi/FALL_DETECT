@@ -68,9 +68,21 @@ export function getAlertTypeText(alertDetectionType) {
  * 'confirmed' -> nobody acknowledged it and escalation_service re-sent it.
  * Non-fall alerts (bed exit, alone) are advisory by nature and always 'check'.
  */
-export function getAlertTier(alertDetectionType, escalationCount = 0) {
+// Must stay identical to notification_service.alert_tier on the backend: this decides what a
+// family is told, and two copies that disagree means the page says one thing and the LINE
+// message another. tools/check_alert_rules.py compares them.
+//
+// stillDownSeconds is a fact about what the camera saw -- the person who triggered the alert
+// has not been upright since. It raises the tier for the same reason an unacknowledged alert
+// does, and like escalation it can only ever raise it. The inverse, cancelling when somebody
+// gets back up, was measured and would suppress 6% of real falls.
+export const STILL_DOWN_SECONDS = 30
+
+export function getAlertTier(alertDetectionType, escalationCount = 0, stillDownSeconds = null) {
     if (!alertDetectionType || !alertDetectionType.includes('fall')) return 'check'
-    return escalationCount > 0 ? 'confirmed' : 'check'
+    if (escalationCount > 0) return 'confirmed'
+    if (stillDownSeconds != null && stillDownSeconds >= STILL_DOWN_SECONDS) return 'confirmed'
+    return 'check'
 }
 
 const ALERT_TIER_LABELS = {

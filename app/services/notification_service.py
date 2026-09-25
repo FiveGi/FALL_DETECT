@@ -1,3 +1,4 @@
+import os
 from app.services.line_service import send_line_message_async
 
 # The alert score does NOT decide how an alert is worded. Measured on the quantity the system
@@ -28,7 +29,11 @@ from app.services.line_service import send_line_message_async
 # unacknowledged (see notify_alert).
 
 
-from app.config import Config
+# Seconds on the floor after an alert before the system says so. Owned here rather than in
+# Config because this is an alerting rule, and tools/check_alert_rules.py loads this file with
+# no Flask present so the rule can be checked without Docker, a database or a GPU. The web UI
+# has the same number in frontend/src/utils/detectionType.js and that checker compares them.
+STILL_DOWN_SECONDS = float(os.environ.get('STILL_DOWN_SECONDS', 10))
 
 
 def alert_tier(detection_type, escalation_level=0, still_down_seconds=None):
@@ -49,7 +54,7 @@ def alert_tier(detection_type, escalation_level=0, still_down_seconds=None):
         return "check"
     if escalation_level > 0:
         return "confirmed"
-    if still_down_seconds is not None and still_down_seconds >= Config.STILL_DOWN_SECONDS:
+    if still_down_seconds is not None and still_down_seconds >= STILL_DOWN_SECONDS:
         return "confirmed"
     return "check"
 

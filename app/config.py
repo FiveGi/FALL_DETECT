@@ -4,13 +4,6 @@ from datetime import timedelta
 
 class Config:
 
-    # How long a person has to stay down after an alert before the system says so. The signal
-    # is measured in app/detection/v3_fall_detection (UPRIGHT_COS): on the cached pose stream,
-    # 94% of real falls are still down ten seconds later and only half the false alarms are.
-    #
-    # It is used only to RAISE urgency, never to cancel. Cancelling on the inverse -- "they got
-    # up, so never mind" -- was measured too, and it would suppress 6% of real falls silently.
-    STILL_DOWN_SECONDS = float(os.environ.get('STILL_DOWN_SECONDS', 10))
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev')
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@db:5432/postgres')
     SQLALCHEMY_TRACK_MODIFICATIONS = False

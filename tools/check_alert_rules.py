@@ -77,6 +77,23 @@ def main():
         check(f'backend  {detection_type:12s} escalation={escalation} -> {expected}',
               got == expected, '' if got == expected else f'got {got}')
 
+    # The second fact that may raise the tier. It has to raise, never lower, and it must not
+    # reach a non-fall alert -- bed-exit and alone are advisory whatever the camera saw.
+    still = ns['STILL_DOWN_SECONDS']
+    for detection_type, seconds, expected in (
+        ('fall_red', None, 'check'),
+        ('fall_red', still - 1, 'check'),
+        ('fall_red', still, 'confirmed'),
+        ('fall_red', still * 10, 'confirmed'),
+        ('alone_yellow', still * 10, 'check'),
+        ('bed_exit', still * 10, 'check'),
+    ):
+        got = alert_tier(detection_type, 0, seconds)
+        check(f'backend  {detection_type:12s} still_down={seconds} -> {expected}',
+              got == expected, '' if got == expected else f'got {got}')
+    check('backend  still-down can only RAISE the tier, never lower one',
+          alert_tier('fall_red', 1, 0) == 'confirmed', 'escalated + they got up must stay confirmed')
+
     js = open(JS, encoding='utf-8').read()
 
     # The frontend cannot be imported from Python, so assert the shape of the rule instead:
@@ -88,13 +105,22 @@ def main():
         check('frontend rule takes the escalation count, not a confidence',
               'escalation' in args.lower() and 'confidence' not in args.lower(),
               f'signature: ({args.strip()})')
-        check('frontend rule returns confirmed only when escalated',
-              re.search(r'escalationCount\s*>\s*0\s*\?\s*[\'"]confirmed[\'"]', body) is not None)
+        check('frontend rule confirms on escalation',
+              re.search(r'escalationCount\s*>\s*0\).*?[\'"]confirmed[\'"]', body, re.S) is not None)
+        check('frontend rule confirms on still-down, with the same threshold as the backend',
+              re.search(r'stillDownSeconds\s*>=\s*STILL_DOWN_SECONDS', body) is not None)
         check('frontend rule keeps non-fall alerts in the lower tier',
               "includes('fall')" in body and "return 'check'" in body)
 
     check('no confidence threshold constant survives in the frontend',
           'CONFIRMED_CONFIDENCE' not in js)
+
+    # Two copies of a number that decides what a family is told. If they drift, the dashboard
+    # and the LINE message disagree about the same alert and nothing else would catch it.
+    m_js = re.search(r'export const STILL_DOWN_SECONDS\s*=\s*([0-9.]+)', js)
+    check('the web UI has the same still-down threshold as the backend',
+          m_js is not None and float(m_js.group(1)) == float(ns['STILL_DOWN_SECONDS']),
+          f"frontend {m_js.group(1) if m_js else 'missing'} vs backend {ns['STILL_DOWN_SECONDS']}")
 
     # The LINE wording is the thing a family actually reads, and it is the easiest place for
     # the old behaviour to creep back: an escalated alert is urgent because nobody answered,
@@ -105,13 +131,20 @@ def main():
     fall_branch = fall_branch[:fall_branch.index('elif "alone" in detection_type')]
     confirmed_text = [ln for ln in fall_branch.splitlines()
                       if 'event_text =' in ln and not ln.strip().startswith('#')]
-    check('LINE has one wording per tier and no more',
-          len(confirmed_text) == 2, f'found {len(confirmed_text)} event_text assignments')
-    urgent = confirmed_text[0] if confirmed_text else ''
-    check('the escalated LINE message does not assert a fall happened',
+    # Three wordings, and no more: still-down, unacknowledged, and the "please check" that a
+    # fresh alert gets. Each urgent one names the FACT that raised it, because "they have not
+    # got up for twelve seconds" and "nobody has looked at this" are different situations and a
+    # single urgent message for both would be telling a family something the system does not
+    # know. The count is asserted so a fourth wording cannot appear unnoticed.
+    check('LINE has one wording per fact and no more',
+          len(confirmed_text) == 3, f'found {len(confirmed_text)} event_text assignments')
+    urgent = ' '.join(confirmed_text)
+    check('no urgent LINE message asserts that a fall happened',
           'ตรวจพบการล้ม' not in urgent, urgent.strip()[:90])
-    check('the escalated LINE message says nobody has checked it',
-          'ยังไม่มีใครตรวจสอบ' in urgent or 'ไม่มีใคร' in urgent, urgent.strip()[:90])
+    check('the unacknowledged wording says nobody has checked it',
+          any('ยังไม่มีใครตรวจสอบ' in ln or 'ไม่มีใคร' in ln for ln in confirmed_text))
+    check('the still-down wording says they have not got up',
+          any('ยังไม่ลุก' in ln for ln in confirmed_text))
 
     backend_src = open(os.path.join(ROOT, 'app', 'services', 'notification_service.py'),
                        encoding='utf-8').read()
@@ -124,7 +157,7 @@ def main():
     if failures:
         print(f'{len(failures)} check(s) failed')
         return 1
-    print(f'{len(CASES) + 9} checks passed -- backend, LINE wording and web UI agree')
+    print('all checks passed -- backend, LINE wording and web UI agree on the tier')
     return 0
 
 
