@@ -12,7 +12,7 @@ tz = pytz.timezone('Asia/Bangkok')
 
 def send_line_message_async(camera_id, camera_name, room_name, detection_type, timestamp,
                             image_path, tier="confirmed", confidence=None, escalation_level=0,
-                            notification_id=None):
+                            notification_id=None, still_down_seconds=None):
     def _send():
         from app import get_worker_app
         app = get_worker_app()
@@ -30,9 +30,15 @@ def send_line_message_async(camera_id, camera_name, room_name, detection_type, t
                 # the score cannot tell a fall from a deep bend; the urgent wording is
                 # reserved for an alert nobody answered (see notification_service.alert_tier).
                 if tier == "confirmed":
-                    # Urgent, but still doesn't assert a fall: what is certain at this point
-                    # is that an alert has gone unanswered, not what the camera saw.
-                    event_text = "🚨 ยังไม่มีใครตรวจสอบการแจ้งเตือนล้ม — กรุณาไปดูด่วน!"
+                    # Two different facts can reach this tier, and they are not the same
+                    # message. "Still on the floor" is something the camera saw; "nobody
+                    # answered" is something the system knows. Saying which one it is keeps
+                    # the wording honest -- neither of them asserts that a fall happened.
+                    if still_down_seconds is not None and escalation_level == 0:
+                        event_text = ("🚨 ตรวจพบคนล้ม และยังไม่ลุกขึ้นเลยเป็นเวลา %d วินาที"
+                                      " — กรุณาไปดูด่วน!" % int(still_down_seconds))
+                    else:
+                        event_text = "🚨 ยังไม่มีใครตรวจสอบการแจ้งเตือนล้ม — กรุณาไปดูด่วน!"
                 else:
                     risk_level = "yellow"
                     event_text = "❓ อาจมีการล้ม — รบกวนตรวจสอบกล้องด้วยครับ"

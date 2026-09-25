@@ -26,5 +26,11 @@ class NotificationHistory(db.Model):
     # mp4 of the ~60s before the alert, cut from the in-memory ring buffer at alert
     # time (app/services/clip_buffer.py) and sent to whoever acknowledges the alert.
     clip_path = db.Column(db.String(512), nullable=True)
+    # Seconds the alerting person had been continuously not-upright when this was last
+    # observed. NULL means the question was never answered -- the person left frame, tracking
+    # was lost, or the alert is younger than Config.STILL_DOWN_SECONDS. A number here is a
+    # fact about what the camera saw, not a confidence, which is why it is allowed to raise
+    # the alert tier when nothing else about the score is.
+    still_down_seconds = db.Column(db.Float, nullable=True)
 
     camera = db.relationship('Camera', backref=db.backref('notifications', lazy=True)) 

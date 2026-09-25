@@ -28,17 +28,35 @@ from app.services.line_service import send_line_message_async
 # unacknowledged (see notify_alert).
 
 
-def alert_tier(detection_type, escalation_level=0):
+from app.config import Config
+
+
+def alert_tier(detection_type, escalation_level=0, still_down_seconds=None):
     """-> 'confirmed' | 'check'. Falls ask a human to look; an alert nobody acknowledged is
     escalated to the urgent wording. Non-fall events (bed exit, alone) are advisory by
-    nature and always land in the lower tier."""
+    nature and always land in the lower tier.
+
+    still_down_seconds raises the tier for the same reason escalation does: it is a FACT about
+    what the camera saw, not an estimate of how sure the model was. Somebody who has been on
+    the floor for ten seconds is a different situation from somebody the model thought fell a
+    moment ago, and it is the one distinction a human makes that the classifier cannot.
+    Measured at 94% of real falls against half the false alarms -- so it is useful evidence and
+    poor proof, which is exactly what raising urgency (rather than asserting a fall) is for.
+
+    It never lowers the tier. The inverse rule -- they got up, so cancel -- was measured on the
+    same data and would suppress 6% of real falls, silently."""
     if "fall" not in detection_type:
         return "check"
-    return "confirmed" if escalation_level > 0 else "check"
+    if escalation_level > 0:
+        return "confirmed"
+    if still_down_seconds is not None and still_down_seconds >= Config.STILL_DOWN_SECONDS:
+        return "confirmed"
+    return "check"
 
 
 def notify_alert(camera_id, camera_name, room_name, detection_type, timestamp, image_path,
-                 confidence=None, escalation_level=0, notification_id=None):
+                 confidence=None, escalation_level=0, notification_id=None,
+                 still_down_seconds=None):
     """Single entry point for every outbound alert channel (currently LINE). Detection loops call this
     instead of each channel's sender directly, so adding/removing a channel or changing
     the tier rule is a one-line change here rather than an edit repeated at every alert
@@ -48,10 +66,11 @@ def notify_alert(camera_id, camera_name, room_name, detection_type, timestamp, i
     escalation_service), and that is the only thing that raises the tier: by then the point
     is that it went unanswered, which is a fact, rather than how sure the model was, which
     the measurement above shows is not usable."""
-    tier = alert_tier(detection_type, escalation_level)
+    tier = alert_tier(detection_type, escalation_level, still_down_seconds)
     # notification_id only reaches LINE: it is what the "รับทราบ" button posts back, so the
     # webhook can mark that exact alert acknowledged and reply with its clip.
     send_line_message_async(camera_id, camera_name, room_name, detection_type, timestamp,
                             image_path, tier=tier, confidence=confidence,
                             escalation_level=escalation_level,
-                            notification_id=notification_id)
+                            notification_id=notification_id,
+                            still_down_seconds=still_down_seconds)

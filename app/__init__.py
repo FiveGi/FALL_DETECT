@@ -228,6 +228,7 @@ def create_app():
                 ('notification_history', 'acknowledged_by', 'INTEGER'),
                 ('notification_history', 'escalation_count', 'INTEGER NOT NULL DEFAULT 0'),
                 ('notification_history', 'clip_path', 'VARCHAR(512)'),
+                ('notification_history', 'still_down_seconds', 'FLOAT'),
                 # A LINE group to alert alongside the individual user -- see
                 # app/models/line_settings.LineSettings.targets().
                 ('line_settings', 'line_group_id', 'VARCHAR(255)'),

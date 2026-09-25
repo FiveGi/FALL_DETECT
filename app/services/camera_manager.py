@@ -8,6 +8,7 @@ from app.services.notification_service import notify_alert
 from app.services import clip_buffer
 from app.services.alert_service import save_alert_log
 from app.models.camera import Camera
+from app.models.notification_history import NotificationHistory
 from app import db
 import cv2
 import time
@@ -714,6 +715,11 @@ def process_v2_fall_detection(camera_id, config):
             min_period = 1.0 / target_fps if target_fps > 0 else 0.0
             next_due = 0.0
             processed, rate_since = 0, time.time()
+            # Alerts waiting to find out whether the person got back up, keyed by the track
+            # that triggered them: {track_id: notification_id}. An entry is removed the moment
+            # it is answered, so each alert can say "still on the floor" at most once and a
+            # long incident cannot turn into a stream of messages.
+            awaiting_still_down = {}
             # Where the loop's time goes, reported with the rate below. Without this, a loop
             # running under target is just a number and every explanation is a guess -- which
             # cost several wrong guesses before it was added.
@@ -817,7 +823,9 @@ def process_v2_fall_detection(camera_id, config):
                 # For logging/alerting a single confidence number, use whichever tracked
                 # person is most fall-like this frame (the detected one if any, else the max).
                 top = max(results, key=lambda r: r[2]) if results else (None, False, 0.0, "no_person", None)
-                _, detected, probability, label, _ = top
+                # The track id is kept, not discarded: an alert has to remember WHICH person
+                # triggered it, or "did they get back up" cannot be asked about the right one.
+                alert_track, detected, probability, label, _ = top
 
                 # Alone-detection, inline rather than as its own task. It used to be a second
                 # Celery task with its own VideoCapture and its own YOLO model, decoding the
@@ -917,7 +925,51 @@ def process_v2_fall_detection(camera_id, config):
 
                         print(f"[Camera {camera_id}] V2 FALL ALERT: {label}, Confidence: {probability:.2f}, People seen: {fall_state.seen_count}")
                         camera._last_fall_v2_alert_time = now
+                        if getattr(notification, 'id', None) is not None and alert_track is not None:
+                            awaiting_still_down[alert_track] = notification.id
                 
+                # Did the person who triggered an alert get back up? The detector counts
+                # frames since each tracked person was last upright; this turns that into
+                # seconds and reports it once.
+                #
+                # It only ever ADDS urgency. The opposite rule -- they stood up, so cancel --
+                # was measured on the same signal and would suppress six per cent of real
+                # falls, silently (training/measure/recovery_after_alert.py). Ninety-four per
+                # cent of real falls are still down ten seconds later and about half the false
+                # alarms are, which makes this useful evidence and poor proof: exactly the
+                # thing that should raise a tier rather than assert a fall.
+                if awaiting_still_down:
+                    rate = target_fps or (processed / max(1e-6, time.time() - rate_since))
+                    for tid in list(awaiting_still_down):
+                        person = fall_state.person_states.get(tid)
+                        if person is None:
+                            # The track expired: nobody saw whether they got up, so the
+                            # question goes unanswered rather than being answered by silence.
+                            awaiting_still_down.pop(tid, None)
+                            continue
+                        seconds = person.frames_since_upright / max(rate, 1e-6)
+                        if seconds < Config.STILL_DOWN_SECONDS:
+                            continue
+                        notification_id = awaiting_still_down.pop(tid)
+                        try:
+                            record = NotificationHistory.query.get(notification_id)
+                            if record is not None:
+                                record.still_down_seconds = round(seconds, 1)
+                                db.session.commit()
+                            notify_alert(
+                                camera.id, camera.name, camera.room_name,
+                                'fall_red', datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                record.image_path if record is not None else None,
+                                confidence=probability,
+                                notification_id=notification_id,
+                                still_down_seconds=round(seconds, 1),
+                            )
+                            print(f"[Camera {camera_id}] STILL DOWN: track {tid} has not been "
+                                  f"upright for {seconds:.0f}s -- alert {notification_id} raised")
+                        except Exception as exc:
+                            db.session.rollback()
+                            print(f"[Camera {camera_id}] still-down follow-up failed: {exc}")
+
                 if not camera_still_active(camera_id):
                     break
 
