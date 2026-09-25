@@ -76,12 +76,13 @@ export function getAlertTypeText(alertDetectionType) {
 // has not been upright since. It raises the tier for the same reason an unacknowledged alert
 // does, and like escalation it can only ever raise it. The inverse, cancelling when somebody
 // gets back up, was measured and would suppress 6% of real falls.
-export const STILL_DOWN_SECONDS = 30
+export const STILL_DOWN_SECONDS = 10
 
-export function getAlertTier(alertDetectionType, escalationCount = 0, stillDownSeconds = null) {
+export function getAlertTier(alertDetectionType, escalationCount = 0, stillDownSeconds = null,
+                             threshold = STILL_DOWN_SECONDS) {
     if (!alertDetectionType || !alertDetectionType.includes('fall')) return 'check'
     if (escalationCount > 0) return 'confirmed'
-    if (stillDownSeconds != null && stillDownSeconds >= STILL_DOWN_SECONDS) return 'confirmed'
+    if (stillDownSeconds != null && stillDownSeconds >= threshold) return 'confirmed'
     return 'check'
 }
 

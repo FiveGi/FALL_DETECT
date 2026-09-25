@@ -1134,7 +1134,7 @@ async function fetchAllNotifications() {
           risk_level: riskLevel,
           confidence: notification.confidence,
           tier: getAlertTier(notification.detection_type, notification.escalation_count || 0,
-                             notification.still_down_seconds),
+                             notification.still_down_seconds, notification.still_down_threshold),
           still_down_seconds: notification.still_down_seconds,
           notification_id: notification.id,
           clip_url: notification.clip_path

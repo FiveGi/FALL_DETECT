@@ -107,8 +107,10 @@ def main():
               f'signature: ({args.strip()})')
         check('frontend rule confirms on escalation',
               re.search(r'escalationCount\s*>\s*0\).*?[\'"]confirmed[\'"]', body, re.S) is not None)
-        check('frontend rule confirms on still-down, with the same threshold as the backend',
-              re.search(r'stillDownSeconds\s*>=\s*STILL_DOWN_SECONDS', body) is not None)
+        check('frontend rule confirms on still-down',
+              re.search(r'stillDownSeconds\s*!=\s*null\s*&&\s*stillDownSeconds\s*>=', body) is not None)
+        check('frontend takes the threshold from the server, not only its own constant',
+              'threshold' in args, f'signature: ({args.strip()})')
         check('frontend rule keeps non-fall alerts in the lower tier',
               "includes('fall')" in body and "return 'check'" in body)
 
@@ -118,7 +120,7 @@ def main():
     # Two copies of a number that decides what a family is told. If they drift, the dashboard
     # and the LINE message disagree about the same alert and nothing else would catch it.
     m_js = re.search(r'export const STILL_DOWN_SECONDS\s*=\s*([0-9.]+)', js)
-    check('the web UI has the same still-down threshold as the backend',
+    check('the web UI default still-down threshold matches the backend default',
           m_js is not None and float(m_js.group(1)) == float(ns['STILL_DOWN_SECONDS']),
           f"frontend {m_js.group(1) if m_js else 'missing'} vs backend {ns['STILL_DOWN_SECONDS']}")
 
@@ -145,6 +147,17 @@ def main():
           any('ยังไม่มีใครตรวจสอบ' in ln or 'ไม่มีใคร' in ln for ln in confirmed_text))
     check('the still-down wording says they have not got up',
           any('ยังไม่ลุก' in ln for ln in confirmed_text))
+
+    # The defaults agreeing is not enough on its own: STILL_DOWN_SECONDS is settable, and a
+    # deployment that changes it would leave the dashboard on its compiled-in number. The API
+    # sends the live value with each notification for that reason, and the UI has to use it.
+    logs_src = open(os.path.join(ROOT, 'app', 'routes', 'logs.py'), encoding='utf-8').read()
+    check('the API sends the live threshold with each notification',
+          "'still_down_threshold': STILL_DOWN_SECONDS" in logs_src)
+    monitor = open(os.path.join(ROOT, 'frontend', 'src', 'views', 'MonitorView.vue'),
+                   encoding='utf-8').read()
+    check('the dashboard passes the threshold the server sent',
+          'notification.still_down_threshold' in monitor)
 
     backend_src = open(os.path.join(ROOT, 'app', 'services', 'notification_service.py'),
                        encoding='utf-8').read()

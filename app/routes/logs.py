@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify
 from app.models.detection_log import DetectionLog
 from app.models.notification_history import NotificationHistory
+from app.services.notification_service import STILL_DOWN_SECONDS
 from app.models.camera import Camera
 from app.models.user import User
 from app import db
@@ -113,6 +114,15 @@ def get_notifications():
             'confidence': n.confidence,
             'acknowledged_at': n.acknowledged_at.isoformat() if n.acknowledged_at else None,
             'escalation_count': n.escalation_count or 0,
+            # How long the alerting person stayed down, as the camera saw it. NULL
+            # means the question was never answered, which is not the same as 'they
+            # got up' -- the web UI shows a badge only when there is a number.
+            'still_down_seconds': n.still_down_seconds,
+            # Sent with the row rather than hardcoded in the web UI. The threshold is settable
+            # through STILL_DOWN_SECONDS, and a deployment that changes it would otherwise have
+            # a dashboard using a different number from the LINE message for the same alert --
+            # which tools/check_alert_rules.py cannot catch, because it compares the defaults.
+            'still_down_threshold': STILL_DOWN_SECONDS,
             # The 60s of footage leading up to the alert. Only the filename is useful to the
             # browser -- it fetches it from /api/alert-images/<name>, same as the still.
             'clip_path': n.clip_path
@@ -147,6 +157,15 @@ def get_notifications_for_camera(camera_id):
             'confidence': n.confidence,
             'acknowledged_at': n.acknowledged_at.isoformat() if n.acknowledged_at else None,
             'escalation_count': n.escalation_count or 0,
+            # How long the alerting person stayed down, as the camera saw it. NULL
+            # means the question was never answered, which is not the same as 'they
+            # got up' -- the web UI shows a badge only when there is a number.
+            'still_down_seconds': n.still_down_seconds,
+            # Sent with the row rather than hardcoded in the web UI. The threshold is settable
+            # through STILL_DOWN_SECONDS, and a deployment that changes it would otherwise have
+            # a dashboard using a different number from the LINE message for the same alert --
+            # which tools/check_alert_rules.py cannot catch, because it compares the defaults.
+            'still_down_threshold': STILL_DOWN_SECONDS,
             # The 60s of footage leading up to the alert. Only the filename is useful to the
             # browser -- it fetches it from /api/alert-images/<name>, same as the still.
             'clip_path': n.clip_path

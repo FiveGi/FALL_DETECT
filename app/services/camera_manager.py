@@ -926,7 +926,13 @@ def process_v2_fall_detection(camera_id, config):
                         print(f"[Camera {camera_id}] V2 FALL ALERT: {label}, Confidence: {probability:.2f}, People seen: {fall_state.seen_count}")
                         camera._last_fall_v2_alert_time = now
                         if getattr(notification, 'id', None) is not None and alert_track is not None:
-                            awaiting_still_down[alert_track] = notification.id
+                            # The monotonic time is kept with it: the question is "are they
+                            # still down N seconds later", so it cannot be answered before N
+                            # seconds have passed. Without this it answered on the SAME frame
+                            # as the alert -- a person mid-fall still reads as upright by torso
+                            # angle for a moment, which closed the question before it was asked.
+                            awaiting_still_down[alert_track] = (notification.id,
+                                                                time.monotonic())
                 
                 # Did the person who triggered an alert get back up? The detector counts
                 # frames since each tracked person was last upright; this turns that into
@@ -940,21 +946,57 @@ def process_v2_fall_detection(camera_id, config):
                 # thing that should raise a tier rather than assert a fall.
                 if awaiting_still_down:
                     rate = target_fps or (processed / max(1e-6, time.time() - rate_since))
+                    _mono = time.monotonic()
                     for tid in list(awaiting_still_down):
+                        notification_id, alerted_at = awaiting_still_down[tid]
+                        if _mono - alerted_at < STILL_DOWN_SECONDS:
+                            continue
                         person = fall_state.person_states.get(tid)
                         if person is None:
                             # The track expired: nobody saw whether they got up, so the
                             # question goes unanswered rather than being answered by silence.
+                            # Logged, because "no still-down report" has two causes -- they got
+                            # up, or we lost them -- and they mean opposite things.
                             awaiting_still_down.pop(tid, None)
+                            print(f"[Camera {camera_id}] still-down unknown: track {tid} was "
+                                  f"lost before the question could be answered")
                             continue
+                        # Compare against the time that has ACTUALLY elapsed, not against the
+                        # nominal threshold. frames_since_upright / rate can never quite reach
+                        # STILL_DOWN_SECONDS at the moment the window closes: the count starts
+                        # at zero on the alert frame and the loop runs a little under target,
+                        # so at 3.0s of wall time a 19 fps loop has 57 frames and reports 2.85.
+                        # Measured live -- every clip came back "upright again" for that reason
+                        # alone, while the detector's own counter was climbing correctly.
+                        #
+                        # What is actually being asked is whether they were down for the whole
+                        # window, so ask that: the fraction of the elapsed time they were not
+                        # upright. 0.8 leaves room for the frames where the torso could not be
+                        # measured at all.
+                        elapsed = _mono - alerted_at
                         seconds = person.frames_since_upright / max(rate, 1e-6)
-                        if seconds < STILL_DOWN_SECONDS:
+                        if seconds < 0.8 * elapsed:
+                            # The window has passed and they are not still down, so they got
+                            # back up. That is the answer, and it changes nothing: the alert
+                            # stands and the tier is untouched. Cancelling here would suppress
+                            # six per cent of real falls -- see notification_service.alert_tier.
+                            awaiting_still_down.pop(tid, None)
+                            print(f"[Camera {camera_id}] still-down answered: track {tid} was "
+                                  f"upright during the {elapsed:.0f}s after the alert "
+                                  f"({seconds:.1f}s down of {elapsed:.1f}s) -- alert stands, "
+                                  f"tier unchanged")
                             continue
-                        notification_id = awaiting_still_down.pop(tid)
+                        awaiting_still_down.pop(tid, None)
+                        # The claim is "they have not got up in the N seconds since the alert",
+                        # so N is the elapsed time, not the frame-derived count. That count
+                        # starts at zero on the alert frame and so always reads a little short
+                        # -- reporting it would also leave the value just below the threshold
+                        # the tier is compared against, which is the whole point of recording it.
+                        down_for = round(elapsed, 1)
                         try:
                             record = NotificationHistory.query.get(notification_id)
                             if record is not None:
-                                record.still_down_seconds = round(seconds, 1)
+                                record.still_down_seconds = down_for
                                 db.session.commit()
                             notify_alert(
                                 camera.id, camera.name, camera.room_name,
@@ -962,10 +1004,11 @@ def process_v2_fall_detection(camera_id, config):
                                 record.image_path if record is not None else None,
                                 confidence=probability,
                                 notification_id=notification_id,
-                                still_down_seconds=round(seconds, 1),
+                                still_down_seconds=down_for,
                             )
                             print(f"[Camera {camera_id}] STILL DOWN: track {tid} has not been "
-                                  f"upright for {seconds:.0f}s -- alert {notification_id} raised")
+                                  f"upright in the {down_for:.0f}s since the alert "
+                                  f"({seconds:.1f}s measured down) -- alert {notification_id} raised")
                         except Exception as exc:
                             db.session.rollback()
                             print(f"[Camera {camera_id}] still-down follow-up failed: {exc}")
