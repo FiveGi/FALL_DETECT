@@ -8,7 +8,9 @@
     "start_s": 0.0,
     "end_s": 2.73,
     "seconds": 2.73,
-    "alerts_at": [],
+    "alerts_at": [
+     1.67
+    ],
     "sheet": "sheets\\1_01.jpg",
     "label": null
    },
@@ -17,7 +19,9 @@
     "start_s": 2.73,
     "end_s": 7.7,
     "seconds": 4.97,
-    "alerts_at": [],
+    "alerts_at": [
+     7.17
+    ],
     "sheet": "sheets\\1_02.jpg",
     "label": null
    },
@@ -26,7 +30,9 @@
     "start_s": 7.7,
     "end_s": 11.1,
     "seconds": 3.4,
-    "alerts_at": [],
+    "alerts_at": [
+     9.7
+    ],
     "sheet": "sheets\\1_03.jpg",
     "label": null
    },
@@ -35,7 +41,9 @@
     "start_s": 11.1,
     "end_s": 16.87,
     "seconds": 5.77,
-    "alerts_at": [],
+    "alerts_at": [
+     14.8
+    ],
     "sheet": "sheets\\1_04.jpg",
     "label": null
    },
@@ -44,7 +52,9 @@
     "start_s": 16.87,
     "end_s": 20.33,
     "seconds": 3.47,
-    "alerts_at": [],
+    "alerts_at": [
+     18.8
+    ],
     "sheet": "sheets\\1_05.jpg",
     "label": null
    },
@@ -53,7 +63,10 @@
     "start_s": 20.33,
     "end_s": 23.6,
     "seconds": 3.27,
-    "alerts_at": [],
+    "alerts_at": [
+     21.5,
+     23.5
+    ],
     "sheet": "sheets\\1_06.jpg",
     "label": null
    },
@@ -62,7 +75,10 @@
     "start_s": 23.6,
     "end_s": 31.4,
     "seconds": 7.8,
-    "alerts_at": [],
+    "alerts_at": [
+     26.7,
+     31.07
+    ],
     "sheet": "sheets\\1_07.jpg",
     "label": null
    },
@@ -71,7 +87,10 @@
     "start_s": 31.4,
     "end_s": 38.37,
     "seconds": 6.97,
-    "alerts_at": [],
+    "alerts_at": [
+     33.57,
+     38.1
+    ],
     "sheet": "sheets\\1_08.jpg",
     "label": null
    },
@@ -80,7 +99,10 @@
     "start_s": 38.37,
     "end_s": 45.03,
     "seconds": 6.67,
-    "alerts_at": [],
+    "alerts_at": [
+     39.7,
+     44.2
+    ],
     "sheet": "sheets\\1_09.jpg",
     "label": null
    },
@@ -89,7 +111,9 @@
     "start_s": 45.03,
     "end_s": 48.93,
     "seconds": 3.9,
-    "alerts_at": [],
+    "alerts_at": [
+     47.2
+    ],
     "sheet": "sheets\\1_10.jpg",
     "label": null
    },
@@ -98,7 +122,9 @@
     "start_s": 48.93,
     "end_s": 51.77,
     "seconds": 2.83,
-    "alerts_at": [],
+    "alerts_at": [
+     50.7
+    ],
     "sheet": "sheets\\1_11.jpg",
     "label": null
    },
@@ -116,7 +142,9 @@
     "start_s": 57.23,
     "end_s": 60.47,
     "seconds": 3.23,
-    "alerts_at": [],
+    "alerts_at": [
+     58.9
+    ],
     "sheet": "sheets\\1_13.jpg",
     "label": null
    },
@@ -125,7 +153,9 @@
     "start_s": 60.47,
     "end_s": 63.2,
     "seconds": 2.73,
-    "alerts_at": [],
+    "alerts_at": [
+     62.1
+    ],
     "sheet": "sheets\\1_14.jpg",
     "label": null
    },
@@ -145,7 +175,9 @@
     "start_s": 0.0,
     "end_s": 21.9,
     "seconds": 21.9,
-    "alerts_at": [],
+    "alerts_at": [
+     3.3
+    ],
     "sheet": "sheets\\2_01.jpg",
     "label": null
    },
@@ -165,7 +197,11 @@
     "start_s": 0.0,
     "end_s": 17.8,
     "seconds": 17.8,
-    "alerts_at": [],
+    "alerts_at": [
+     3.67,
+     13.17,
+     15.67
+    ],
     "sheet": "sheets\\3_01.jpg",
     "label": null
    },
@@ -185,7 +221,9 @@
     "start_s": 0.0,
     "end_s": 5.7,
     "seconds": 5.7,
-    "alerts_at": [],
+    "alerts_at": [
+     5.0
+    ],
     "sheet": "sheets\\4_01.jpg",
     "label": null
    },
@@ -194,7 +232,9 @@
     "start_s": 5.7,
     "end_s": 8.23,
     "seconds": 2.53,
-    "alerts_at": [],
+    "alerts_at": [
+     6.97
+    ],
     "sheet": "sheets\\4_02.jpg",
     "label": null
    },
@@ -212,7 +252,10 @@
     "start_s": 13.7,
     "end_s": 21.57,
     "seconds": 7.87,
-    "alerts_at": [],
+    "alerts_at": [
+     19.27,
+     19.9
+    ],
     "sheet": "sheets\\4_04.jpg",
     "label": null
    },
@@ -230,7 +273,10 @@
     "start_s": 26.9,
     "end_s": 33.37,
     "seconds": 6.47,
-    "alerts_at": [],
+    "alerts_at": [
+     30.07,
+     32.57
+    ],
     "sheet": "sheets\\4_06.jpg",
     "label": null
    },
@@ -248,7 +294,9 @@
     "start_s": 39.8,
     "end_s": 45.13,
     "seconds": 5.33,
-    "alerts_at": [],
+    "alerts_at": [
+     39.97
+    ],
     "sheet": "sheets\\4_08.jpg",
     "label": null
    },
@@ -302,7 +350,10 @@
     "start_s": 86.5,
     "end_s": 90.87,
     "seconds": 4.37,
-    "alerts_at": [],
+    "alerts_at": [
+     89.57,
+     90.37
+    ],
     "sheet": "sheets\\4_14.jpg",
     "label": null
    },
@@ -331,7 +382,9 @@
     "start_s": 0.0,
     "end_s": 3.23,
     "seconds": 3.23,
-    "alerts_at": [],
+    "alerts_at": [
+     2.0
+    ],
     "sheet": "sheets\\5_01.jpg",
     "label": null
    },
@@ -340,7 +393,9 @@
     "start_s": 3.23,
     "end_s": 6.07,
     "seconds": 2.83,
-    "alerts_at": [],
+    "alerts_at": [
+     5.17
+    ],
     "sheet": "sheets\\5_02.jpg",
     "label": null
    },
@@ -349,7 +404,9 @@
     "start_s": 6.07,
     "end_s": 9.77,
     "seconds": 3.7,
-    "alerts_at": [],
+    "alerts_at": [
+     8.2
+    ],
     "sheet": "sheets\\5_03.jpg",
     "label": null
    },
@@ -367,7 +424,9 @@
     "start_s": 12.27,
     "end_s": 14.9,
     "seconds": 2.63,
-    "alerts_at": [],
+    "alerts_at": [
+     12.4
+    ],
     "sheet": "sheets\\5_05.jpg",
     "label": null
    },
@@ -376,7 +435,9 @@
     "start_s": 14.9,
     "end_s": 18.5,
     "seconds": 3.6,
-    "alerts_at": [],
+    "alerts_at": [
+     18.07
+    ],
     "sheet": "sheets\\5_06.jpg",
     "label": null
    },
@@ -385,7 +446,9 @@
     "start_s": 18.5,
     "end_s": 22.53,
     "seconds": 4.03,
-    "alerts_at": [],
+    "alerts_at": [
+     20.67
+    ],
     "sheet": "sheets\\5_07.jpg",
     "label": null
    },
@@ -403,7 +466,9 @@
     "start_s": 25.4,
     "end_s": 28.63,
     "seconds": 3.23,
-    "alerts_at": [],
+    "alerts_at": [
+     27.07
+    ],
     "sheet": "sheets\\5_09.jpg",
     "label": null
    },
@@ -421,7 +486,9 @@
     "start_s": 31.0,
     "end_s": 34.27,
     "seconds": 3.27,
-    "alerts_at": [],
+    "alerts_at": [
+     33.67
+    ],
     "sheet": "sheets\\5_11.jpg",
     "label": null
    },
@@ -430,7 +497,10 @@
     "start_s": 35.37,
     "end_s": 41.0,
     "seconds": 5.63,
-    "alerts_at": [],
+    "alerts_at": [
+     35.4,
+     39.0
+    ],
     "sheet": "sheets\\5_12.jpg",
     "label": null
    },
@@ -439,7 +509,9 @@
     "start_s": 41.0,
     "end_s": 46.4,
     "seconds": 5.4,
-    "alerts_at": [],
+    "alerts_at": [
+     43.17
+    ],
     "sheet": "sheets\\5_13.jpg",
     "label": null
    },
@@ -448,7 +520,9 @@
     "start_s": 46.4,
     "end_s": 50.37,
     "seconds": 3.97,
-    "alerts_at": [],
+    "alerts_at": [
+     49.2
+    ],
     "sheet": "sheets\\5_14.jpg",
     "label": null
    },
@@ -457,7 +531,9 @@
     "start_s": 50.37,
     "end_s": 52.47,
     "seconds": 2.1,
-    "alerts_at": [],
+    "alerts_at": [
+     52.0
+    ],
     "sheet": "sheets\\5_15.jpg",
     "label": null
    },
@@ -475,7 +551,9 @@
     "start_s": 55.5,
     "end_s": 59.1,
     "seconds": 3.6,
-    "alerts_at": [],
+    "alerts_at": [
+     56.67
+    ],
     "sheet": "sheets\\5_17.jpg",
     "label": null
    },
@@ -493,7 +571,9 @@
     "start_s": 63.5,
     "end_s": 66.17,
     "seconds": 2.67,
-    "alerts_at": [],
+    "alerts_at": [
+     65.17
+    ],
     "sheet": "sheets\\5_19.jpg",
     "label": null
    },
@@ -513,7 +593,10 @@
     "start_s": 0.0,
     "end_s": 11.93,
     "seconds": 11.93,
-    "alerts_at": [],
+    "alerts_at": [
+     3.27,
+     7.2
+    ],
     "sheet": "sheets\\6_01.jpg",
     "label": null
    },
@@ -533,7 +616,9 @@
     "start_s": 0.0,
     "end_s": 5.23,
     "seconds": 5.23,
-    "alerts_at": [],
+    "alerts_at": [
+     1.37
+    ],
     "sheet": "sheets\\7_01.jpg",
     "label": null
    },
@@ -542,7 +627,9 @@
     "start_s": 5.97,
     "end_s": 9.93,
     "seconds": 3.97,
-    "alerts_at": [],
+    "alerts_at": [
+     9.1
+    ],
     "sheet": "sheets\\7_02.jpg",
     "label": null
    },
@@ -551,7 +638,9 @@
     "start_s": 10.67,
     "end_s": 13.43,
     "seconds": 2.77,
-    "alerts_at": [],
+    "alerts_at": [
+     12.8
+    ],
     "sheet": "sheets\\7_03.jpg",
     "label": null
    },
@@ -580,7 +669,9 @@
     "start_s": 0.0,
     "end_s": 7.93,
     "seconds": 7.93,
-    "alerts_at": [],
+    "alerts_at": [
+     5.67
+    ],
     "sheet": "sheets\\8_01.jpg",
     "label": null
    },
@@ -607,7 +698,11 @@
     "start_s": 19.5,
     "end_s": 24.57,
     "seconds": 5.07,
-    "alerts_at": [],
+    "alerts_at": [
+     20.0,
+     21.17,
+     23.67
+    ],
     "sheet": "sheets\\8_04.jpg",
     "label": null
    },
@@ -616,7 +711,9 @@
     "start_s": 24.57,
     "end_s": 29.67,
     "seconds": 5.1,
-    "alerts_at": [],
+    "alerts_at": [
+     27.07
+    ],
     "sheet": "sheets\\8_05.jpg",
     "label": null
    },
@@ -652,7 +749,9 @@
     "start_s": 43.97,
     "end_s": 48.97,
     "seconds": 5.0,
-    "alerts_at": [],
+    "alerts_at": [
+     45.97
+    ],
     "sheet": "sheets\\8_09.jpg",
     "label": null
    },
@@ -690,7 +789,9 @@
     "start_s": 0.0,
     "end_s": 3.27,
     "seconds": 3.27,
-    "alerts_at": [],
+    "alerts_at": [
+     1.7
+    ],
     "sheet": "sheets\\9_01.jpg",
     "label": null
    },
@@ -726,7 +827,9 @@
     "start_s": 15.5,
     "end_s": 18.17,
     "seconds": 2.67,
-    "alerts_at": [],
+    "alerts_at": [
+     17.0
+    ],
     "sheet": "sheets\\9_05.jpg",
     "label": null
    },
@@ -735,7 +838,9 @@
     "start_s": 18.17,
     "end_s": 21.5,
     "seconds": 3.33,
-    "alerts_at": [],
+    "alerts_at": [
+     19.8
+    ],
     "sheet": "sheets\\9_06.jpg",
     "label": null
    },
@@ -789,7 +894,9 @@
     "start_s": 36.33,
     "end_s": 44.73,
     "seconds": 8.4,
-    "alerts_at": [],
+    "alerts_at": [
+     36.67
+    ],
     "sheet": "sheets\\9_12.jpg",
     "label": null
    },
@@ -807,7 +914,10 @@
     "start_s": 49.5,
     "end_s": 54.37,
     "seconds": 4.87,
-    "alerts_at": [],
+    "alerts_at": [
+     52.3,
+     52.87
+    ],
     "sheet": "sheets\\9_14.jpg",
     "label": null
    },
@@ -816,7 +926,9 @@
     "start_s": 54.37,
     "end_s": 60.03,
     "seconds": 5.67,
-    "alerts_at": [],
+    "alerts_at": [
+     56.87
+    ],
     "sheet": "sheets\\9_15.jpg",
     "label": null
    },
@@ -834,7 +946,9 @@
     "start_s": 63.37,
     "end_s": 67.47,
     "seconds": 4.1,
-    "alerts_at": [],
+    "alerts_at": [
+     66.3
+    ],
     "sheet": "sheets\\9_17.jpg",
     "label": null
    },
@@ -843,7 +957,9 @@
     "start_s": 67.47,
     "end_s": 71.07,
     "seconds": 3.6,
-    "alerts_at": [],
+    "alerts_at": [
+     69.57
+    ],
     "sheet": "sheets\\9_18.jpg",
     "label": null
    },
@@ -872,7 +988,9 @@
     "start_s": 0.0,
     "end_s": 15.2,
     "seconds": 15.2,
-    "alerts_at": [],
+    "alerts_at": [
+     2.87
+    ],
     "sheet": "sheets\\10_01.jpg",
     "label": null
    },
@@ -892,7 +1010,9 @@
     "start_s": 0.0,
     "end_s": 18.87,
     "seconds": 18.87,
-    "alerts_at": [],
+    "alerts_at": [
+     15.17
+    ],
     "sheet": "sheets\\11_01.jpg",
     "label": null
    },
@@ -957,7 +1077,9 @@
     "start_s": 19.53,
     "end_s": 24.83,
     "seconds": 5.3,
-    "alerts_at": [],
+    "alerts_at": [
+     23.7
+    ],
     "sheet": "sheets\\12_06.jpg",
     "label": null
    },
@@ -975,7 +1097,9 @@
     "start_s": 31.07,
     "end_s": 35.6,
     "seconds": 4.53,
-    "alerts_at": [],
+    "alerts_at": [
+     34.3
+    ],
     "sheet": "sheets\\12_08.jpg",
     "label": null
    },
@@ -984,7 +1108,9 @@
     "start_s": 35.6,
     "end_s": 39.87,
     "seconds": 4.27,
-    "alerts_at": [],
+    "alerts_at": [
+     38.9
+    ],
     "sheet": "sheets\\12_09.jpg",
     "label": null
    },
@@ -993,7 +1119,9 @@
     "start_s": 39.87,
     "end_s": 45.07,
     "seconds": 5.2,
-    "alerts_at": [],
+    "alerts_at": [
+     41.5
+    ],
     "sheet": "sheets\\12_10.jpg",
     "label": null
    },
@@ -1002,7 +1130,10 @@
     "start_s": 45.07,
     "end_s": 49.97,
     "seconds": 4.9,
-    "alerts_at": [],
+    "alerts_at": [
+     45.2,
+     49.9
+    ],
     "sheet": "sheets\\12_11.jpg",
     "label": null
    },
@@ -1011,7 +1142,9 @@
     "start_s": 49.97,
     "end_s": 54.53,
     "seconds": 4.57,
-    "alerts_at": [],
+    "alerts_at": [
+     52.27
+    ],
     "sheet": "sheets\\12_12.jpg",
     "label": null
    },
@@ -1020,7 +1153,9 @@
     "start_s": 54.53,
     "end_s": 64.63,
     "seconds": 10.1,
-    "alerts_at": [],
+    "alerts_at": [
+     55.7
+    ],
     "sheet": "sheets\\12_13.jpg",
     "label": null
    },
