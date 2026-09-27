@@ -47,10 +47,16 @@ default), and that costs in proportion to the pixels it is given:
 | 1280×720 | 20.8 ms | 17% |
 | **640×360** | **5.0 ms** | **4%** |
 
-A lit frame costs 0.16 ms either way, because the check reads every eighth pixel and then does
-nothing. If the camera can only give a main stream, set `V3_PREPROCESS=off` rather than lose
-the frame rate — on this machine frame rate is recall, and that trade is worse than the false
-alarms the preprocessing removes.
+A well-lit frame costs 0.16 ms either way, because the check reads every eighth pixel and then
+does nothing. **How many frames pay the full cost depends on the room**: the enhancement runs on
+any frame below mean luminance 70, so a bright day room pays almost nothing and a dim bedroom
+at night pays it on most frames. That is the right way round — it is the dim room the feature
+exists for — but it means the frame-rate budget on a dark camera has to be checked, not
+assumed.
+
+If the camera can only give a main stream, set `V3_PREPROCESS=off` rather than lose the frame
+rate — on this machine frame rate is recall, and that trade is worse than the false alarms the
+preprocessing removes.
 
 ## 3. Set the admin password before anyone can reach it
 
@@ -96,11 +102,12 @@ end to end, which is the point of it.
   frames against 78-88% from a wall, and the classifier never runs at all.
 - **Fewer falls than a GPU host**: 45 of 60 URFD falls against 56, at the same false-alarm
   rate. The gap is frame rate, not a different model — the same weights run in both.
-- **A lit room.** Those numbers are measured on well-exposed footage, and the difference is
-  not small: dimming the same clips to half their brightness costs 45 of 60 falls → **40**, and
-  to 30% → **35**. The preprocessing does not recover it, because its gate only fires below
-  luminance 32 and a dimly lit room sits above that. A night light is not decoration here; it
-  is the difference between catching three quarters of falls and catching a little over half.
+- **Enough light.** Those numbers are measured on well-exposed footage. Dimming the same clips
+  to half brightness costs 45 of 60 falls → 40 with the preprocessing off; the shipped setting
+  recovers most of that (→ **43**) and gains four clean clips with it. **Below about a third of
+  normal room light nothing recovers it**: 35 of 60, whatever the settings do. A night light is
+  not decoration here — it is the difference between catching three quarters of the falls and a
+  little over half, and no software setting substitutes for it.
 - **It never says "go now" on its own.** An alert asks a human to look. It is raised to urgent
   by one of two facts — nobody acknowledged it, or the person has not got up after ten
   seconds — and never by how confident the model was, because the highest-scoring alert ever

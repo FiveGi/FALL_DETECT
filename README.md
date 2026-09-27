@@ -128,10 +128,15 @@ frame. In a dark room the joint positions jitter, and jitter reads as fast motio
 what a fall looks like. Measured on both profiles it costs no falls at all and removes false
 alarms — three of them across the two, on the darkest clips in the set.
 
-That is free on a well-exposed frame, which is nearly all of them, but it costs real time on a
-dark one, in proportion to the resolution the camera sends. **On a CPU machine, point the
-camera at its low-resolution substream** — the detector downsizes everything anyway, and at
-1080p this one feature would take 38% of the per-frame budget, where at 640×360 it takes 4%.
+That is free on a well-exposed frame, but it costs real time on a dark one, in proportion to
+the resolution the camera sends. **On a CPU machine, point the camera at its low-resolution
+substream** — the detector downsizes everything anyway, and at 1080p this one feature would
+take 38% of the per-frame budget, where at 640×360 it takes 4%.
+
+**How much light the room has matters more than any setting in this repository.** Dimming the
+same clips to half brightness costs 45 of 60 falls → 40 without the enhancement and → 43 with
+it; below about a third of normal room light nothing recovers it, and recall settles near 35 of
+60. A night light in the hallway is worth more than anything else on this page.
 
 Two numbers you will see quoted elsewhere for systems like this, and why they are not these:
 
