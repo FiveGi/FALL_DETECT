@@ -12,7 +12,15 @@
      1.67
     ],
     "sheet": "sheets\\1_01.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 1,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A person walks on a wet pathway, slips, and falls backwards."
+    }
    },
    {
     "segment": 2,
@@ -23,7 +31,15 @@
      7.17
     ],
     "sheet": "sheets\\1_02.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 1,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A person slips on ice on the porch steps and falls."
+    }
    },
    {
     "segment": 3,
@@ -34,7 +50,15 @@
      9.7
     ],
     "sheet": "sheets\\1_03.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 1,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A person walking to a front door slips and falls backward on the porch."
+    }
    },
    {
     "segment": 4,
@@ -45,7 +69,15 @@
      14.8
     ],
     "sheet": "sheets\\1_04.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 2,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A woman runs out of the house and trips on the porch near a man."
+    }
    },
    {
     "segment": 5,
@@ -56,7 +88,15 @@
      18.8
     ],
     "sheet": "sheets\\1_05.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 1,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A man slips on ice and falls on a snowy path."
+    }
    },
    {
     "segment": 6,
@@ -68,7 +108,15 @@
      23.5
     ],
     "sheet": "sheets\\1_06.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 1,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A person runs onto a porch and slips, falling flat on their back."
+    }
    },
    {
     "segment": 7,
@@ -80,7 +128,15 @@
      31.07
     ],
     "sheet": "sheets\\1_07.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 2,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A woman trips and falls inside her home, and a man trips and falls outside on a porch."
+    }
    },
    {
     "segment": 8,
@@ -92,7 +148,15 @@
      38.1
     ],
     "sheet": "sheets\\1_08.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 2,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A man and then a woman both slip and fall on ice outside their house."
+    }
    },
    {
     "segment": 9,
@@ -104,7 +168,15 @@
      44.2
     ],
     "sheet": "sheets\\1_09.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 2,
+     "elderly": false,
+     "out_of_domain": true,
+     "description": "A child falls on a porch, and then an adult also slips and falls while trying to help."
+    }
    },
    {
     "segment": 10,
@@ -115,7 +187,15 @@
      47.2
     ],
     "sheet": "sheets\\1_10.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 3,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A woman falls backward on her porch while interacting with children."
+    }
    },
    {
     "segment": 11,
@@ -126,7 +206,15 @@
      50.7
     ],
     "sheet": "sheets\\1_11.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 1,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A person walks down icy steps and slips, falling on their back."
+    }
    },
    {
     "segment": 12,
@@ -146,7 +234,15 @@
      58.9
     ],
     "sheet": "sheets\\1_13.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 1,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A woman falls backward off a step onto the ground."
+    }
    },
    {
     "segment": 14,
@@ -157,7 +253,15 @@
      62.1
     ],
     "sheet": "sheets\\1_14.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 1,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A person slips and falls backward on a porch near snow."
+    }
    },
    {
     "segment": 15,
@@ -992,7 +1096,15 @@
      2.87
     ],
     "sheet": "sheets\\10_01.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 2,
+     "elderly": false,
+     "out_of_domain": true,
+     "description": "A baby in a walker tumbles down a flight of stairs, then an adult rushes to the child's aid."
+    }
    },
    {
     "segment": 2,
@@ -1014,7 +1126,15 @@
      15.17
     ],
     "sheet": "sheets\\11_01.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": false,
+     "already_down": false,
+     "people": 2,
+     "elderly": false,
+     "out_of_domain": true,
+     "description": "A kid climbs onto a bunk bed and then appears to fall from it onto the bottom bunk, where another child is sleeping."
+    }
    },
    {
     "segment": 2,
@@ -1081,7 +1201,15 @@
      23.7
     ],
     "sheet": "sheets\\12_06.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 1,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A person carrying a basketball backboard falls onto the grass while attempting to set it down."
+    }
    },
    {
     "segment": 7,
@@ -1101,7 +1229,15 @@
      34.3
     ],
     "sheet": "sheets\\12_08.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 1,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A woman carrying a package slips on the snowy ground in front of a house and falls."
+    }
    },
    {
     "segment": 9,
@@ -1112,7 +1248,15 @@
      38.9
     ],
     "sheet": "sheets\\12_09.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 2,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A person walking down outdoor steps slips and falls backward."
+    }
    },
    {
     "segment": 10,
@@ -1123,7 +1267,15 @@
      41.5
     ],
     "sheet": "sheets\\12_10.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 2,
+     "elderly": false,
+     "out_of_domain": true,
+     "description": "A person falls off a boat into the water while fishing."
+    }
    },
    {
     "segment": 11,
@@ -1135,7 +1287,15 @@
      49.9
     ],
     "sheet": "sheets\\12_11.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 3,
+     "elderly": false,
+     "out_of_domain": true,
+     "description": "A woman accidentally knocks a child off a couch with a cushion."
+    }
    },
    {
     "segment": 12,
@@ -1146,7 +1306,15 @@
      52.27
     ],
     "sheet": "sheets\\12_12.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 1,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A woman falls off a porch while trying to step down."
+    }
    },
    {
     "segment": 13,
