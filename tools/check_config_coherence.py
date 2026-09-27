@@ -76,6 +76,10 @@ MEASURED = {
     (320, 15, 8.0, 4, ('off',)): 'CPU 3.5 cores: URFD 45/60 falls, held-out clean 41/56',
     # Deployed. Frame preprocessing costs no falls on either profile and removes false alarms:
     # three between the two profiles, on the darkest clips in the corpus.
+    # Deployed. The darkness gate does not appear in this key because gates of 32, 50 and 70
+    # measured bit-identical on every surface at full light, on both profiles -- so one row
+    # describes all of them here. Where they differ is dim footage, which this table does not
+    # cover at all (see docs/next_steps.md item 14).
     (320, 15, 8.0, 4, ('auto',)):
         'CPU 3.5 cores: URFD 45/60 falls, held-out clean 43/56 (deployed, preprocessing on)',
     (960, 15, 20.0, 4, ('auto',)):

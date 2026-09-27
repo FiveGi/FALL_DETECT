@@ -336,72 +336,82 @@ period a carer cares about. It blocked item 9's confirmation the same way. Real 
 keeps running for half a minute after the event is the single most useful thing that could be
 added to this project's data, and it is exactly what item 11 would produce.
 
-## 14. The dark costs ten falls in sixty, and the gate that ships does not get them back
-**Measured 2026-09-26. A better gate is measured too — the last cell is running.**
+## 14. ~~The dark costs ten falls in sixty~~ — the gate moved to 70 and it is free
+**Done 2026-09-27. The gate default is 70. It costs nothing in the light and is worth three
+falls and four clean clips at half light.**
 
-Not one fall clip in any dataset here is dark, so every claim about darkness was an
+Not one fall clip in any dataset here is dark, so every claim about darkness used to be an
 extrapolation from thirteen clips containing no falls. `SIMULATE_DARK` dims footage whose
-correct answer is already known and adds sensor noise as the signal falls, which is what
-actually breaks pose estimation.
+correct answer is known and adds sensor noise as the signal falls.
 
-**What the dark costs** (CPU profile, URFD):
+**At full light, gates of 32, 50 and 70 are bit-identical on every surface, both profiles** —
+CPU 45/60 falls and 43/56 held-out clean, GPU 56/60 and 41/56. The gate costs nothing in a lit
+room.
 
-| light | falls, gate off | gate 32 (ships) | **gate 70** |
-|---|---|---|---|
-| full | 45/60 | 45/60 | *running* |
-| 50% | 40/60 | 40/60 | **43/60** |
-| 30% | 35/60 | 34/60 | 34/60 |
+**In a dim one it is the whole difference** (CPU profile, URFD):
 
-and held-out clean at the same points:
+| light | falls: off / 32 / **70** | held-out clean: off / 32 / **70** |
+|---|---|---|
+| full | 45 / 45 / **45** | 43 / 43 / **43** |
+| 50% | 40 / 40 / **43** | 41 / 43 / **45** |
+| 30% | 35 / 34 / **34** | 43 / 44 / **47** |
 
-| light | gate off | gate 32 | **gate 70** |
-|---|---|---|---|
-| 50% | 41/56 | 43/56 | **45/56** |
-| 30% | 43/56 | 44/56 | **47/56** |
+At half light it recovers three of the five falls the dark costs *and* gains four clean clips,
+both halves of URFD agreeing. 32 does nothing there because **zero of the sixty fall clips fall
+below 32 at half light**; it was chosen as provably harmless on a corpus with almost nothing
+between luminance 30 and 70, which is the exact band a dim room occupies.
 
-**At half light, a gate of 70 is better on both axes at once** — three of the five lost falls
-back and four more clean clips — and both halves of URFD agree (falls 17→19, clean 16→17 on the
-confirming half). At 30% it recovers no falls but still gains four clean clips.
+**The lesson worth keeping is about the metric, not the number.** 70 was rejected earlier on
+person-found, where it finished four frames behind doing nothing across 7067 frames. On alerts
+it is identical in the light and clearly better in the dark. Person-found is a proxy, and it
+under-reported this by everything that mattered.
 
-The reason the shipped gate does nothing is arithmetic: it fires below luminance 32, and at
-half light **zero of the sixty fall clips are below it**. 32 was chosen because it is provably
-harmless on the natural corpus, which has almost nothing between 30 and 70 — the exact band a
-dimly lit room sits in.
+**Still open:** at 30% light nothing recovers the falls — 35/60 becomes 34/60 whatever the gate
+does. Below about a third of normal room light this pipeline loses a fifth of its recall and no
+setting here gets it back. That is a camera and lighting problem, and it belongs in the install
+notes rather than in the code.
 
-**The decision this overturns, and why.** Gate 70 was rejected earlier the same night, on
-person-found: it came out four frames behind doing nothing across 7067 frames. Person-found was
-then shown to under-report this effect almost entirely — the same setting that moves it by ten
-frames removes two false alarms. **Gate 70 has never been measured on alerts at full light.**
-That run is the last cell, and if it is neutral-or-better there it should be the default: a
-setting that is equal in the light and clearly better in the dark is not a trade.
-
-## 15. Crop to the people and shrink the input — real, but not yet better than what ships
-**Measured 2026-09-26. The technique works; the operating point does not beat 320 yet.**
+## 15. Crop to the people and shrink the input — measured, available, not defaulted
+**Done 2026-09-27. `V3_ROI_IMGSZ=256` is at least as good as the deployed frame for 17% less
+compute. It stays off, and the reason is a risk the clips cannot show.**
 
 Ultralytics resizes whatever it is given to `imgsz`, so cropping alone saves nothing — it
 raises the effective resolution on the person. Cropping *and* lowering `imgsz` trades area for
-compute. On four threads at the 640×360 substream:
+compute. Timed on four threads at the 640×360 substream:
 
 | | ms/frame | fps where the deployed profile gets 8.0 |
 |---|---|---|
 | whole frame, imgsz 320 (deployed) | 36.7 | 8.0 |
 | crop, imgsz 288 | 34.1 | 8.6 |
-| crop, imgsz 256 | 30.5 | **9.6** |
+| **crop, imgsz 256** | **30.5** | **9.6** |
 | crop, imgsz 192 | 23.2 | 12.7 |
 
-**At equal cost the crop is worth four falls.** Whole frame at 192 catches 34/60 URFD falls;
-the crop at 192 catches **38/60**, with held-out clean identical at 42/56. That is the
-technique working exactly as intended.
+Accuracy, CPU profile, against the deployed whole frame at 320:
 
-**It still loses to what ships.** The deployed whole frame at 320 catches 45/60 at 43/56.
-Dropping 320→192 costs more than the crop recovers, and spending the saving on frame rate does
-not close it either: crop@192 at 13 fps reaches 43/60 but gives up five clean clips (38/56).
+| | URFD falls | held-out clean | half A (choose) | half B (confirms) |
+|---|---|---|---|---|
+| deployed, full@320, 8 fps | 45/60 | 43/56 | 24/32, 18/20 | 21/28, 17/20 |
+| whole frame @192, 8 fps | 34/60 | 42/56 | 17/32, 16/20 | 17/28, 16/20 |
+| crop @192, 8 fps | 38/60 | 42/56 | 20/32, 16/20 | 18/28, 17/20 |
+| **crop @256, 8 fps** | **46/60** | 42/56 | **25/32, 18/20** | 21/28, 17/20 |
+| crop @256, 10 fps | **48/60** | 42/56 | 25/32, 17/20 | **23/28, 18/20** |
 
-`crop@256` is the point that has not been tried and the one that should win if anything does —
-20% more frames at a resolution close to 320. That run is queued. If it does not beat 45/60 at
-43/56, the honest conclusion is that this pipeline's accuracy is dominated by input size rather
-than by frame rate in this range, and `V3_ROI_IMGSZ` stays off as a measured negative with the
-mechanism proven.
+**The mechanism is proven**: at the same input size and rate, the crop is worth four falls
+(38/60 against 34/60) for the same cost and the same clean rate.
+
+**crop@256 at 8 fps is better on the half a choice may be made on** (25/32 falls against 24,
+clean equal) and identical on the confirming half, at 17% less compute. **crop@256 at 10 fps is
+much better on the confirming half** (+2 falls, +1 clean) but slightly worse on the choosing
+half, so by this project's own rule it cannot be adopted on that evidence.
+
+**Why it is still off.** The gain over the deployed point is one clip, which is inside the
+range a single borderline score flips. What is not inside any measurement here is the risk: the
+crop only rescans the whole frame every `V3_ROI_FULL_EVERY` frames, so **somebody walking into
+the room can go unseen for up to a second**. Almost every clip in this corpus has its person
+present from the first frame, so no number above can see that cost. A 17% compute saving does
+not buy that risk on a one-camera install; it might on a machine trying to run three.
+
+`V3_ROI_IMGSZ=256` is there, measured, for the deployment that needs the headroom.
 
 ## 11. Cut the compilations into single incidents
 **Gain: turns 12 unscoreable clips into a real test set. Effort: two days.**

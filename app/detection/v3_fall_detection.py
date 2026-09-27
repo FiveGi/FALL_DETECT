@@ -260,57 +260,34 @@ POSE_CONF = float(os.environ.get("V3_POSE_CONF", 0.3))
 PREPROCESS = [p.strip() for p in os.environ.get("V3_PREPROCESS", "auto").split(",") if p.strip()]
 # Below this mean luminance (0-255) "auto" considers a frame dark enough to be worth altering.
 #
-# 32, measured, not the 70 this started at. The threshold is the setting's most important
-# parameter and the first value was measurably WORSE THAN DOING NOTHING. Person-found over
-# 7067 frames of 57 clips (training/measure/preprocess_person_found.py):
+# 70. It started at 70, was moved to 32 on a person-found measurement, and came back when that
+# measurement turned out to be the wrong question -- which is worth spelling out, because the
+# same mistake is easy to repeat.
 #
-#     setting            dark 931 frames   lit 6136 frames   total
-#     off                543 (58.3%)       4236 (69.0%)      4779
-#     auto, below 70     561 (+18)         4214 (-22)        4775   (-4, worse than off)
-#     auto, below 40     553 (+10)         4234  (-2)        4787
-#     auto, below 32     553 (+10)         4236  (+-0)       4789
-#     clahe, always      564 (+21)         4195 (-41)        4759   (-20, worst)
+# Person-found said 70 was four frames worse than doing nothing across 7067 frames. On ALERTS,
+# the measurement that decides anything, gates of 32, 50 and 70 are **bit-identical at full
+# light on both profiles**: CPU 45/60 falls and 43/56 held-out clean, GPU 56/60 and 41/56, every
+# surface the same. The cost of 70 in a lit room is nothing at all.
 #
-# The pattern is consistent and it is the whole finding: **enhancing a frame that was already
-# light enough costs more than it earns.** "clahe always" gains the most on dark frames of any
-# setting and still comes out twenty frames behind doing nothing. At 32 the lit clips come back
-# bit-identical, so whatever the setting does, it does it only where it was meant to.
+# And in a dim one it is the difference (CPU profile, URFD, footage dimmed with sensor noise by
+# SIMULATE_DARK):
 #
-# PERSON-FOUND WAS THE WRONG METRIC, AND IT UNDER-REPORTED THIS BADLY. It moves +10 frames of
-# 7067 (0.14%), which reads as nothing. Measured on ALERTS instead -- the number that matters --
-# on the CPU profile over the 220-clip set:
+#     light      falls: off / 32 / 70      held-out clean: off / 32 / 70
+#     full           45 / 45 / 45                43 / 43 / 43
+#     50%            40 / 40 / **43**            41 / 43 / **45**
+#     30%            35 / 34 / 34                43 / 44 / **47**
 #
-#                       URFD falls   held-out clean   URFD half A clean   half B clean
-#     off                 45/60          41/56            17/20              16/20
-#     auto (below 32)     45/60          43/56            18/20              17/20
+# At half light 70 recovers three of the five falls the dark costs AND gains four clean clips,
+# on both axes at once, with both halves of URFD agreeing. 32 does nothing there for a reason
+# that is arithmetic: **zero of the sixty fall clips fall below 32 at half light.** It was
+# chosen as provably harmless on a corpus that has almost nothing between luminance 30 and 70,
+# which is the exact band a dimly lit room occupies -- so "harmless" was established on a range
+# that excludes the case the setting exists for.
 #
-# **Not one fall lost on any surface, and two false alarms gone**, with the gain showing on
-# both halves of URFD including the half reserved for confirming. The two clips are adl-22 and
-# adl-23, the darkest in the corpus at luminance 29 and 31.
-#
-# And the mechanism is not the one this was built for. Person-found on those two clips barely
-# moved (29->30 and 28->30 frames). What changed is that the keypoints the model does find are
-# steadier: in a dark room joint jitter reads as high velocity, which is what a fall looks
-# like, and _smooth_keypoints damps that but cannot remove it. Lifting the shadows fixes the
-# input rather than the symptom. **It is a false-alarm feature, not a recall feature.**
-#
-# COST IS ENTIRELY THE SOURCE RESOLUTION, and the fix is a setting the README already asks for:
-#
-#     1920x1080  47.2 ms   38% of the CPU server's per-frame budget
-#     1280x720   20.8 ms   17%
-#     640x360     5.0 ms    4%   <- the substream SS66 already recommends
-#     320x240     1.7 ms    1%
-#
-# A lit frame costs 0.16 ms either way, because the darkness check reads every 8th pixel and
-# then does nothing. So on a correctly installed camera this is 4% of the budget, and on a
-# 1080p main stream it is unaffordable on CPU -- which makes the substream a prerequisite for
-# turning this on there, not a nice-to-have.
-#
-# On by default now that both profiles are measured. What has to stay true for it to be
-# affordable under CPU is the camera setting: at 1080p it is 38% of the per-frame budget, and
-# a CPU deployment feeding the main stream instead of the substream should set V3_PREPROCESS=off
-# rather than lose the frame rate -- on CPU, frame rate is recall.
-PREPROCESS_DARK_BELOW = float(os.environ.get("V3_PREPROCESS_DARK_BELOW", 32))
+# What stays true from the 32 era: enhancing a frame that is already bright costs more than it
+# earns. "clahe always" gains the most on dark frames of any setting and still finishes twenty
+# frames behind doing nothing. The gate is the point; where it sits is what was wrong.
+PREPROCESS_DARK_BELOW = float(os.environ.get("V3_PREPROCESS_DARK_BELOW", 70))
 PREPROCESS_GAMMA = float(os.environ.get("V3_PREPROCESS_GAMMA", 0.65))
 PREPROCESS_CLIP_LIMIT = float(os.environ.get("V3_PREPROCESS_CLIP_LIMIT", 2.0))
 PREPROCESS_TILE = int(os.environ.get("V3_PREPROCESS_TILE", 8))
