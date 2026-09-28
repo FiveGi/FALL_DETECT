@@ -118,8 +118,36 @@ def alert_times(path):
     return times
 
 
+def carry_over():
+    """-> {(clip, start_s, end_s): answer} from a previous run, so re-cutting does not throw
+    away answers that cost quota.
+
+    Keyed on the time range rather than the segment number: a re-cut renumbers everything, and
+    an answer only survives if its exact boundaries survive. A segment that got split has an
+    answer about footage that no longer exists as one unit, and carrying it would be inventing
+    a label for a clip nobody asked about.
+    """
+    path = os.path.join(OUT_DIR, 'incidents.json')
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, encoding='utf-8') as fh:
+            old = json.load(fh)
+    except Exception:
+        return {}
+    out = {}
+    for clip, rows in old.get('clips', {}).items():
+        for row in rows:
+            if row.get('gemini') or row.get('by_eye'):
+                out[(clip, round(row['start_s'], 1), round(row['end_s'], 1))] = {
+                    k: row[k] for k in ('gemini', 'by_eye', 'label') if row.get(k) is not None}
+    return out
+
+
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
+    previous = carry_over()
+    carried = 0
     if WRITE_SHEETS:
         os.makedirs(SHEET_DIR, exist_ok=True)
 
@@ -150,9 +178,14 @@ def main():
                               % (name, n, t0, t1,
                                  ('alerts at ' + ', '.join('%.1fs' % t for t in inside))
                                  if inside else 'no alert'))
-            rows.append({'segment': n, 'start_s': round(t0, 2), 'end_s': round(t1, 2),
-                         'seconds': round(secs, 2), 'alerts_at': inside,
-                         'sheet': sheet, 'label': None})
+            row = {'segment': n, 'start_s': round(t0, 2), 'end_s': round(t1, 2),
+                   'seconds': round(secs, 2), 'alerts_at': inside,
+                   'sheet': sheet, 'label': None}
+            kept = previous.get((name, round(t0, 1), round(t1, 1)))
+            if kept:
+                row.update(kept)
+                carried += 1
+            rows.append(row)
         out['clips'][name] = rows
         total += len(rows)
         print('  %-10s %3d segments, %2d with an alert'
@@ -162,6 +195,9 @@ def main():
         json.dump(out, fh, indent=1, ensure_ascii=False)
     print()
     print('%d proposed segments from %d compilations.' % (total, len(out['clips'])))
+    if previous:
+        print('%d of %d previous answers carried over; the rest had their boundaries change '
+              'and describe footage that is no longer one segment.' % (carried, len(previous)))
     print('Every "label" is null. They stay null until somebody looks at the sheet -- a shot is')
     print('not an incident, and a boundary from a hard cut is a proposal, not a fact.')
     print('Written to %s' % OUT_DIR)
