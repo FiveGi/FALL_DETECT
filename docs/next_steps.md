@@ -108,6 +108,44 @@ anyway — it only changes the first seconds after a person appears.
 
 </details>
 
+## 16. "They vanished mid-frame" as a caution — measured, and it does not pay on this data
+**Measured 2026-09-29. The idea is sound; the corpus cannot support it and may not be able to.**
+
+The idea, and it is a good one: a tracked person who disappears might have fallen into a
+position the pose model cannot read — prone behind furniture, curled on the floor — and the
+system would say **nothing at all**, because everything downstream only sees frames where a
+person was found. A fall nobody sees is the worst failure this system has and it leaves no
+trace in any accuracy number.
+
+A narrow version already ships (`COLLAPSE_ENABLED`) and earns nothing, because it also requires
+the classifier to have been above 0.6 first, which almost never holds. The broad version would
+fire every time somebody walks out of the room — so the question is whether **where** they
+vanish separates the two: a doorway is at the frame edge, a floor is not.
+
+Over all 220 clips, a tracked person gone long enough for the tracker to forget them:
+
+| | clips | vanish, anywhere | at the edge | **away from the edge** |
+|---|---|---|---|---|
+| fall | 139 | 26 (19%) | 6 | **22 (16%)** |
+| no fall | 81 | 12 (15%) | 2 | **10 (12%)** |
+
+16% against 12% is not separation. And against what already ships, as an extra caution:
+
+**+6 falls, +7 false alarms** — one for one. Worse, **all six are GMDCSA24**, the surface this
+project has tuned against for months. On URFD, the only independent set, fifteen falls are
+missed and **not one of them vanishes mid-frame**. A gain that appears only on the tuned
+surface is the pattern this project has learned to distrust.
+
+**But the null result is weak evidence, and that is worth saying.** The failure this idea
+targets is a person who becomes undetectable and *stays* undetectable — and every lab clip here
+ends within a second or two of its event, so the corpus structurally cannot contain it. This is
+the same wall item 10 hit measuring the alert tier. Item 11's real footage is what would settle
+it.
+
+**It is also a product judgement, not only a measurement one.** Six falls noticed for seven
+extra "please check" messages may be a trade worth making when the alternative is silence — but
+that is a decision about what a family will tolerate, and nothing here can make it.
+
 ## 4. A motion gate
 **Gain: large on a quiet house; the only credible route to more than one camera on four cores.
 Effort: a day, including getting the failure case right.**
