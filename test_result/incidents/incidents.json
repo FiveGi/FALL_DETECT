@@ -12,7 +12,7 @@
      1.67
     ],
     "sheet": "sheets\\1_01.jpg",
-    "label": null,
+    "label": "fall",
     "gemini": {
      "fall": true,
      "already_down": false,
@@ -20,6 +20,10 @@
      "elderly": false,
      "out_of_domain": false,
      "description": "A person walks on a wet pathway, slips, and falls backwards."
+    },
+    "by_eye": {
+     "verdict": "fall",
+     "note": "delivery person walks up a path, goes down hard, lies there"
     }
    },
    {
@@ -40,7 +44,15 @@
      7.17
     ],
     "sheet": "sheets\\1_03.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 1,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A person slips on icy steps and falls on the pathway."
+    }
    },
    {
     "segment": 4,
@@ -93,7 +105,15 @@
      18.8
     ],
     "sheet": "sheets\\1_06.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 1,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A man slips on ice and falls on a snowy path."
+    }
    },
    {
     "segment": 7,
@@ -105,7 +125,7 @@
      23.5
     ],
     "sheet": "sheets\\1_07.jpg",
-    "label": null,
+    "label": "fall",
     "gemini": {
      "fall": true,
      "already_down": false,
@@ -113,6 +133,10 @@
      "elderly": false,
      "out_of_domain": false,
      "description": "A person runs onto a porch and slips, falling flat on their back."
+    },
+    "by_eye": {
+     "verdict": "fall",
+     "note": "person runs up a porch, slips on the wet brick and goes down, then sits up"
     }
    },
    {
@@ -124,7 +148,19 @@
      26.7
     ],
     "sheet": "sheets\\1_08.jpg",
-    "label": null
+    "label": "fall",
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 1,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A person is pulled backward to the floor by an unseen force, followed by a dog running past."
+    },
+    "by_eye": {
+     "verdict": "fall",
+     "note": "indoors: woman pulled off balance by a dog, goes down on the floor and stays there"
+    }
    },
    {
     "segment": 9,
@@ -135,7 +171,15 @@
      31.07
     ],
     "sheet": "sheets\\1_09.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 2,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A man jumps over a stroller, then a woman runs in and falls on the ground."
+    }
    },
    {
     "segment": 10,
@@ -147,7 +191,15 @@
      38.1
     ],
     "sheet": "sheets\\1_10.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 1,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A person slips and falls down snowy outdoor steps."
+    }
    },
    {
     "segment": 11,
@@ -158,7 +210,19 @@
      39.7
     ],
     "sheet": "sheets\\1_11.jpg",
-    "label": null
+    "label": "out_of_domain",
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 1,
+     "elderly": false,
+     "out_of_domain": true,
+     "description": "A little girl walks down porch steps and falls on the sidewalk."
+    },
+    "by_eye": {
+     "verdict": "out_of_domain",
+     "note": "a small child falls on a driveway -- a real fall, but a child"
+    }
    },
    {
     "segment": 12,
@@ -169,7 +233,15 @@
      44.2
     ],
     "sheet": "sheets\\1_12.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 2,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A woman carrying a child trips and falls on the porch."
+    }
    },
    {
     "segment": 13,
@@ -246,7 +318,7 @@
      62.1
     ],
     "sheet": "sheets\\1_17.jpg",
-    "label": null,
+    "label": "fall",
     "gemini": {
      "fall": true,
      "already_down": false,
@@ -254,6 +326,10 @@
      "elderly": false,
      "out_of_domain": false,
      "description": "A person slips and falls backward on a porch near snow."
+    },
+    "by_eye": {
+     "verdict": "fall",
+     "note": "person in a long coat walks down an icy path, slips and lands flat, then sits up -- an adult on a fixed home camera, the core case"
     }
    },
    {
@@ -276,7 +352,19 @@
      3.3
     ],
     "sheet": "sheets\\2_01.jpg",
-    "label": null
+    "label": "out_of_domain",
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 6,
+     "elderly": false,
+     "out_of_domain": true,
+     "description": "A person walking across a crosswalk suddenly falls face-first onto the ground."
+    },
+    "by_eye": {
+     "verdict": "out_of_domain",
+     "note": "street crossing with burned-in news graphics over a third of the frame; a real adult fall, but a public road and a news package, not a deployment this system targets"
+    }
    },
    {
     "segment": 2,
@@ -309,7 +397,19 @@
      15.67
     ],
     "sheet": "sheets\\3_01.jpg",
-    "label": null
+    "label": "fall",
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 1,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A woman slips on a wet surface and falls to the ground."
+    },
+    "by_eye": {
+     "verdict": "fall",
+     "note": "woman walking in a yard falls forward and stays on the ground for the rest of the segment"
+    }
    },
    {
     "segment": 2,
@@ -331,7 +431,15 @@
      5.0
     ],
     "sheet": "sheets\\4_01.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 2,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A woman slips and falls on the porch while a man watches."
+    }
    },
    {
     "segment": 2,
@@ -342,7 +450,15 @@
      6.97
     ],
     "sheet": "sheets\\4_02.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 1,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A man runs to a door and falls face down on the porch."
+    }
    },
    {
     "segment": 3,
@@ -362,7 +478,19 @@
      19.27
     ],
     "sheet": "sheets\\4_04.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 3,
+     "elderly": true,
+     "out_of_domain": false,
+     "description": "An elderly person is helped to sit on a porch step but ends up falling to the ground; two other people come to help."
+    },
+    "by_eye": {
+     "verdict": "unclear",
+     "note": "elderly person with a walker ends up on the ground being helped, but the six frames skip the transition -- fell or was lowered cannot be told apart, and this is exactly the target domain so a guess would matter"
+    }
    },
    {
     "segment": 5,
@@ -373,7 +501,15 @@
      19.9
     ],
     "sheet": "sheets\\4_05.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": true,
+     "people": 4,
+     "elderly": false,
+     "out_of_domain": true,
+     "description": "Multiple people fall in a chain reaction on a porch, some already on the ground."
+    }
    },
    {
     "segment": 6,
@@ -394,7 +530,19 @@
      32.57
     ],
     "sheet": "sheets\\4_07.jpg",
-    "label": null
+    "label": "fall",
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 2,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A woman falls backward on her porch as a man approaches."
+    },
+    "by_eye": {
+     "verdict": "fall",
+     "note": "woman on a porch goes backwards down the steps and ends up on the ground -- home doorbell camera, adult"
+    }
    },
    {
     "segment": 8,
@@ -414,7 +562,20 @@
      39.97
     ],
     "sheet": "sheets\\4_09.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 1,
+     "elderly": false,
+     "out_of_domain": true,
+     "description": "A person runs into an open elevator and falls into the shaft."
+    },
+    "by_eye": {
+     "verdict": "fall",
+     "note": "fixed indoor camera, adult walks into a lift and goes down inside it, still down at the last frame -- a lift lobby is a fixed indoor camera with an adult, which is not what out-of-domain was meant to cover"
+    },
+    "conflict": "4.mp4 seg 9: by eye fall, Gemini out_of_domain"
    },
    {
     "segment": 10,
@@ -480,7 +641,19 @@
      90.37
     ],
     "sheet": "sheets\\4_16.jpg",
-    "label": null
+    "label": "fall",
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 2,
+     "elderly": false,
+     "out_of_domain": false,
+     "description": "A person in light clothing falls backwards onto the ground in front of a house."
+    },
+    "by_eye": {
+     "verdict": "fall",
+     "note": "night IR driveway: person walks off the porch, goes down on the path and stays down while another person stands over them"
+    }
    },
    {
     "segment": 17,
@@ -511,10 +684,18 @@
      2.0
     ],
     "sheet": "sheets\\5_01.jpg",
-    "label": null,
+    "label": "fall",
     "by_eye": {
      "verdict": "fall",
      "note": "man walking a dog slips on icy steps, goes flat, gets up"
+    },
+    "gemini": {
+     "fall": true,
+     "already_down": false,
+     "people": 1,
+     "elderly": true,
+     "out_of_domain": false,
+     "description": "A man slips on an icy patio while walking his dog and falls."
     }
    },
    {
@@ -1297,7 +1478,20 @@
      23.7
     ],
     "sheet": "sheets\\12_07.jpg",
-    "label": null
+    "label": null,
+    "gemini": {
+     "fall": false,
+     "already_down": true,
+     "people": 1,
+     "elderly": false,
+     "out_of_domain": true,
+     "description": "A person is lying on the grass next to a broken basketball hoop."
+    },
+    "by_eye": {
+     "verdict": "already_down",
+     "note": "adult on the grass beside a toppled basketball hoop, already down at the first frame and still down at the last"
+    },
+    "conflict": "12.mp4 seg 7: by eye already_down, Gemini out_of_domain"
    },
    {
     "segment": 8,
@@ -1317,7 +1511,7 @@
      34.3
     ],
     "sheet": "sheets\\12_09.jpg",
-    "label": null,
+    "label": "fall",
     "gemini": {
      "fall": true,
      "already_down": false,
@@ -1325,6 +1519,10 @@
      "elderly": false,
      "out_of_domain": false,
      "description": "A woman carrying a package slips on the snowy ground in front of a house and falls."
+    },
+    "by_eye": {
+     "verdict": "fall",
+     "note": "woman carrying a large package slips on a snowy path, goes down and stays sitting on the ground"
     }
    },
    {
@@ -1413,7 +1611,19 @@
      55.7
     ],
     "sheet": "sheets\\12_14.jpg",
-    "label": null
+    "label": "out_of_domain",
+    "gemini": {
+     "fall": false,
+     "already_down": false,
+     "people": 5,
+     "elderly": false,
+     "out_of_domain": true,
+     "description": "Five men are doing pull-ups on a wooden beam over a ditch with water flowing into it."
+    },
+    "by_eye": {
+     "verdict": "out_of_domain",
+     "note": "young men doing pull-ups on a pole outdoors -- sport, and it alerted, so this is what a horizontal body on a bar looks like to the detector"
+    }
    },
    {
     "segment": 15,

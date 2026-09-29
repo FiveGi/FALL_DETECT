@@ -71,9 +71,42 @@ def status(data):
             print('   conflict: %s' % r['conflict'])
 
 
+def reconcile(data):
+    """Re-apply the agreement rule everywhere.
+
+    Needed because the two halves arrive independently: label_incidents.py writes Gemini's
+    answer and knows nothing about the eye, so a segment looked at before it was asked would
+    otherwise keep a null label forever even once both sources agreed.
+    """
+    changed = 0
+    for clip, rows in data['clips'].items():
+        for row in rows:
+            eye = (row.get('by_eye') or {}).get('verdict')
+            other = gemini_verdict(row.get('gemini'))
+            before = (row.get('label'), row.get('conflict'))
+            row.pop('conflict', None)
+            if not eye or eye == 'unclear' or other is None:
+                row['label'] = None
+            elif eye == other:
+                row['label'] = eye
+            else:
+                row['label'] = None
+                row['conflict'] = '%s seg %d: by eye %s, Gemini %s' % (
+                    clip, row['segment'], eye, other)
+            if (row.get('label'), row.get('conflict')) != before:
+                changed += 1
+    return changed
+
+
 def main():
     if '--status' in sys.argv:
-        status(load())
+        data = load()
+        n = reconcile(data)
+        if n:
+            save(data)
+            print('(reconciled %d segment(s) where both sources were present)' % n)
+            print()
+        status(data)
         return 0
     if len(sys.argv) < 4:
         print(__doc__)
