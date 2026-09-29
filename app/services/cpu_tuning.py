@@ -67,17 +67,25 @@ def cpu_quota():
         return max(1, os.cpu_count() or 1)
 
 
-def tune_threads(reason=''):
+def tune_threads(reason='', share=1):
     """Pin torch (and anything reading OMP) to the quota. Call at the start of a task, after
     any fork, and after the model is loaded -- ultralytics sets the thread count itself when it
     builds a model, so doing this earlier is silently undone.
 
+    `share` is how many camera loops are running on this machine. Each one is a separate
+    process, so without it every camera sizes its pools to the WHOLE quota and N cameras
+    oversubscribe the box N times over. Measured on four cores at the CPU profile: one camera
+    reaches 10.7 fps, two reach 3.3 each, and three collapse to 0.5 -- far worse than the 1/N
+    that sharing a machine should cost, because the threads are fighting rather than queueing.
+
     Returns the number set, so callers can log what actually happened rather than what was
     intended.
     """
-    n = cpu_quota()
-    os.environ.setdefault('OMP_NUM_THREADS', str(n))
-    os.environ.setdefault('MKL_NUM_THREADS', str(n))
+    n = max(1, cpu_quota() // max(1, int(share)))
+    # Assigned, not setdefault: the share changes when a camera starts or stops, and a value
+    # left over from when this process was alone is the bug this argument exists to fix.
+    os.environ['OMP_NUM_THREADS'] = str(n)
+    os.environ['MKL_NUM_THREADS'] = str(n)
     try:
         import torch
         if torch.get_num_threads() != n:

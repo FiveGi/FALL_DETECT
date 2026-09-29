@@ -243,3 +243,23 @@ def read_detector_config():
         return json.loads(raw) if raw else None
     except Exception:
         return None
+
+
+def claimed_camera_count():
+    """How many camera loops hold a claim right now, at least 1.
+
+    Counted from the Redis claims rather than by asking Celery, because this is read every ten
+    seconds by every loop and an inspect() broadcast is far too expensive for that. The claims
+    are also the more accurate answer: a loop holds one for exactly as long as it is running.
+
+    Returns 1 rather than 0 when Redis cannot be reached, because the caller divides by it --
+    and a machine that cannot count its cameras should behave like the single-camera case it
+    was tuned for rather than like a machine with none.
+    """
+    try:
+        r = _redis()
+        if r is None:
+            return 1
+        return max(1, len(list(r.scan_iter(match=_LOCK_PREFIX + '*', count=100))))
+    except Exception:
+        return 1

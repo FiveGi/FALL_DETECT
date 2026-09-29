@@ -19,69 +19,25 @@ Three measured facts frame everything (SKILL.md SS60, SS62, SS63):
 
 ---
 
-## Stopped mid-run, pick these up first
+## What is actually next
 
-Two measurements were interrupted rather than finished. Both resume; neither needs a decision
-first.
+**Blocked on someone with SSH to the server** — items 0 and 1 below. Between them they are
+worth more than everything else on this list: the server has 14 vCPUs allocated and 4 online,
+and on CPU frame rate is recall.
 
-### A. The frame-position A/B (item 8 below)
-**3 of 6 training runs done. About 35 minutes of GPU to finish, then 10 minutes to decide.**
+**Ready to work on, in order of what it buys:**
 
-`USE_FRAME_POSITION` / `V3_FRAME_POSITION` are committed and **both default to off**, so the
-deployed detector is untouched. The feature construction is verified — training and runtime
-produce bit-identical windows, the flip augmentation leaves the two new channels alone, and a
-model that disagrees with the flag is refused rather than scored.
+1. **Finish labelling the 126 incident segments** (item 11). 13 done. This is the binding
+   constraint on every other measurement — item 10 could not measure the alert tier because
+   every lab clip ends within seconds of its event, and these are the only real footage with
+   anything after it.
+2. **A motion gate** (item 4). The only credible route to more than one camera on four cores.
+3. **Multi-camera capacity has never been measured at all** — see the last section. One camera
+   is the assumption, not a finding.
 
-Done: `fp0_seed42`, `fp0_seed7`, `fp0_seed123` (val F1 0.588 / 0.588 / 0.598).
-Left: the three `fp1` seeds, plus two control runs with `SKIP_POSE_DIRS=poses_fallvision`.
-
-```
-bash <scratchpad>/fp/train_all.sh        # skips runs whose ONNX already exists
-bash <scratchpad>/fp/train_controls.sh   # the COORD_SCALE control
-bash <scratchpad>/fp/sweep_all.sh        # threshold curve per model, ~12s each
-python training/measure/pick_threshold.py "baseline=...fp0*" "frame position=...fp1*"
-```
-
-**Decide with `pick_threshold.py`, never at a shared threshold.** Two models trained the same
-way sit at different places on the score axis, and at a fixed threshold that gap reads as nine
-URFD clips which vanish once each model is given its own operating point (SS72).
-
-The control matters: FallVision stores keypoints in pixels and is 58% of the training set, so
-`dataset.COORD_SCALE` divides it by 640. That 640 is measured from the coordinates rather than
-documented, and the arm trained without FallVision is what checks it. **If the two arms
-disagree about frame position, the scale is wrong, not the idea.**
-
-### B. ~~Does preprocessing change an ALERT?~~ — it does, and it is a clean win
-**Done 2026-09-25. One measurement left before it can be switched on.**
-
-I predicted no change at all. Wrong, in the good direction. CPU profile, 220 clips:
-
-| | URFD falls | held-out clean | URFD half A clean | half B clean |
-|---|---|---|---|---|
-| off | 45/60 | 41/56 | 17/20 | 16/20 |
-| **auto (below 32)** | **45/60** | **43/56** | **18/20** | **17/20** |
-
-**Not one fall lost on any surface, two false alarms gone**, and the gain shows on both halves
-of URFD including the half reserved for confirming. The clips are `adl-22` and `adl-23`, the
-two darkest in the corpus.
-
-**The mechanism is not the one it was built for.** Person-found on those clips barely moved
-(29→30 and 28→30 frames), so the metric I picked as decisive under-reported it by almost
-everything. What changed is that the keypoints the model *does* find are steadier: in a dark
-room joint jitter reads as high velocity, which is what a fall looks like. It is a false-alarm
-feature, not a recall feature.
-
-**Cost is entirely the source resolution**, and the fix is a setting the README already asks
-for: 47 ms at 1080p (38% of the CPU budget, unaffordable), **5 ms at the 640×360 substream
-(4%)**, 0.16 ms on any lit frame. That makes the substream a prerequisite for turning this on,
-not a nice-to-have.
-
-**What is left:** the same measurement on the GPU profile (960 @ 20 fps), which is one cache
-and one replay, about 25 minutes. Then `V3_PREPROCESS=auto` can become the default and the
-published numbers re-stated. Until then it stays off, because a default that alters frames
-makes every published number describe a detector nobody measured.
-
----
+**Needs a decision from whoever owns the product, not more measurement:** whether a care-home
+corridor or a lift lobby counts as in scope. It is the only thing the two labelling sources
+have disagreed about, and it changes what the accuracy figures are *of*.
 
 ---
 
@@ -275,27 +231,27 @@ invariant — `dataset.COORD_SCALE` fixes that for good. And `pick_threshold.py`
 because the first comparison read nine URFD clips of difference that turned out to be an
 operating point.
 
-## 9. Escalate when the person is STILL down — never cancel when they get up
-**Direction corrected by measurement 2026-09-26. The detector already counts it; nothing acts on it yet.**
+## 9. ~~Escalate when the person is STILL down~~ — built and live-tested
+**Done 2026-09-26.**
 
-The original idea was to cancel an alert once the person who triggered it is upright again.
-Measured on the cached pose stream, the signal separates — 6% of real falls against 50% of
-false alarms get back up — but **six per cent of real falls cancelled is not a trade this
-system can make**, and it would be made silently by a rule nobody sees.
+The original idea was to cancel an alert once the person is upright again. Measured, that
+would suppress **6% of real falls**, silently, by a rule nobody sees. The same signal the other
+way round costs nothing and asserts nothing false: still on the floor ten seconds later holds
+for 94% of real falls and can only ever raise urgency.
 
-The same signal the other way round costs nothing and asserts nothing false: **still on the
-floor ten seconds later** holds for 94% of real falls and half the false alarms, and it can
-only ever raise urgency. That is the footing the tier already stands on — escalate because
-nobody answered, not because the model was confident.
+`V3FallDetectionState.frames_since_upright` feeds `NotificationHistory.still_down_seconds`,
+`alert_tier` may raise `check` to `confirmed` on it and never lowers one, the LINE message says
+*which* fact raised it, and the dashboard shows a badge. `tools/check_alert_rules.py` holds the
+backend and the web UI to the same rule and to the same threshold, which the API now sends with
+each notification so an environment override cannot desync them.
 
-Also learned, and it bounds what this can ever do: only five of URFD's forty-five alerting fall
-clips run sixteen scored frames past the alert, and **zero** of the ceiling-camera ones do. The
-clips end too soon to ask. GMDCSA24 is the only surface with enough footage after the event, so
-anything built on this is confirmed on the dataset this project has tuned against most.
+Live-tested against a real clip through the real worker, which found three defects no offline
+measurement could: it answered before it asked, the seconds conversion could never reach its
+own threshold, and the stored value undercounted the same way. See SS73.
 
-`V3FallDetectionState.frames_since_upright` and `ever_upright` are counted per person now.
-What is left is the alerting side: carry it onto the notification, let escalation use it, and
-say "still on the floor" in the message rather than a number.
+**What the corpus still cannot confirm:** at the deployed ten seconds it never fires on any lab
+clip, because they all end too soon (item 10). Only real footage with a minute after the event
+settles that, which is item 11.
 
 ## 10. ~~Is the alert TIER right?~~ — measured, and the honest answer is "it never says go now"
 **Done 2026-09-26. `training/measure/tier_accuracy.py`. The finding is a data gap, not a bug.**
@@ -443,25 +399,26 @@ end is a detector nobody has tested. A UI that lets someone pick any combination
 un-measures the system. Offer named profiles that are each measured — "GPU", "CPU server",
 "CPU server, dark room" — rather than free-form knobs, and show what each one scored.
 
-## 13. LINE alerts into a group
-**Gain: the family sees it, not one person. Effort: half a day.**
+## 13. ~~LINE alerts into a group~~ — built, and still switched off
+**Done 2026-09-26.**
 
-Most of this already exists: `LineSettings` stores a per-user channel token and target, the
-web UI has the form, the toggle is off by default and the test button refuses to fire while it
-is off. What is missing is the group:
+`LineSettings` carries a group id beside the user id and `targets()` returns both; one push per
+target, because LINE's multicast endpoint takes many recipients but refuses group ids. A
+failure on one does not stop the others — the reason a group is worth having is that the
+individual phone may be asleep.
 
-- the target field is labelled `LINE User ID` and the UI tells the user to add the bot as a
-  friend; a group needs the group ID, which begins with `C`.
-- `line_webhook` only handles `postback` events, so when the bot is added to a group the group
-  ID is never captured. Handle `join` and store it, which is the only way a user can get that
-  ID without reading raw webhook logs.
-- the push target is a single value; sending to a person *and* a group means a list.
+The hard part was never the push: **a group id cannot be typed in.** It is delivered once, in a
+webhook event, when the bot is invited. `LineDiscoveredTarget` records every group the bot
+joins and the settings page offers the list. Being in a group is not consent to be alerted in
+it — nothing is sent until a target is chosen and the switch is on, and **the switch is still
+off. No message has ever been sent.**
 
-**Do not send a real message while building this.** The toggle exists so that switching it on
-is a deliberate act, and a test push lands on somebody's actual phone.
+Verified in the running container and a real browser: a bad signature is rejected, a join is
+recorded, a 1:1 chat is *not* recorded as a group, a leave marks the row rather than deleting
+it, and typing a group id in the page round-trips to the database.
 
-
----
+**What is left is not code:** a channel secret, `PUBLIC_BASE_URL` and a tunnel, then somebody
+deciding to turn it on.
 
 ## Deployment and safety — small, and none of it optional
 

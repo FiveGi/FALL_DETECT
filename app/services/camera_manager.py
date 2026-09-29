@@ -720,6 +720,8 @@ def process_v2_fall_detection(camera_id, config):
             # it is answered, so each alert can say "still on the floor" at most once and a
             # long incident cannot turn into a stream of messages.
             awaiting_still_down = {}
+            # How many cameras this machine was sharing its CPU with last time it looked.
+            last_share = 0
             # Where the loop's time goes, reported with the rate below. Without this, a loop
             # running under target is just a number and every explanation is a guess -- which
             # cost several wrong guesses before it was added.
@@ -847,6 +849,23 @@ def process_v2_fall_detection(camera_id, config):
                     if not hold_camera(camera_id, loop_token):
                         print(f"[Camera {camera_id}] lost the camera claim -- exiting")
                         break
+                    # Share the CPU quota with whatever else is running. Each camera is its own
+                    # process, so without this every one of them sizes its thread pools to the
+                    # whole box and they fight rather than queue: on four cores, two cameras
+                    # manage 3.3 fps each where one manages 10.7, and three collapse to 0.5.
+                    # Checked on the same cadence as the claim because the answer changes when
+                    # somebody starts or stops a camera, and re-tuning is cheap.
+                    try:
+                        from app.services.cpu_tuning import tune_threads
+                        from app.services.detection_dispatch import claimed_camera_count
+                        active = claimed_camera_count()
+                        if active != last_share:
+                            last_share = active
+                            threads = tune_threads('camera share', share=active)
+                            print(f"[Camera {camera_id}] {active} camera(s) running -- "
+                                  f"{threads} thread(s) each")
+                    except Exception as exc:
+                        print(f"[Camera {camera_id}] could not re-share CPU threads: {exc}")
                 if alone_enabled and (_now_mono - last_alone_check) >= ALONE_DETECTION_CHECK_INTERVAL_S:
                     last_alone_check = _now_mono
                     _t = time.monotonic()
