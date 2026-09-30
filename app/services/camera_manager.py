@@ -4,7 +4,8 @@ from app.detection.fall_detection import (
     detect_fall_legacy, FallDetectionState, FallONNXDetector, AlonePersonDetector
 )
 from app.services.logging_service import save_detection_log, save_system_log
-from app.services.notification_service import notify_alert, STILL_DOWN_SECONDS
+from app.services.notification_service import (
+    notify_alert, STILL_DOWN_SECONDS, still_down_confirmed, seen_down_since_alert)
 from app.services import clip_buffer
 from app.services.alert_service import save_alert_log
 from app.models.camera import Camera
@@ -644,7 +645,8 @@ def process_v2_fall_detection(camera_id, config):
         # whichever one person single-pose extraction happened to pick.
         from app.detection.v3_fall_detection import (
             V3MultiPersonFallState,
-            detect_v3_fall_multi
+            detect_v3_fall_multi,
+            alert_result,
         )
         from app.services.model_manager import model_manager
 
@@ -714,6 +716,11 @@ def process_v2_fall_detection(camera_id, config):
             target_fps = float(os.environ.get('V3_TARGET_FPS', 0))
             min_period = 1.0 / target_fps if target_fps > 0 else 0.0
             next_due = 0.0
+            # Source-time bookkeeping, used only for file sources (see the read below).
+            # `source_index` is where the decoder is in the file; `source_pos` counts the
+            # frames actually classified, so the next wanted index is source_pos * src/target.
+            src_fps = fps if fps and fps > 0 else 0.0
+            source_index, source_pos = 0, 0
             processed, rate_since = 0, time.time()
             # Alerts waiting to find out whether the person got back up, keyed by the track
             # that triggered them: {track_id: notification_id}. An entry is removed the moment
@@ -765,11 +772,46 @@ def process_v2_fall_detection(camera_id, config):
                     if _wait > 0:
                         time.sleep(_wait)
                 frame_started = time.monotonic()
+                # A FILE has to be sampled by SOURCE time; a camera samples itself.
+                #
+                # CAP_PROP_BUFFERSIZE=1 makes a live camera hand back its newest frame, so
+                # waiting for the slot and then reading gives the frame that is current now --
+                # whatever arrived while this loop was busy is dropped by the camera. A file
+                # does none of that: it hands back the next frame in the file, so nothing is
+                # ever skipped and the clip simply plays slower. At the CPU profile's 8 fps on
+                # 24 fps footage that is three times slower, and a 15-frame window then spans
+                # 0.62s of real motion where the evaluator's spans 1.88s -- a 3x difference in
+                # the thing the classifier actually reads.
+                #
+                # Measured on Test/14, 15 and 16, the alert survived the distortion on all
+                # three (peaks 0.88/0.93, 0.80/0.73, 0.88/0.88), so this is not being fixed to
+                # recover falls. It is fixed because a ten-second clip took thirty seconds to
+                # play, and because `Test/` clip numbers should describe the running system.
+                #
+                # grab() advances without the colour conversion retrieve() does, so skipping
+                # costs a fraction of a full read -- which matters, since an earlier version of
+                # this loop discarded frames with read() and cost 8.1 fps of achievable rate.
+                if is_video_file and min_period and src_fps > 0:
+                    want = int(round(source_pos * src_fps / target_fps))
+                    while source_index < want and cap.grab():
+                        source_index += 1
                 ret, frame = cap.read()
+                if ret:
+                    source_index += 1
+                    source_pos += 1
                 t_read += time.monotonic() - frame_started
                 if not ret:
                     if is_video_file:
                         cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # Loop video
+                        source_index, source_pos = 0, 0
+                        # The window and the tracks must not span the jump back to frame zero.
+                        # Without this the first window after a loop is built from the end of
+                        # the clip followed by its beginning -- motion that never happened --
+                        # and the tracker carries identities across a scene that has changed
+                        # completely. A looped test clip is the main way this system gets
+                        # demonstrated, so the seam is worth not having.
+                        fall_state = V3MultiPersonFallState()
+                        awaiting_still_down.clear()
                         continue
                     # A network camera that misses a frame used to end the loop here, which
                     # meant one wifi blip or one camera reboot stopped detection for good --
@@ -824,7 +866,15 @@ def process_v2_fall_detection(camera_id, config):
                 any_detected = any(r[1] for r in results)
                 # For logging/alerting a single confidence number, use whichever tracked
                 # person is most fall-like this frame (the detected one if any, else the max).
-                top = max(results, key=lambda r: r[2]) if results else (None, False, 0.0, "no_person", None)
+                # Credit the alert to somebody the detector actually flagged, not merely to the
+                # highest score this frame. `detected` comes from smoothing -- N of the last M
+                # frames over threshold -- so a person can be flagged while their score this
+                # frame has dipped below another person's. Taking the plain maximum then
+                # attached the alert to the WRONG track, and `alert_track` is what the
+                # still-down follow-up uses to ask "did they get back up": it would have
+                # watched the bystander. Only when nobody is flagged does the maximum stand,
+                # and that path is for the log line, not an alert.
+                top = alert_result(results)   # see v3_fall_detection.alert_result
                 # The track id is kept, not discarded: an alert has to remember WHICH person
                 # triggered it, or "did they get back up" cannot be asked about the right one.
                 alert_track, detected, probability, label, _ = top
@@ -950,8 +1000,15 @@ def process_v2_fall_detection(camera_id, config):
                             # seconds have passed. Without this it answered on the SAME frame
                             # as the alert -- a person mid-fall still reads as upright by torso
                             # angle for a moment, which closed the question before it was asked.
+                            # The frame counter goes with it as well as the clock. The
+                            # follow-up compares how many frames the person was not upright
+                            # against how many frames the loop ran, and both come from the
+                            # same counter -- see the block below for why seconds were wrong.
+                            _p = fall_state.person_states.get(alert_track)
                             awaiting_still_down[alert_track] = (notification.id,
-                                                                time.monotonic())
+                                                                time.monotonic(),
+                                                                frame_count,
+                                                                _p.frames_seen_down if _p else 0)
                 
                 # Did the person who triggered an alert get back up? The detector counts
                 # frames since each tracked person was last upright; this turns that into
@@ -964,10 +1021,9 @@ def process_v2_fall_detection(camera_id, config):
                 # alarms are, which makes this useful evidence and poor proof: exactly the
                 # thing that should raise a tier rather than assert a fall.
                 if awaiting_still_down:
-                    rate = target_fps or (processed / max(1e-6, time.time() - rate_since))
                     _mono = time.monotonic()
                     for tid in list(awaiting_still_down):
-                        notification_id, alerted_at = awaiting_still_down[tid]
+                        notification_id, alerted_at, frames_at_alert, seen_at_alert = awaiting_still_down[tid]
                         if _mono - alerted_at < STILL_DOWN_SECONDS:
                             continue
                         person = fall_state.person_states.get(tid)
@@ -992,18 +1048,45 @@ def process_v2_fall_detection(camera_id, config):
                         # window, so ask that: the fraction of the elapsed time they were not
                         # upright. 0.8 leaves room for the frames where the torso could not be
                         # measured at all.
+                        # Counted in FRAMES on both sides, never converted through a rate.
+                        #
+                        # This used to divide frames_since_upright by `target_fps or achieved`,
+                        # and `target_fps` is set on every deployed profile, so it divided by
+                        # the rate the loop was ASKED for rather than the one it reached. A
+                        # loop running at 4 fps against a target of 8 reported half the real
+                        # seconds, so ten seconds face-down read as five and the follow-up
+                        # concluded the person had got back up. The slower the machine, the
+                        # more confidently it was wrong -- and the CPU server this deploys to
+                        # is the machine most likely to miss its target.
+                        #
+                        # Both counters advance once per processed frame, so their ratio is
+                        # the fraction of the window the person was not upright, whatever rate
+                        # the loop achieved. 0.8 leaves room for frames where the torso could
+                        # not be measured at all. Seconds are still used for the wall-clock
+                        # report below, where they are the right unit and are measured, not
+                        # derived.
                         elapsed = _mono - alerted_at
-                        seconds = person.frames_since_upright / max(rate, 1e-6)
-                        if seconds < 0.8 * elapsed:
+                        frames_elapsed = max(1, frame_count - frames_at_alert)
+                        seen_down = seen_down_since_alert(person.frames_seen_down, seen_at_alert)
+                        if not still_down_confirmed(person.frames_since_upright, seen_down,
+                                                    frames_elapsed):
                             # The window has passed and they are not still down, so they got
                             # back up. That is the answer, and it changes nothing: the alert
                             # stands and the tier is untouched. Cancelling here would suppress
                             # six per cent of real falls -- see notification_service.alert_tier.
                             awaiting_still_down.pop(tid, None)
-                            print(f"[Camera {camera_id}] still-down answered: track {tid} was "
-                                  f"upright during the {elapsed:.0f}s after the alert "
-                                  f"({seconds:.1f}s down of {elapsed:.1f}s) -- alert stands, "
-                                  f"tier unchanged")
+                            # Reported as the frame counts that were actually compared, with
+                            # the wall-clock window beside them. Printing a seconds figure
+                            # derived from a rate is what hid the previous defect.
+                            # Two different answers, and the log must not merge them: seen
+                            # upright again is a recovery; not seen enough is only unknown.
+                            seen_up = person.frames_since_upright < frames_elapsed * 0.8
+                            print(f"[Camera {camera_id}] still-down not confirmed for track {tid}: "
+                                  + ("seen upright again" if seen_up else
+                                     "not seen lying down enough to say -- visibility unknown")
+                                  + f" ({person.frames_since_upright} of {frames_elapsed} frames "
+                                    f"not upright, {seen_down} seen down after the alert, "
+                                    f"{elapsed:.0f}s) -- alert stands, tier unchanged")
                             continue
                         awaiting_still_down.pop(tid, None)
                         # The claim is "they have not got up in the N seconds since the alert",

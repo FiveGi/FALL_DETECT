@@ -365,6 +365,60 @@ def occlude_window(feat, num_keypoints=NUM_KEYPOINTS, feat_dim=None, prob=0.3, m
     return seq.reshape(T, -1)
 
 
+# USE_IR_AUG: replay REAL night-vision skeleton errors onto training windows.
+#
+# On simulated CCTV night footage the deployed detector catches 25-33% of URFD falls against 75%
+# by day, and the pose model still finds the person in most frames -- so the classifier is being
+# handed a skeleton that is present but wrong. training/measure/ir_keypoint_degradation.py
+# measured how: the person is lost in ~12% of frames, and joints including the hips jump by up
+# to ~0.29 torso lengths at p90 with the pose model's confidence unchanged. The hip jumps matter
+# most here, because every feature is measured relative to the hip, so one misplaced hip moves
+# the whole normalised skeleton and reads as motion.
+#
+# The errors are not modelled, they are replayed: training/data/ir_residual_bank.npz holds the
+# measured per-frame night-minus-day displacement of every joint (build_ir_residual_bank.py),
+# from GMDCSA24 training-side clips only, so URFD -- the held-out set that judges this -- never
+# contributed an error. Off by default, so the deployed recipe is unchanged.
+USE_IR_AUG = os.environ.get("USE_IR_AUG", "0") == "1"
+IR_AUG_PROB = float(os.environ.get("IR_AUG_PROB", 0.5))
+IR_BANK_PATH = os.environ.get(
+    "IR_BANK_PATH", os.path.join(os.path.dirname(__file__), "data", "ir_residual_bank.npz"))
+_ir_bank = None
+
+
+def ir_degrade_window(feat, num_keypoints=NUM_KEYPOINTS, feat_dim=None):
+    """feat: (T, num_keypoints*5) -> the same window as a night-vision camera would have yielded.
+
+    Each frame draws one real residual frame from the bank. A displacement of r_j torso lengths
+    at joint j and r_hip at the hip centre moves the hip-relative, torso-normalised coordinate
+    by (r_j - r_hip), which is what is added. Frames the bank marks as person-lost repeat the
+    previous frame, which is what _step_person does with a missed detection. Velocity is then
+    recomputed from the new positions, since a jump IS a velocity to the classifier.
+    """
+    global _ir_bank
+    feat_dim = FEAT_DIM if feat_dim is None else feat_dim
+    if feat_dim != 5:
+        # Hip-motion and frame-position channels come from RAW coordinates that no longer
+        # exist at this point, so they could not be degraded consistently.
+        raise ValueError("USE_IR_AUG supports the 5-channel features only (x, y, conf, vx, vy)")
+    if _ir_bank is None:
+        with np.load(IR_BANK_PATH) as b:
+            _ir_bank = (b["residuals"].astype(np.float32), b["lost"].astype(bool))
+    residuals, lost = _ir_bank
+    T = feat.shape[0]
+    seq = feat.reshape(T, num_keypoints, feat_dim).copy()
+    pick = np.random.randint(0, len(residuals), size=T)
+    r = residuals[pick]                                          # (T, 17, 2)
+    r_hip = (r[:, LEFT_HIP] + r[:, RIGHT_HIP]) / 2.0             # (T, 2)
+    xy = seq[:, :, :2] + (r - r_hip[:, None, :])
+    for t in range(1, T):
+        if lost[pick[t]]:
+            xy[t] = xy[t - 1]
+    seq[:, :, :2] = xy
+    seq[:, :, 3:5] = np.diff(xy, axis=0, prepend=xy[:1])
+    return seq.reshape(T, -1)
+
+
 class FallWindowDataset(Dataset):
     def __init__(self, samples, augment=False):
         self.samples = samples
@@ -377,6 +431,10 @@ class FallWindowDataset(Dataset):
         feat, label, _name = self.samples[idx]
         feat = feat.astype(np.float32)
         if self.augment:
+            # First, so the flip and occlusion below act on the degraded skeleton the way they
+            # would act on a real night frame.
+            if USE_IR_AUG and np.random.rand() < IR_AUG_PROB:
+                feat = ir_degrade_window(feat)
             if np.random.rand() < 0.5:
                 feat = flip_horizontal_window(feat)
             feat = occlude_window(feat)

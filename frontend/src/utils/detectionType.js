@@ -8,10 +8,17 @@
  */
 
 // Selectable in the "add/edit camera" forms.
+//
+// The labels name which MODEL each option runs, because they are not variants of one detector:
+// 'fall' is the superseded MediaPipe model and 'fall_v2' is the current YOLO-pose one. On URFD
+// -- the public set neither was tuned against -- the old model catches 45% of falls and the
+// current one 93%. The old label for 'fall' was simply "detect falls", the plainest entry in
+// the list, so the weakest detector was also the most obvious thing to pick while the good one
+// looked like an experiment. Anyone choosing here is choosing accuracy, so it says so.
 export const DETECTION_TYPE_OPTIONS = [
     { value: 'bed_exit', label: 'ตรวจจับการลุกจากเตียง' },
-    { value: 'fall', label: 'ตรวจจับการล้ม' },
-    { value: 'fall_v2', label: 'ตรวจจับการล้ม (เวอร์ชั่น 3 - YOLO-pose)' },
+    { value: 'fall_v2', label: 'ตรวจจับการล้ม — โมเดลปัจจุบัน YOLO-pose (แนะนำ)' },
+    { value: 'fall', label: 'ตรวจจับการล้ม — โมเดลเก่า MediaPipe (ไม่แนะนำ)' },
 ]
 
 // Every value getDetectionTypeText() may see, including ones that aren't a
@@ -19,9 +26,9 @@ export const DETECTION_TYPE_OPTIONS = [
 // notification/detection-log records, not the camera setup form).
 const DETECTION_TYPE_LABELS = {
     bed_exit: 'ตรวจจับการลุกจากเตียง',
-    fall: 'ตรวจจับการล้ม',
-    fall_detection: 'ตรวจจับการล้ม',
-    fall_v2: 'ตรวจจับการล้ม (เวอร์ชั่น 3 - YOLO-pose)',
+    fall: 'ตรวจจับการล้ม (โมเดลเก่า MediaPipe)',
+    fall_detection: 'ตรวจจับการล้ม (โมเดลเก่า MediaPipe)',
+    fall_v2: 'ตรวจจับการล้ม (YOLO-pose)',
     alone_v2: 'ตรวจจับผู้สูงอายุอยู่คนเดียว',
 }
 
@@ -30,7 +37,9 @@ export function getDetectionTypeText(detectionType) {
 }
 
 export const DETECTION_TYPE_FORM_HELP =
-    'เลือกว่าต้องการให้ AI ตรวจจับพฤติกรรมแบบไหน - "ตรวจจับการล้ม" คือโมเดลเดิม (MediaPipe), "เวอร์ชั่น 3" คือโมเดลล่าสุด (YOLO-pose) แม่นยำกว่า แนะนำให้ใช้'
+    'เลือกโมเดลที่จะใช้ตรวจจับ — วัดกับชุดข้อมูล URFD ที่ไม่เคยใช้ปรับจูน: '
+    + 'YOLO-pose จับการล้มได้ 93% (บนเครื่องที่มีการ์ดจอ) หรือ 75% (บนเซิร์ฟเวอร์ CPU), '
+    + 'ส่วนโมเดลเก่า MediaPipe จับได้ 45%'
 
 // Separate value space from DETECTION_TYPE_LABELS above: these come from alert/
 // notification records (app/services/alert_service.py's save_alert_log), tagged

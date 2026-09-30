@@ -57,16 +57,78 @@ FPS = float(os.environ.get('TARGET_FPS', 8))
 # something any deployment should do to its own frames.
 SIMULATE_DARK = float(os.environ.get('SIMULATE_DARK', 1.0))
 DARK_NOISE = float(os.environ.get('SIMULATE_DARK_NOISE', 6.0))
+SIMULATION_SEED = int(os.environ.get('SIMULATE_DARK_SEED', 0))
 
 
-def darken(frame):
+def clip_rng(path):
+    """Stable noise per repository-relative clip, independent of order and resume state."""
+    clip_id = os.path.relpath(os.path.abspath(path), ROOT).replace('\\', '/')
+    material = json.dumps([SIMULATION_SEED, clip_id], ensure_ascii=True).encode('utf-8')
+    seed = int.from_bytes(hashlib.sha256(material).digest()[:16], 'big')
+    return np.random.Generator(np.random.PCG64(seed))
+
+# SIMULATE_IR: turn the footage into what a CCTV camera actually sends after dark.
+#
+# This is not the same question as SIMULATE_DARK, and conflating them would be a mistake. A
+# dimmed colour frame is a room with the lights off. A security camera at night does something
+# else entirely: it switches to its infrared sensor, and from that moment the picture is
+# GREY, not dim -- the IR lamp floods the scene, so brightness can be perfectly adequate while
+# every colour the model was trained on is gone.
+#
+# That matters here because every clip in this corpus is daytime colour, and the deployment is
+# a CCTV camera in a bedroom, which means the footage the system will actually spend most of
+# its life looking at is a kind of image it has never been measured on. That is a domain gap,
+# and an unmeasured domain gap is indistinguishable from a working system until it is deployed.
+#
+# Three things are simulated, because a plain cvtColor would be too kind:
+#   grey        -- one channel replicated to three, which is literally what the sensor emits
+#   vignette    -- the IR lamp sits beside the lens, so the centre is lit and the corners are
+#                  not. A person at the edge of the room is much darker than one in front of it.
+#   noise       -- IR gain is high, so the picture is grainy even when it looks bright enough
+SIMULATE_IR = os.environ.get('SIMULATE_IR', '0') == '1'
+IR_VIGNETTE = float(os.environ.get('SIMULATE_IR_VIGNETTE', 0.45))
+IR_NOISE = float(os.environ.get('SIMULATE_IR_NOISE', 5.0))
+_vignette_cache = {}
+
+
+def _vignette(shape):
+    """Radial falloff: 1.0 at the centre, 1.0 - IR_VIGNETTE at the corners."""
+    h, w = shape[:2]
+    hit = _vignette_cache.get((h, w))
+    if hit is not None:
+        return hit
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    dy = (yy - h / 2.0) / (h / 2.0)
+    dx = (xx - w / 2.0) / (w / 2.0)
+    r = np.sqrt(dx * dx + dy * dy) / np.sqrt(2.0)     # 0 centre, 1 corner
+    mask = (1.0 - IR_VIGNETTE * r)[:, :, None]
+    _vignette_cache[(h, w)] = mask
+    return mask
+
+
+def to_infrared(frame, rng=None):
+    """Colour daytime frame -> what the same camera would send on its night sensor."""
+    grey = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    out = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR).astype(np.float32)
+    if IR_VIGNETTE > 0:
+        out *= _vignette(out.shape)
+    if IR_NOISE > 0:
+        noise_rng = rng if rng is not None else np.random
+        out += noise_rng.normal(0.0, IR_NOISE, out.shape).astype(np.float32)
+    return np.clip(out, 0, 255).astype(np.uint8)
+
+
+def darken(frame, rng=None):
     """Scale brightness to SIMULATE_DARK and add sensor noise proportional to the loss."""
+    if SIMULATE_IR:
+        frame = to_infrared(frame, rng=rng)
     if SIMULATE_DARK >= 0.999:
         return frame
     out = frame.astype(np.float32) * SIMULATE_DARK
     if DARK_NOISE > 0:
         sigma = DARK_NOISE * (1.0 - SIMULATE_DARK)
-        out += np.random.normal(0.0, sigma, out.shape).astype(np.float32)
+        noise_rng = rng if rng is not None else np.random
+        out += noise_rng.normal(0.0, sigma, out.shape).astype(np.float32)
     return np.clip(out, 0, 255).astype(np.uint8)
 CACHE_DIR = os.environ.get('CACHE_DIR', os.path.join(ROOT, 'training', 'data', 'pose_cache'))
 
@@ -90,7 +152,7 @@ def cache_key():
     all, so the key is the configuration itself and `replay_classifiers.py` re-derives it
     rather than trusting a directory name.
     """
-    return {
+    key = {
         'pose_model': os.environ.get('V3_POSE_MODEL', 'yolo26s-pose.pt'),
         'imgsz': v3.IMGSZ,
         'pose_conf': v3.POSE_CONF,
@@ -108,8 +170,19 @@ def cache_key():
         'roi_full_every': v3.ROI_FULL_EVERY if v3.ROI_IMGSZ else 0,
         'roi_pad': v3.ROI_PAD if v3.ROI_IMGSZ else 0,
         'simulate_dark': SIMULATE_DARK,
+        'simulation_seed': SIMULATION_SEED,
+        'simulation_rng': 'sha256-relpath-pcg64-v1',
         'dark_noise': DARK_NOISE if SIMULATE_DARK < 0.999 else 0.0,
+        # Night-sensor footage is a different question again, so it gets its own cache.
+        'simulate_ir': SIMULATE_IR,
+        'ir_vignette': IR_VIGNETTE if SIMULATE_IR else 0.0,
+        'ir_noise': IR_NOISE if SIMULATE_IR else 0.0,
     }
+    # The greyscale cleanup gate changes what the pose model sees, so it keys the cache -- but
+    # only when enabled, so every cache built before it existed (all with it off) keeps its key.
+    if getattr(v3, 'PREPROCESS_GREY_BELOW', 0):
+        key['grey_below'] = v3.PREPROCESS_GREY_BELOW
+    return key
 
 
 def cache_dir_for(key):
@@ -119,6 +192,7 @@ def cache_dir_for(key):
 
 def sampled_frames(path, fps, rgb_half):
     """Yields the frames the live loop would classify, at `fps`, matching rule_sweep_perclip."""
+    rng = clip_rng(path)
     cap = cv2.VideoCapture(path)
     src = cap.get(cv2.CAP_PROP_FPS) or 30.0
     i, last_slot = 0, -1
@@ -131,14 +205,11 @@ def sampled_frames(path, fps, rgb_half):
         if slot == last_slot:
             continue
         last_slot = slot
-        yield darken(frame[:, frame.shape[1] // 2:] if rgb_half else frame)
+        yield darken(frame[:, frame.shape[1] // 2:] if rgb_half else frame, rng=rng)
     cap.release()
 
 
 def main():
-    # Same seed every run, so "darkened to 40%" is the same footage each time and two settings
-    # can be compared on it rather than on two different draws of noise.
-    np.random.seed(int(os.environ.get('SIMULATE_DARK_SEED', 0)))
     key = cache_key()
     out_dir = cache_dir_for(key)
     os.makedirs(out_dir, exist_ok=True)

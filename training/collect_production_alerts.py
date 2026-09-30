@@ -62,7 +62,7 @@ for i in range(1, 18):
         results = v3.detect_v3_fall_multi(frame, mstate, detector, config=None)
         any_detected = any(r[1] for r in results)
         if any_detected and not last_any:
-            top = max(results, key=lambda r: r[2])
+            top = v3.alert_result(results)
             malerts.append((t, top[2]))
         last_any = any_detected
         frame_idx += 1

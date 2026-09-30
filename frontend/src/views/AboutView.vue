@@ -72,6 +72,55 @@
         </template>
       </div>
 
+      <div class="about-section" v-if="isAdmin">
+        <h2>เปลี่ยนค่าการตรวจจับ</h2>
+        <p class="section-note">
+          เลือกได้เฉพาะ<strong>ชุดค่าที่วัดผลไว้แล้วทั้งชุด</strong> ไม่ใช่ปรับทีละค่า —
+          เพราะขนาดภาพกับอัตราเฟรมบน CPU เป็นการตัดสินใจเดียวกัน และเกณฑ์แจ้งเตือนก็ไม่อิสระจากทั้งคู่
+          ถ้าเลือกผสมกันเองได้ จะได้ระบบที่<strong>ไม่มีใครเคยวัด</strong> แต่หน้าตาน่าเชื่อถือเท่ากัน
+        </p>
+
+        <p v-if="profileError" class="detector-warn">{{ profileError }}</p>
+        <p v-if="profileSaved" class="profile-saved">{{ profileSaved }}</p>
+
+        <div class="profile-list">
+          <label
+            v-for="p in profiles"
+            :key="p.key"
+            class="profile-row"
+            :class="{ 'is-running': p.key === runningProfile, 'is-chosen': p.key === chosen }"
+          >
+            <input type="radio" :value="p.key" v-model="chosen" :disabled="savingProfile" />
+            <span class="profile-body">
+              <span class="profile-title">
+                {{ p.label_th || p.label }}
+                <span v-if="p.key === runningProfile" class="profile-now">กำลังใช้อยู่</span>
+              </span>
+              <span class="profile-measured">{{ p.measured_th || p.measured }}</span>
+              <span class="profile-note">{{ p.note_th || p.note }}</span>
+            </span>
+          </label>
+        </div>
+
+        <p class="section-note" v-if="runningProfile === null && detector">
+          ตอนนี้ค่าที่รันอยู่<strong>ไม่ตรงกับชุดไหนเลย</strong> — น่าจะมีคนตั้งเองไว้
+          ซึ่งแปลว่าไม่มีตัวเลขความแม่นยำชุดไหนอธิบายระบบที่รันอยู่
+        </p>
+
+        <button
+          class="btn-apply"
+          type="button"
+          :disabled="!chosen || chosen === runningProfile || savingProfile"
+          @click="applyProfile"
+        >
+          {{ savingProfile ? 'กำลังบันทึก...' : 'บันทึกชุดค่านี้' }}
+        </button>
+        <p class="section-note">
+          บันทึกแล้ว<strong>ยังไม่มีผลทันที</strong> ต้องรีสตาร์ท worker ก่อน —
+          ค่าพวกนี้อ่านตอนโปรเซสเริ่มทำงาน ปุ่มนี้จึงบอกตามตรงแทนที่จะแกล้งทำเป็นว่าเปลี่ยนแล้ว
+        </p>
+      </div>
+
       <div class="about-section">
         <h2>เวอร์ชั่น</h2>
         <p>V89 Fall Management System เวอร์ชั่น 1.0.0</p>
@@ -94,6 +143,54 @@ const detector = ref(null)
 const detectorMessage = ref('')
 const detectorError = ref('')
 
+// Whole profiles rather than individual settings, and the page says why. A form of knobs would
+// let somebody assemble a configuration nobody has measured, and nothing on screen could tell
+// them apart from one that had been.
+const profiles = ref([])
+const runningProfile = ref(null)
+const chosen = ref(null)
+const savingProfile = ref(false)
+const profileError = ref('')
+const profileSaved = ref('')
+const isAdmin = ref(false)
+
+function authHeaders() {
+  return { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+}
+
+async function loadProfiles() {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/detector/profiles`, { headers: authHeaders() })
+    const body = await res.json()
+    if (!res.ok || body.success === false) throw new Error(body.error || 'โหลดไม่สำเร็จ')
+    profiles.value = body.data.profiles
+    runningProfile.value = body.data.running
+    chosen.value = body.data.running
+  } catch (e) {
+    profileError.value = e.message
+  }
+}
+
+async function applyProfile() {
+  savingProfile.value = true
+  profileError.value = ''
+  profileSaved.value = ''
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/detector/profiles`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ profile: chosen.value })
+    })
+    const body = await res.json()
+    if (!res.ok || body.success === false) throw new Error(body.error || 'บันทึกไม่สำเร็จ')
+    profileSaved.value = body.data.message
+  } catch (e) {
+    profileError.value = e.message
+  } finally {
+    savingProfile.value = false
+  }
+}
+
 onMounted(async () => {
   try {
     const res = await fetch(`${getApiBaseUrl()}/detector`, {
@@ -106,6 +203,13 @@ onMounted(async () => {
   } catch (e) {
     detectorError.value = e.message
   }
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    isAdmin.value = String(user.role || '').toLowerCase().includes('admin')
+  } catch {
+    isAdmin.value = false
+  }
+  if (isAdmin.value) await loadProfiles()
 })
 </script>
 
@@ -137,6 +241,52 @@ onMounted(async () => {
    what is running, and that is worth interrupting someone over. */
 .detector-measured.warn { background: #fdecea; border-left: 4px solid #c62828; }
 .detector-warn { color: #c62828; }
+.profile-saved {
+  background: #eef7ee;
+  border-left: 4px solid #2e7d32;
+  padding: 0.6rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+.profile-list { display: flex; flex-direction: column; gap: 0.5rem; margin: 0.75rem 0; }
+.profile-row {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.profile-row:hover { border-color: #999; }
+.profile-row.is-chosen { border-color: #1565c0; background: #f5f9ff; }
+/* What is running is stated separately from what is selected: they are different facts and a
+   page that merged them would hide an unsaved change. */
+.profile-row.is-running { box-shadow: inset 3px 0 0 #2e7d32; }
+.profile-body { display: flex; flex-direction: column; gap: 0.15rem; }
+.profile-title { font-weight: 600; }
+.profile-now {
+  margin-left: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #2e7d32;
+  border: 1px solid #2e7d32;
+  border-radius: 999px;
+  padding: 0.05rem 0.4rem;
+}
+.profile-measured { font-size: 0.85rem; color: #1565c0; font-weight: 600; }
+.profile-note { font-size: 0.82rem; color: #555; line-height: 1.5; }
+.btn-apply {
+  padding: 0.55rem 1.1rem;
+  border: none;
+  border-radius: 6px;
+  background: #1565c0;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-apply:disabled { background: #b0bec5; cursor: default; }
 
 .about {
   padding: 1rem;

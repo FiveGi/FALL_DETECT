@@ -49,44 +49,94 @@ SOURCE_FPS = 30.0   # every training dataset here is 30fps footage
 # Add a row by measuring it -- scratchpad/rule_sweep_perclip.py over the 220 lab clips -- not
 # by editing the table to make a check pass.
 MEASURED = {
-    # (input size, window, frame rate, partial-window minimum, preprocessing) -> what it scored.
+    # (input size, window, frame rate, partial-window minimum, preprocessing, threshold)
+    #   -> what it scored.
     # The preprocessing belongs in the key for the same reason the input size does: it changes
     # the frames the pose model sees, so a row measured without it does not describe a
     # deployment running with it. Rows predating it are recorded as ('off',).
+    #
+    # The THRESHOLD belongs here for a blunter reason: without it this check passed any
+    # threshold at all. A deployment could run 0.99 -- alerting essentially never -- and be
+    # told its configuration had been measured, because the lookup key never asked. That is
+    # the failure mode this table exists to prevent, reproduced inside the table itself.
+    # The three CPU rows below differ ONLY by threshold, which is precisely why omitting it
+    # collapsed them into one row that described whichever had been measured last.
     # GPU profile: RTX 4070 Ti Super, one 1080p camera, uncapped ceiling 23.4 fps.
-    (960, 15, 15.0, 0, ('off',)): 'GPU: URFD 41/60 falls, 34/40 clean; held-out clean 41/56',
-    (960, 15, 18.0, 0, ('off',)): 'GPU: URFD 45/60 falls, 32/40 clean',
-    (960, 15, 20.0, 0, ('off',)): 'GPU: URFD 45/60 falls, 33/40 clean; held-out clean 41/56',
-    (960, 15, 23.0, 0, ('off',)): 'GPU: URFD 48/60 falls, 33/40 clean',
-    (960, 15, 20.0, 4, ('off',)): 'GPU: URFD 56/60 falls, 33/40 clean; held-out clean 40/56',
+    (960, 15, 15.0, 0, ('off',), 0.65, 0, 0): 'GPU: URFD 41/60 falls, 34/40 clean; held-out clean 41/56',
+    (960, 15, 18.0, 0, ('off',), 0.65, 0, 0): 'GPU: URFD 45/60 falls, 32/40 clean',
+    (960, 15, 20.0, 0, ('off',), 0.65, 0, 0): 'GPU: URFD 45/60 falls, 33/40 clean; held-out clean 41/56',
+    (960, 15, 23.0, 0, ('off',), 0.65, 0, 0): 'GPU: URFD 48/60 falls, 33/40 clean',
+    (960, 15, 20.0, 4, ('off',), 0.65, 0, 0): 'GPU: URFD 56/60 falls, 33/40 clean; held-out clean 40/56',
     # CPU profile: four cores, no GPU, the production server's shape.
-    (960, 15, 4.0, 0, ('off',)): 'CPU 4 cores: URFD 5/60 falls, 48/79 GMDCSA falls -- the old settings',
-    (640, 15, 7.0, 0, ('off',)): 'CPU 4 cores: URFD 25/60 falls, 66/79 GMDCSA falls',
-    (480, 15, 6.0, 0, ('off',)): 'CPU 4 cores: URFD 13/60 falls, 68/79 GMDCSA falls',
-    (480, 15, 12.0, 0, ('off',)): 'CPU: URFD 38/60 falls, 71/79 GMDCSA falls (not reachable on four cores)',
-    (384, 15, 6.0, 0, ('off',)): 'CPU 4 cores: URFD 14/60 falls, 69/79 GMDCSA falls',
-    (384, 15, 17.0, 0, ('off',)): 'CPU: URFD 39/60 falls, 69/79 GMDCSA falls (not reachable on four cores)',
-    (320, 15, 6.0, 0, ('off',)): 'CPU 4 cores: URFD 13/60 falls -- below the cliff, do not deploy',
-    (320, 15, 8.0, 0, ('off',)): 'CPU 3.5 cores: URFD 32/60 falls, 34/40 clean, 64/79 GMDCSA falls',
-    (320, 15, 9.0, 0, ('off',)): 'CPU 4 cores: URFD 34/60 falls, 32/40 clean, 67/79 GMDCSA falls',
-    (256, 15, 10.0, 0, ('off',)): 'CPU 4 cores: URFD 25/60 falls, 62/79 GMDCSA falls',
-    (192, 15, 14.0, 0, ('off',)): 'CPU 4 cores: URFD 32/60 falls, 59/79 GMDCSA falls',
-    (320, 15, 8.0, 2, ('off',)): 'CPU 3.5 cores: URFD 41/60 falls, held-out clean 40/56',
-    (320, 15, 8.0, 3, ('off',)): 'CPU 3.5 cores: URFD 44/60 falls, held-out clean 40/56',
-    (320, 15, 8.0, 4, ('off',)): 'CPU 3.5 cores: URFD 45/60 falls, held-out clean 41/56',
+    (960, 15, 4.0, 0, ('off',), 0.65, 0, 0): 'CPU 4 cores: URFD 5/60 falls, 48/79 GMDCSA falls -- the old settings',
+    (640, 15, 7.0, 0, ('off',), 0.65, 0, 0): 'CPU 4 cores: URFD 25/60 falls, 66/79 GMDCSA falls',
+    (480, 15, 6.0, 0, ('off',), 0.65, 0, 0): 'CPU 4 cores: URFD 13/60 falls, 68/79 GMDCSA falls',
+    (480, 15, 12.0, 0, ('off',), 0.65, 0, 0): 'CPU: URFD 38/60 falls, 71/79 GMDCSA falls (not reachable on four cores)',
+    (384, 15, 6.0, 0, ('off',), 0.65, 0, 0): 'CPU 4 cores: URFD 14/60 falls, 69/79 GMDCSA falls',
+    (384, 15, 17.0, 0, ('off',), 0.65, 0, 0): 'CPU: URFD 39/60 falls, 69/79 GMDCSA falls (not reachable on four cores)',
+    (320, 15, 6.0, 0, ('off',), 0.65, 0, 0): 'CPU 4 cores: URFD 13/60 falls -- below the cliff, do not deploy',
+    (320, 15, 8.0, 0, ('off',), 0.65, 0, 0): 'CPU 3.5 cores: URFD 32/60 falls, 34/40 clean, 64/79 GMDCSA falls',
+    (320, 15, 9.0, 0, ('off',), 0.65, 0, 0): 'CPU 4 cores: URFD 34/60 falls, 32/40 clean, 67/79 GMDCSA falls',
+    (256, 15, 10.0, 0, ('off',), 0.65, 0, 0): 'CPU 4 cores: URFD 25/60 falls, 62/79 GMDCSA falls',
+    (192, 15, 14.0, 0, ('off',), 0.65, 0, 0): 'CPU 4 cores: URFD 32/60 falls, 59/79 GMDCSA falls',
+    (320, 15, 8.0, 2, ('off',), 0.65, 0, 0): 'CPU 3.5 cores: URFD 41/60 falls, held-out clean 40/56',
+    (320, 15, 8.0, 3, ('off',), 0.65, 0, 0): 'CPU 3.5 cores: URFD 44/60 falls, held-out clean 40/56',
+    (320, 15, 8.0, 4, ('off',), 0.65, 0, 0): 'CPU 3.5 cores: URFD 45/60 falls, held-out clean 41/56',
     # Deployed. Frame preprocessing costs no falls on either profile and removes false alarms:
     # three between the two profiles, on the darkest clips in the corpus.
     # Deployed. The darkness gate does not appear in this key because gates of 32, 50 and 70
     # measured bit-identical on every surface at full light, on both profiles -- so one row
     # describes all of them here. Where they differ is dim footage, which this table does not
     # cover at all (see docs/next_steps.md item 14).
-    (320, 15, 8.0, 4, ('auto',)):
+    (320, 15, 8.0, 4, ('auto',), 0.65, 0, 0):
         'CPU 3.5 cores: URFD 45/60 falls, held-out clean 43/56 (deployed, preprocessing on)',
-    (960, 15, 20.0, 4, ('auto',)):
+    # Person-crop at 256 (V3_ROI_IMGSZ). The crop setting is part of the key for the reason the
+    # threshold is: without it, a cropped deployment matched the full-frame row above and was
+    # told it had been measured. Cache replay deff31100752 vs 58bd55e55f1d, same classifier.
+    (320, 15, 8.0, 4, ('auto',), 0.65, 256, 8):
+        'CPU: URFD 46/60 falls, held-out clean 42/56; owner clips 34/75 vs 28/75 (crop 256)',
+    # The two threshold variants app/services/detector_profiles.py offers an operator. Replayed
+    # from the cached pose stream of the row above -- same clips, same pose pass, classifier
+    # re-run at each threshold -- so the three rows are a controlled comparison rather than
+    # three separate measurements. Re-measured when threshold entered this key, which is how
+    # the 'catch more' row was found to have been carrying 38/56 when it scores 40/56.
+    (320, 15, 8.0, 4, ('auto',), 0.70, 0, 0):
+        'CPU 3.5 cores: URFD 44/60 falls, held-out clean 44/56 (fewer false alarms)',
+    (320, 15, 8.0, 4, ('auto',), 0.50, 0, 0):
+        'CPU 3.5 cores: URFD 49/60 falls, held-out clean 40/56 (catch more)',
+    (960, 15, 20.0, 4, ('auto',), 0.65, 0, 0):
         'GPU: URFD 56/60 falls, 33/40 clean; held-out clean 41/56 (deployed, preprocessing on)',
-    (320, 15, 8.0, 6, ('off',)): 'CPU 3.5 cores: URFD 38/60 falls, held-out clean 42/56',
-    (320, 15, 8.0, 8, ('off',)): 'CPU 3.5 cores: URFD 31/60 falls, held-out clean 42/56',
+    # GPU threshold variants, so an operator picking a threshold is not told the machine is
+    # unmeasured on whichever profile they are not running. CACHE REPLAYS, not fresh pose
+    # passes: the same cached keypoints with the classifier re-run, which is a controlled
+    # comparison between thresholds but is not identical to a sweep. Replaying the row above
+    # this way returns 34/40 where the sweep recorded 33/40 -- one clip, the known disagreement
+    # between a cached stream and a fresh pose pass, and the reason these rows say which they
+    # are instead of being quietly merged with the sweep rows.
+    (960, 15, 20.0, 4, ('auto',), 0.70, 0, 0):
+        'GPU: URFD 54/60 falls, held-out clean 41/56 (cache replay, fewer false alarms)',
+    (960, 15, 20.0, 4, ('auto',), 0.50, 0, 0):
+        'GPU: URFD 58/60 falls, held-out clean 37/56 (cache replay, catch more)',
+    (320, 15, 8.0, 6, ('off',), 0.65, 0, 0): 'CPU 3.5 cores: URFD 38/60 falls, held-out clean 42/56',
+    (320, 15, 8.0, 8, ('off',), 0.65, 0, 0): 'CPU 3.5 cores: URFD 31/60 falls, held-out clean 42/56',
 }
+
+def measured_key(imgsz, window, fps, partial_min, preprocess, threshold, roi_imgsz=0,
+                 roi_full_every=0):
+    """The ONE way to build a MEASURED lookup key. The check below and the web page's
+    /api/detector both call this; the page once built its own five-field key and, after the
+    threshold and the crop joined the table's key, silently reported every configuration --
+    the deployed one included -- as unmeasured (Codex REVIEW-2).
+
+    The crop cadence is in the key because a crop measured with a full-frame pass every 8 frames
+    says nothing about cadence 1, which never crops at all."""
+    roi = int(roi_imgsz or 0)
+    return (int(imgsz) if imgsz is not None else None, window,
+            float(fps) if fps is not None else None, partial_min,
+            tuple(preprocess or ()) or ('off',),
+            round(float(threshold), 4) if threshold is not None else None,
+            roi, int(roi_full_every or 0) if roi else 0)
+
 
 # What one 1080p camera sustains, measured uncapped (V3_TARGET_FPS=0) by reading the camera
 # loop's own periodic log. Pinning at or above this makes the achieved rate depend on machine
@@ -180,11 +230,13 @@ def main():
         if not fps:
             continue
         preprocess = tuple(v3.PREPROCESS) or ('off',)
-        measured = MEASURED.get((imgsz, v3.WINDOW_SIZE, fps, v3.PARTIAL_MIN, preprocess))
+        measured = MEASURED.get(measured_key(imgsz, v3.WINDOW_SIZE, fps, v3.PARTIAL_MIN,
+                                             preprocess, v3.THRESHOLD, v3.ROI_IMGSZ,
+                                             v3.ROI_FULL_EVERY))
         check(f'{name}: this exact configuration has been measured', measured is not None,
               measured or f'imgsz {imgsz}, window {v3.WINDOW_SIZE}, {fps:.0f} fps, partial '
-              f'from {v3.PARTIAL_MIN}, preprocess {"+".join(preprocess)} is not in MEASURED -- '
-              f'run the sweep before deploying it')
+              f'from {v3.PARTIAL_MIN}, preprocess {"+".join(preprocess)}, threshold '
+              f'{v3.THRESHOLD:g}, crop {v3.ROI_IMGSZ} every {v3.ROI_FULL_EVERY} is not in MEASURED -- run the sweep before deploying it')
         check(f'{name}: the rate is one the machine sustains', fps <= SUSTAINED_FPS[name],
               f'pinned at {fps:.0f} fps, measured ceiling {SUSTAINED_FPS[name]:.1f} fps '
               f'for one camera')

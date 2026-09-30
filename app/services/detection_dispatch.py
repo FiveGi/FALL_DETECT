@@ -216,6 +216,10 @@ def publish_detector_config():
             'pose_model': os.environ.get('V3_POSE_MODEL', 'yolo26s-pose.pt'),
             'device': v3.__dict__.get('LOADED_DEVICE') or os.environ.get('V3_DEVICE', 'auto'),
             'input_size': v3.IMGSZ,
+            # Person-crop mode. Without this in the report, a profile that differs only by crop
+            # could not be recognised as running -- the same defect R8 found for thresholds.
+            'roi_input_size': v3.ROI_IMGSZ,
+            'roi_full_every': v3.ROI_FULL_EVERY if v3.ROI_IMGSZ else 0,
             'counting_input_size': v3.COUNT_IMGSZ,
             'target_fps': target_fps,
             'window_frames': v3.WINDOW_SIZE,

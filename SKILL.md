@@ -4118,3 +4118,212 @@ immediately -- six of twelve compilations had their CPU peak drop from 1.00 to b
 
 See SS72. Sound hypothesis, measured properly over six training runs and two controls, and
 wrong -- worse on exactly the bed false alarms it was built for.
+
+## 74. The night-vision domain gap, and what "it detects by fluke" actually was
+
+Opened by the user, in three complaints that turned out to be three different things: the web
+app "doesn't detect anything, it only fires by fluke"; CCTV goes black-and-white at night, so
+should the model be tuned for that; and why is the number only 75% when the pose model is
+YOLO26.
+
+### The third question first, because it is the cheapest and it reframes the other two
+
+YOLO26-pose is **stage one only**. It finds the skeleton. Nothing in it decides whether a fall
+happened -- that is a separate 1D temporal CNN reading 15 frames of torso-normalised keypoints.
+Swapping in a better pose model raises the ceiling; it does not move the operating point.
+
+And the 93% (GPU) / 75% (CPU) pair run **the identical YOLO26 checkpoint**. The whole gap is
+input size and frame rate: 960 at 20 fps against 320 at 8. On CPU the frame rate *is* recall,
+because the classifier's window is a fixed number of frames, so a slower rate covers more real
+time per window and a fall stops looking like a fall. The pose model is not the thing that is
+costing 18 points.
+
+### The web app: three separate things, and only one of them was a defect
+
+The live worker was running at **19.4 of a targeted 20 fps**. Frame rate was not the problem,
+which is worth stating because it is the usual suspect here and it was wrong this time.
+
+What the two test cameras actually point at, and what the offline sweep already said about
+those exact clips:
+
+| camera | clip | measured | what the user sees |
+|---|---|---|---|
+| 11 | `Test/15.mp4` | 1 alert, peak 0.79 | one alert per loop -- **correct**, the clip contains one fall |
+| 12 | `Test/13.mp4` | 0 alerts, peak 0.27 | never fires -- **a real miss** |
+
+So "it barely activates" on camera 11 is the system working: a ten-second clip with one fall in
+it produces one alert per loop, and looping it does not produce more falls. The instinct that
+this looks broken is reasonable and the answer is that the display gives a person no way to
+tell "nothing happened" from "nothing was noticed".
+
+Camera 12 is a genuine miss, and rendering it explains why. `Test/13.mp4` is **AI-generated
+outdoor footage**: a man on a wet street, shot with a camera that pushes in to an extreme
+close-up while he goes down onto his hands and knees. Measured against the clip that works,
+mean inter-frame motion is **13.6 against 1.7 -- eight times more**. There is no hard cut (the
+cut detector finds none; that guess was checked and dropped), it is a continuous cinematic
+push-in. The classifier's features are torso-normalised keypoint motion, so a camera that moves
+injects motion that is not the person's, throughout the window. A fixed CCTV camera does not do
+this. **Clips like this measure something the deployment will never see**, and testing on them
+gives a pessimistic and misleading read.
+
+### The defect: the plainest option in the camera form ran the superseded model
+
+`detection_type` offers three values. `fall_v2` is the current YOLO-pose detector that every
+93%/75% number in this document describes. `fall` runs `detect_fall_legacy` with
+`FallONNXDetector` -- **the old MediaPipe model, 45% on URFD**. Its label was simply
+"ตรวจจับการล้ม", the most obvious entry in the list, while the good detector sat behind
+"(เวอร์ชั่น 3)", which reads like an experiment.
+
+Both test cameras happen to be set to `fall_v2`, so this is **not** what the user hit. It is
+still a trap, and it has been closed: the options now name their model and their measured
+accuracy, and the current one is listed first.
+
+### An alert at 0.57 when the threshold is 0.65 -- checked, and not a bug
+
+The detection log had a red `fall_v2` row at confidence 0.57. `detected` comes from
+`sum(state.recent_flags) >= SMOOTH_NEED` -- how many of the recent frames cleared the threshold
+-- while the logged `probability` is **this** frame's score. A sustained alert whose current
+frame has dropped below threshold is exactly the intended behaviour. What is wrong is the
+display: a red alert captioned "score 57" against a stated threshold of 65 reads as broken, and
+a person has no way to know it is not.
+
+### Night-vision CCTV: the gap is real, and it is not the gap that was expected
+
+Every clip in this corpus is daytime colour. The deployment is a security camera in a bedroom,
+which after dark switches to its IR sensor. `SIMULATE_IR` in `cache_pose_streams.py` now
+simulates that properly -- greyscale, a radial vignette because the IR lamp sits beside the
+lens, and high-gain noise -- because a plain `cvtColor` would be too kind.
+
+On a URFD side-view fall, rendered and watched rather than tabulated
+(`training/measure/render_infrared.py`, `test_result/infrared_demo.mp4`):
+
+| footage | person found | alert |
+|---|---|---|
+| daytime colour | 34/41 frames | yes |
+| night sensor | 28/41 frames | **no** |
+| night sensor + lighting fix | 28/41 frames | **no** |
+
+**The pose model still finds the person.** It is not blindness -- 28 of 41 frames still return a
+skeleton. The classifier is what stops firing. That points at the skeletons being *degraded*
+rather than absent, which is a different problem with a different fix, and it is the opposite of
+what the dark-simulation work would have predicted.
+
+And a second finding falls out of it, **stated too strongly the first time and corrected here
+after Codex's review**. What was written was "the lighting fix never runs on night footage".
+That is wrong. Its gate is `luminance < 70`, and the sampled IR frames measured 100, 81, 65, 62
+and 59 against daytime's 133, 107, 86, 83 and 80 -- so the gate *does* fire on the three darker
+scenes and not on the two brighter ones.
+
+The correct, narrower statement: **the gate asks about brightness when what has changed is
+colour and grain.** Whether the cleanup runs on a night frame is therefore decided by something
+unrelated to why it is needed, and nothing in the code asks whether the footage is infrared at
+all.
+
+### And then the sweep landed, and it is the worst number in this document
+
+URFD, all 100 clips, the deployed CPU profile, identical classifier, the only difference being
+the footage (`compare_caches.py 58bd55e55f1d cb5439b03087`):
+
+| | daytime colour | simulated night sensor |
+|---|---|---|
+| falls caught | 45/60 = **75%** | **15, 17 and 20 of 60 across three noise draws** |
+| clean, no false alarm | 35/40 = 88% | 36 or 35 of 40 = **88-90%** |
+
+**The correction folded into that table matters more than the table does, and it took two
+attempts to get right.** The first run measured 17/60 and was reported as "**28%**". Rebuilt
+under a deterministic per-clip RNG (Codex's R9) with every other setting identical, it returned
+**15/60**. Before rebuilding I predicted in writing that it would reproduce 17/60 exactly,
+arguing that both original caches were single uninterrupted runs and therefore drew the same
+noise. **The prediction failed**, for a reason simpler than the argument: a different RNG
+*scheme* draws different noise, so of course the answer moved.
+
+I then estimated the sensitivity at "at least +/-2 falls in 60". A third draw at seed 7 returned
+**20/60**, so that estimate was too small as well. Three realizations of the same measurement,
+differing in nothing but the simulated sensor noise:
+
+| seed | falls caught | |
+|---|---|---|
+| deterministic, seed 0 | 15/60 | 25% |
+| the original global-RNG draw | 17/60 | 28% |
+| deterministic, seed 7 | 20/60 | 33% |
+
+**A spread of five falls, eight percentage points.** Any single figure from this family was
+never a measurement, it was one sample presented as one. The methodological rule that follows,
+and that should govern every simulated-footage result in this document: **a measurement over
+synthesised noise is reported as a range over seeds, or it is not reported.**
+
+What survives untouched is the part that was never close: **roughly three quarters of falls by
+day, one quarter to one third by night.** The gap is 42 to 50 points wide however the noise
+falls, so the finding stands and only its precision ever moved.
+
+**Twenty-five to thirty falls lost, and not one extra false alarm** -- the false-alarm count is
+flat across all three draws, 4 or 5 out of 40. The system does not get noisier at night, it goes
+quiet, which is the failure mode that leaves no trace anywhere and the one an elderly-care
+deployment can least afford, because night is when the falls that matter happen.
+
+Read against the per-frame render above, the shape of it is consistent: the pose model keeps
+returning a body most of the time, so nothing upstream reports a problem, but the skeletons are
+degraded enough that the classifier no longer recognises the motion.
+
+This is the largest gap between measured accuracy and deployed reality found in this project,
+and every accuracy number in the sections above describes daytime colour footage only.
+
+### Decomposed, and the naive fix is the wrong one
+
+Which part of night footage does the damage? Re-run with the vignette and noise switched off,
+so the only change from daytime is the missing colour (`932fbee53d48`):
+
+| footage into the same detector | URFD falls caught | |
+|---|---|---|
+| daytime colour | 45/60 = 75% | baseline |
+| **plain greyscale, nothing else** | 35/60 = 58% | **-17 points** |
+| greyscale + IR vignette + sensor noise | 15-20/60 = 25-33% | **-42 to -50 points** |
+
+The greyscale row draws no noise at all (`IR_NOISE=0`, `SIMULATE_DARK=1`), so unlike the row
+below it, it is exact rather than one draw of many. The bottom row is three draws -- see the
+correction above, and note that its range is wide enough to overlap nothing else here but wide
+enough to make "the vignette and grain cost another 30 points" a statement about the middle of
+a distribution, not a measurement of a quantity.
+
+**Losing colour costs 17 points. The uneven IR lighting and the grain cost another 30.** The
+obvious reading of "CCTV goes black and white at night, so train on black and white" would
+therefore buy back the smaller half of the problem. The larger half is an *image quality*
+problem, and this system already owns a tool for it -- CLAHE and gamma -- whose gate asks
+whether the picture is dim, which is not what has changed.
+
+**Measured, cleanup forced on for IR footage** (`9c2963624342`, replayed independently by
+Codex): **19/60 falls against 17/60, and ADL false alarms 2/40 against 5/40.** Two falls and
+three false alarms. Real, and nowhere near closing a 47-point gap -- so fixing the gate is
+worth doing and is **not** the fix for night-time recall. It is also not yet a controlled
+comparison: the caches draw simulated noise from a global RNG whose state depends on how many
+clips were built before it, and the seed is not in the cache key (Codex R9), so two caches
+built in different runs are not paired. That has to be fixed before any of these IR deltas
+are treated as measured rather than indicative.
+
+### There is no real night footage anywhere in this project
+
+Checked by saturation across all 17 `Test/` clips -- mean saturation 22 to 110, where a genuine
+IR frame sits below 12. **Every clip is daytime colour**, as is all 220 of the lab corpus.
+
+So the 28% is measured on *simulated* night footage, and the simulation itself has never been
+checked against a real camera's night output. The number is strong enough to act on -- the
+mechanism is clear and it decomposes sensibly -- but its magnitude rests on an unvalidated
+model of what an IR sensor does.
+
+**The highest-value thing anyone can do next is not code.** It is to point the actual camera at
+an actual dark room and record somebody lying down on the floor. Nothing in this repository can
+substitute for that, and every night-time number here stays provisional until it exists.
+
+### Two mistakes worth recording, because both would have shipped as findings
+
+**A ceiling camera was used for a lighting demo.** `fall-15-cam1` is URFD's overhead view; even
+in full daylight the pose model finds a body in only 7 of 19 sampled frames, because the person
+is at the top edge. Every number rendered from it was dominated by the camera angle, not the
+lighting. Switching to `fall-05-cam0`, a side view, is the only reason the IR result above says
+anything.
+
+**Two renders of the same clip at the same brightness disagreed** -- one alerted, one did not.
+The renders draw simulated sensor noise in a different order, so they are different footage.
+A single clip at 50% light sits close enough to the boundary that the noise draw decides it.
+Single-clip renders are illustrations of a measured effect, never evidence for one; the
+aggregate over 60 falls is the evidence.

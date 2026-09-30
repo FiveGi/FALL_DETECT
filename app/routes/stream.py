@@ -8,39 +8,80 @@ from app.services.stream_service import (
     cleanup_streams
 )
 from app.services.logging_service import save_system_log
+from app.services.authz import admin_required
 
 bp = Blueprint('stream', __name__, url_prefix='/api/stream')
 
 
-def get_user_camera_or_404(camera_id, user_id=None):
-    """Helper function to get camera with optional user verification"""
-    if user_id:
-        camera = Camera.query.filter_by(id=camera_id, user_id=user_id).first()
-    else:
-        # For testing without auth, get any camera with this ID
-        camera = Camera.query.get(camera_id)
-    if not camera:
+def current_user_id_int():
+    """-> the verified caller's id as an int, or None.
+
+    JWT identities are strings here (`create_access_token(identity=str(user.id))`), and
+    `Camera.user_id` is an integer column, so a raw identity must never be handed to a
+    filter -- `filter_by(user_id='4')` is a string-to-integer comparison whose behaviour is the
+    database's business, not something this code should depend on.
+    """
+    try:
+        return int(get_jwt_identity())
+    except (TypeError, ValueError):
         return None
-    return camera
+
+
+def get_owned_camera(camera_id):
+    """-> the camera, only if the caller's verified token owns it (or they are an admin).
+
+    Requires a route that has already demanded a token. It used to take an optional `user_id`
+    and, when that was None, fall back to `Camera.query.get(camera_id)` -- "for testing without
+    auth". Since none of these routes required a token and the identity helper turned every
+    verification failure into None, that fallback was the normal path: an unauthenticated
+    request reached any camera by id. Verified live before the fix -- `GET
+    /api/stream/camera/11/status` and `/test` answered HTTP 200 with no token at all, returning
+    the camera's name, its source path and a freshly grabbed frame.
+
+    There is no anonymous branch any more. A caller without a token cannot get here.
+    """
+    user_id = current_user_id_int()
+    if user_id is None:
+        return None
+
+    from app.models.user import User
+    user = User.query.get(user_id)
+    if not user:
+        return None
+    if user.is_admin():
+        return Camera.query.get(camera_id)
+    return Camera.query.filter_by(id=camera_id, user_id=user_id).first()
 
 
 def get_current_user_id():
-    """Get current user ID from JWT token if available"""
+    """Caller identity where one may legitimately be absent -- only the MJPEG route below.
+
+    Everything else on this blueprint now requires a token, so this must not be used to decide
+    access. It is kept for logging on the one route that cannot demand an Authorization header.
+    """
     try:
         verify_jwt_in_request(optional=True)
         return int(get_jwt_identity()) if get_jwt_identity() else None
-    except:
+    except Exception:
         return None
 
 
+# NOT closed yet, and the only one: a browser loads this as <img src=...> and cannot attach
+# an Authorization header, so requiring a token here would black out the live view. Closing
+# it needs a scoped, expiring media token (or an authenticated proxy) -- a design decision,
+# not a decorator. Until then this route still serves any camera's video to anyone who can
+# reach the API, and that is the remaining half of this hole.
 @bp.route('/camera/<int:camera_id>', methods=['GET'])
 def stream_camera(camera_id):
     """
     Stream video from a specific camera as MJPEG
     Returns: MJPEG video stream
     """
+    # Anonymous by necessity -- see the note on the route. Identity is for the log only, and it
+    # must come from the optional helper: this is the one route with no @jwt_required(), so
+    # get_jwt_identity() raises here rather than returning None.
     current_user_id = get_current_user_id()
-    camera = get_user_camera_or_404(camera_id, current_user_id)
+    camera = Camera.query.get(camera_id)
     
     if not camera:
         return jsonify({'error': f'No camera found with ID {camera_id}.'}), 404
@@ -78,12 +119,13 @@ def stream_camera(camera_id):
 
 
 @bp.route('/camera/<int:camera_id>/start', methods=['POST'])
+@jwt_required()
 def start_camera_stream(camera_id):
     """
     Start a camera stream
     """
-    current_user_id = get_current_user_id()
-    camera = get_user_camera_or_404(camera_id, current_user_id)
+    current_user_id = current_user_id_int()
+    camera = get_owned_camera(camera_id)
     
     if not camera:
         return jsonify({'error': f'No camera found with ID {camera_id}.'}), 404
@@ -115,12 +157,13 @@ def start_camera_stream(camera_id):
 
 
 @bp.route('/camera/<int:camera_id>/stop', methods=['POST'])
+@jwt_required()
 def stop_camera_stream(camera_id):
     """
     Stop a camera stream
     """
-    current_user_id = get_current_user_id()
-    camera = get_user_camera_or_404(camera_id, current_user_id)
+    current_user_id = current_user_id_int()
+    camera = get_owned_camera(camera_id)
     
     if not camera:
         return jsonify({'error': f'No camera found with ID {camera_id}.'}), 404
@@ -147,12 +190,13 @@ def stop_camera_stream(camera_id):
 
 
 @bp.route('/camera/<int:camera_id>/status', methods=['GET'])
+@jwt_required()
 def get_camera_stream_status(camera_id):
     """
     Get the status of a camera stream
     """
-    current_user_id = get_current_user_id()
-    camera = get_user_camera_or_404(camera_id, current_user_id)
+    current_user_id = current_user_id_int()
+    camera = get_owned_camera(camera_id)
     
     if not camera:
         return jsonify({'error': f'No camera found with ID {camera_id}.'}), 404
@@ -181,22 +225,22 @@ def get_camera_stream_status(camera_id):
 
 
 @bp.route('/stats', methods=['GET'])
+@jwt_required()
 def get_all_stream_stats():
     """
     Get statistics for all active streams
     """
-    current_user_id = get_current_user_id()
-    
+    current_user_id = current_user_id_int()
+    if current_user_id is None:
+        return jsonify({'error': 'Unauthorized'}), 401
+
     try:
-        # If user is authenticated, only return their cameras
-        if current_user_id:
-            user_cameras = Camera.query.filter_by(user_id=current_user_id).all()
-            user_camera_ids = [camera.id for camera in user_cameras]
-        else:
-            # For testing without auth, return all cameras
-            all_cameras = Camera.query.all()
-            user_camera_ids = [camera.id for camera in all_cameras]
-        
+        # Only this caller's cameras. The branch that used to sit here returned EVERY camera
+        # when the identity was falsy -- "for testing without auth" -- and an admin who owns
+        # no cameras still sees only their own here, which is the conservative reading.
+        user_cameras = Camera.query.filter_by(user_id=current_user_id).all()
+        user_camera_ids = [camera.id for camera in user_cameras]
+
         all_stats = get_stream_stats()
         
         # Filter stats to only include user's cameras
@@ -205,10 +249,12 @@ def get_all_stream_stats():
             if stream_stat['camera_id'] in user_camera_ids:
                 user_streams.append(stream_stat)
         
+        # 'total_system_streams' used to be here: a count of every stream on the box,
+        # including other households'. It told the caller nothing about their own cameras and
+        # told them something about everyone else's, so it is gone rather than filtered.
         return jsonify({
             'active_streams': len(user_streams),
             'streams': user_streams,
-            'total_system_streams': all_stats['active_streams']
         })
         
     except Exception as e:
@@ -217,11 +263,19 @@ def get_all_stream_stats():
 
 
 @bp.route('/cleanup', methods=['POST'])
+@jwt_required()
+@admin_required
 def cleanup_inactive_streams():
     """
     Cleanup inactive streams (maintenance endpoint)
+
+    Admin-only, because `cleanup_streams()` is global: it walks every stream on the host and
+    stops the inactive ones, regardless of who owns them. Requiring a token was not enough --
+    any authenticated user could run maintenance across other households' cameras. The
+    alternative, scoping the sweep to the caller's own streams, would change what the endpoint
+    is for; this is a maintenance action, so it is restricted to the people who do maintenance.
     """
-    current_user_id = get_current_user_id()
+    current_user_id = current_user_id_int()
     
     try:
         # Get count before cleanup
@@ -249,12 +303,13 @@ def cleanup_inactive_streams():
 
 # Utility endpoint for testing stream connectivity
 @bp.route('/camera/<int:camera_id>/test', methods=['GET'])
+@jwt_required()
 def test_camera_stream(camera_id):
     """
     Test camera stream connectivity without starting a full stream
     """
-    current_user_id = get_current_user_id()
-    camera = get_user_camera_or_404(camera_id, current_user_id)
+    current_user_id = current_user_id_int()
+    camera = get_owned_camera(camera_id)
     
     if not camera:
         return jsonify({'error': f'No camera found with ID {camera_id}.'}), 404

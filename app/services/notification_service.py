@@ -35,6 +35,55 @@ from app.services.line_service import send_line_message_async
 # has the same number in frontend/src/utils/detectionType.js and that checker compares them.
 STILL_DOWN_SECONDS = float(os.environ.get('STILL_DOWN_SECONDS', 10))
 
+# Fraction of the window a person must have been non-upright for "still down" to stand. Below
+# 1.0 because a torso angle cannot always be measured -- an occluded or partly-visible person
+# yields no reading, and those frames should not count as getting up.
+STILL_DOWN_FRACTION = 0.8
+
+
+# Fraction of the window in which the person must have been SEEN lying down. Deliberately
+# lower than STILL_DOWN_FRACTION: a person on the floor is often partly hidden, and night-vision
+# frames lose the person ~12% of the time, so demanding they be seen most of the window would
+# close real cases as "unknown". What it rules out is a confirmation built on absence alone.
+STILL_DOWN_SEEN_FRACTION = 0.3
+
+
+def seen_down_since_alert(seen_now, seen_at_alert):
+    """Sightings of the person lying down counted from the alert onward, not before it.
+
+    `frames_seen_down` accumulates from the last upright sighting, which is BEFORE the alert --
+    the fall itself is usually seen. Handing the raw counter to still_down_confirmed let those
+    pre-alert sightings confirm a follow-up window in which the person was never seen at all
+    (Codex REVIEW-2 delta: 3 sightings at the fall, then 8 absent frames -> confirmed). If the
+    counter was reset by an upright sighting after the alert, what it holds is already all
+    post-alert. Both callers -- the camera loop and tier_accuracy.py -- go through this.
+    """
+    return seen_now - seen_at_alert if seen_now >= seen_at_alert else seen_now
+
+
+def still_down_confirmed(frames_since_upright, frames_seen_down, frames_elapsed):
+    """Were they down for essentially the whole window? -> bool. Counted in FRAMES.
+
+    Two conditions, both counted on the camera loop's own clock:
+      1. not seen upright for STILL_DOWN_FRACTION of the window -- `frames_since_upright`
+         counts every frame since the last upright sighting, seen or not;
+      2. actually SEEN lying down for STILL_DOWN_SEEN_FRACTION of it -- counted within the
+         window, via seen_down_since_alert().
+
+    The second exists because the first alone confirmed "still on the floor" for somebody who
+    had simply left the picture: an unseen frame is not evidence of getting up, but it is not
+    evidence of lying there either (Codex REVIEW-2 reproduced it). And the first counts unseen
+    frames because counting only seen-down frames closed real, partly-hidden cases as "got up"
+    (Gemini's R5/R6 review).
+
+    **Frames, never seconds**: dividing by a target frame rate halved the answer whenever the
+    loop ran below target -- the CPU server's normal state. See tools/check_still_down_rule.py.
+    """
+    if frames_elapsed <= 0:
+        return False
+    return (frames_since_upright >= STILL_DOWN_FRACTION * frames_elapsed
+            and frames_seen_down >= STILL_DOWN_SEEN_FRACTION * frames_elapsed)
+
 
 def alert_tier(detection_type, escalation_level=0, still_down_seconds=None):
     """-> 'confirmed' | 'check'. Falls ask a human to look; an alert nobody acknowledged is

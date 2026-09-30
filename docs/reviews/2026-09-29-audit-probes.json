@@ -1,0 +1,47 @@
+{
+  "profile_guard_missing_role": {
+    "http_status": 200,
+    "write_calls": [
+      "cpu_fewer_false_alarms"
+    ]
+  },
+  "invalid_stream_token": {
+    "user_id": null,
+    "camera_returned": {
+      "camera_id": 17,
+      "owner": "another-user"
+    }
+  },
+  "measurement_key_omits_threshold": {
+    "0.65": {
+      "measured_known": true,
+      "measurement": "CPU 3.5 cores: URFD 45/60 falls, held-out clean 43/56 (deployed, preprocessing on)"
+    },
+    "0.99": {
+      "measured_known": true,
+      "measurement": "CPU 3.5 cores: URFD 45/60 falls, held-out clean 43/56 (deployed, preprocessing on)"
+    }
+  },
+  "profile_numeric_format": {
+    "threshold_from_worker": "0.7",
+    "matched_profile": null
+  },
+  "alert_track_selection": {
+    "alerting_track": 1,
+    "selected_track": 2
+  },
+  "resumed_global_noise_stream": {
+    "same_clip_same_seed_identical": false
+  },
+  "file_sampling": {
+    "source_seconds": 10.0,
+    "offline_classifier_frames": 80,
+    "worker_classifier_frames_per_loop": 300,
+    "worker_wall_seconds_at_target": 37.5
+  },
+  "still_down_below_target": {
+    "scenario": "person down continuously for 10 s; actual 4 fps, target 8 fps",
+    "calculated_down_seconds": 5.0,
+    "discards_followup_as_upright": true
+  }
+}

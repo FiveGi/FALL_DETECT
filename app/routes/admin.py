@@ -3,35 +3,15 @@ from app import db
 from app.models.user import User, UserRole
 from app.models.camera import Camera
 from app.models.thai_frat_assessment import ThaiFratAssessment
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required
 from app.services.logging_service import save_system_log
 
 bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
-def get_current_user():
-    """Helper function to get current user"""
-    current_user_id = int(get_jwt_identity())
-    return User.query.get(current_user_id)
-
-def admin_required(f):
-    """Decorator to require admin role"""
-    from functools import wraps
-    
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        try:
-            current_user = get_current_user()
-            if not current_user:
-                return jsonify({'error': 'User not found'}), 404
-            
-            if not current_user.is_admin():
-                return jsonify({'error': 'Admin access required'}), 403
-            
-            return f(*args, **kwargs)
-        except Exception as e:
-            return jsonify({'error': f'Authorization failed: {str(e)}'}), 500
-    
-    return decorated_function
+# Imported, not defined here. This decorator used to live in this file, and a second endpoint
+# grew its own weaker substitute that read a non-existent JWT claim and let every logged-in user
+# through -- so the check now has exactly one definition and both callers use it.
+from app.services.authz import admin_required, get_current_user  # noqa: E402,F401
 
 @bp.route('/users', methods=['GET'])
 @jwt_required()

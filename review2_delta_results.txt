@@ -1,0 +1,55 @@
+$ C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/check_still_down_rule.py
+exit=0
+STILL_DOWN_SECONDS = 10   not-upright fraction = 0.8   seen-down fraction = 0.3
+
+seen lying down for the whole window, at every achieved rate:
+PASS     8 frames elapsed, all seen down
+PASS    20 frames elapsed, all seen down
+PASS    40 frames elapsed, all seen down
+PASS   100 frames elapsed, all seen down
+PASS   200 frames elapsed, all seen down
+
+a person who genuinely got up halfway through:
+PASS    20 frames, upright seen at the midpoint
+PASS    40 frames, upright seen at the midpoint
+PASS   100 frames, upright seen at the midpoint
+
+down, but not always visible (must still confirm):
+PASS   night-vision loss, seen 88% of the window
+PASS   half hidden behind the bed, seen 40%
+
+gone from the picture, never seen down (must NOT confirm):
+PASS   100 frames, none seen
+PASS   Codex repro: 8 frames at 0.8 fps, none seen
+PASS   seen down only briefly, 10%
+
+the boundaries are fractions, not frame counts:
+PASS   both exactly at their fractions
+PASS   not-upright one frame short
+PASS   seen-down one frame short
+
+degenerate windows cannot answer yes:
+PASS   no frames elapsed
+PASS   negative elapsed (clock or counter reset)
+PASS   nobody ever down
+
+the rule does not mention a frame rate:
+PASS   no 'fps' in the executable body
+PASS   no 'target_fps' in the executable body
+PASS   no 'rate' in the executable body
+PASS   no 'seconds' in the executable body
+
+all checks passed -- the still-down answer is independent of the achieved frame rate
+
+$ C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe review2_delta_check.py
+exit=0
+PASS isolated route bodies: cpu_balanced
+PASS isolated route bodies: cpu_fewer_false_alarms
+PASS isolated route bodies: cpu_catch_more
+PASS isolated route bodies: cpu_no_preprocessing
+PASS isolated route bodies: cpu_far_people
+PASS cadence 1 rejected by both route bodies
+PASS isolated route bodies: gpu
+REPRO P1: 3 pre-alert down sightings + 8 absent frames at 0.8 fps: 11 3 elapsed=8 confirmed= True post-alert sightings=0
+REPRO evaluator with injected alert and terminal state: (True, 'confirmed', 0, 13.75, 10.0)
+Dataset: synthetic states/configs; clips=0; no live HTTP/model/accuracy replay.

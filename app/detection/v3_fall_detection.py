@@ -288,6 +288,29 @@ PREPROCESS = [p.strip() for p in os.environ.get("V3_PREPROCESS", "auto").split("
 # earns. "clahe always" gains the most on dark frames of any setting and still finishes twenty
 # frames behind doing nothing. The gate is the point; where it sits is what was wrong.
 PREPROCESS_DARK_BELOW = float(os.environ.get("V3_PREPROCESS_DARK_BELOW", 70))
+# V3_PREPROCESS_GREY_BELOW: also clean up when the frame is GREYSCALE, not only when it is dark.
+#
+# A CCTV camera at night switches to its infrared sensor and sends grey, and grey is not dim:
+# simulated IR frames measured luminance 59-100, so the dark gate above fired on some and not
+# others, for a reason unrelated to why the cleanup helps. Measured on URFD with the deployed
+# classifier, paired noise seeds 0 and 7, cleanup forced on for IR frames against the shipped
+# gate: false alarms 4 -> 2 on BOTH seeds, falls 15 -> 16 and 20 -> 20
+# (compare_caches.py 48d0f13b6cd5/e56b5d094084 and 10b792cedd97/01317e7862b2). Small, but in the
+# same direction on both draws.
+#
+# Chroma is read the cheap way, like luminance: every 8th pixel, the spread between a pixel's
+# largest and smallest channel. A real IR frame replicates one channel, so it reads ~0.
+#
+# **Off by default, because the check that was meant to justify turning it on failed.** Scanned
+# every sampled frame of the 220 lab clips and the 17 Test clips: URFD falls reach chroma 10, and
+# Test/14 -- real indoor daytime CCTV of an elderly woman, exactly the deployment's footage --
+# reads 9.1 because CCTV colour is washed out. A real night-vision doorbell frame in Test/8 reads
+# 4.4. So at 12 the gate would also clean up bright daytime CCTV, which was never measured; the
+# margin between real IR (4.4) and washed daytime (8.1-9.1) is too thin to pick a number by eye.
+# Then measured on real footage at the CPU profile (126 compilation segments, 7 of them genuine
+# night-vision): no net change -- one fall gained, one REAL IR fall lost (Test/9 segment 5).
+# The simulated gain did not survive contact with real IR. Closed; kept only as a switch. 0 = off.
+PREPROCESS_GREY_BELOW = float(os.environ.get("V3_PREPROCESS_GREY_BELOW", 0))
 PREPROCESS_GAMMA = float(os.environ.get("V3_PREPROCESS_GAMMA", 0.65))
 PREPROCESS_CLIP_LIMIT = float(os.environ.get("V3_PREPROCESS_CLIP_LIMIT", 2.0))
 PREPROCESS_TILE = int(os.environ.get("V3_PREPROCESS_TILE", 8))
@@ -345,6 +368,12 @@ def frame_luminance(frame_bgr, step=8):
                  + small[:, :, 2].mean() * 0.299)
 
 
+def frame_chroma(frame_bgr, step=8):
+    """Mean colourfulness 0-255: max minus min channel, from every 8th pixel. ~0 for greyscale."""
+    small = frame_bgr[::step, ::step].astype(np.int16)
+    return float((small.max(axis=2) - small.min(axis=2)).mean())
+
+
 def preprocess_frame(frame_bgr):
     """-> (frame, what_was_applied). The frame is returned unchanged when nothing applies.
 
@@ -355,7 +384,9 @@ def preprocess_frame(frame_bgr):
         return frame_bgr, ()
     ops = PREPROCESS
     if "auto" in ops:
-        if frame_luminance(frame_bgr) >= PREPROCESS_DARK_BELOW:
+        dark = frame_luminance(frame_bgr) < PREPROCESS_DARK_BELOW
+        grey = PREPROCESS_GREY_BELOW > 0 and frame_chroma(frame_bgr) < PREPROCESS_GREY_BELOW
+        if not (dark or grey):
             return frame_bgr, ()
         ops = [o for o in ops if o != "auto"] + ["clahe", "gamma"]
     applied = []
@@ -867,6 +898,10 @@ class V3FallDetectionState:
         # UPRIGHT_COS. frames_since_upright is what the alerting side reads; it is a count of
         # observations, and the camera loop knows its own frame rate to turn it into seconds.
         self.frames_since_upright = 0
+        # Frames since last seen upright in which the person was actually SEEN lying down.
+        # frames_since_upright alone cannot tell "on the floor, partly hidden" from "walked
+        # out of view"; this is the positive evidence the still-down rule also requires.
+        self.frames_seen_down = 0
         self.ever_upright = False
 
     def is_ready(self):
@@ -887,10 +922,27 @@ def _step_person(kpts, person_found, state: V3FallDetectionState,
         upright = is_upright(kpts)
         if upright is True:
             state.frames_since_upright = 0
+            state.frames_seen_down = 0
             state.ever_upright = True
-        elif upright is False:
+        else:
+            if upright is False:
+                state.frames_seen_down += 1
+            # Counted whether the torso reads "down" or cannot be read at all (None). The only
+            # evidence that somebody got back up is SEEING them upright; an unreadable torso is
+            # not that evidence. This used to count only `upright is False`, so the counter ran
+            # on a different clock from the camera loop's frame counter it is compared against
+            # -- see the matching increment in the not-found branch below.
             state.frames_since_upright += 1
     else:
+        # Not seen this frame. Still a frame in which they were not seen getting up, so it
+        # counts. Before this, a person lying on the floor and partly hidden -- by a bed edge,
+        # by their own position, or simply lost in a night-vision frame, which happens in ~12%
+        # of frames on simulated IR (training/measure/ir_keypoint_degradation.py) -- stopped
+        # accumulating, and once more than a fifth of the follow-up window went unseen the
+        # still-down rule (notification_service.still_down_confirmed, 0.8 of the window)
+        # concluded they had got up. Found by Gemini's R5/R6 review, 2026-09-30: it guessed the
+        # two counters shared a clock, and checking the guess showed they did not.
+        state.frames_since_upright += 1
         # A momentary tracking dropout (1-2 frames, common mid-fall/near occlusion --
         # see MIN_PERSON_FRACTION above) makes extract_keypoints return an all-zero
         # vector. Feeding that raw into the window creates a real->zero->real jump
@@ -982,6 +1034,25 @@ def _step_person(kpts, person_found, state: V3FallDetectionState,
 
     label = "fall" if state.last_detected else "no_fall"
     return state.last_detected, probability, label
+
+
+def alert_result(results):
+    """The one (track_id, detected, probability, label, centroid) an alert is credited to.
+
+    A person the detector has FLAGGED wins over a higher-scoring bystander. `detected` comes
+    from smoothing over recent frames, so the flagged person's score this frame can sit below
+    somebody else's; taking the plain maximum then named the wrong person, and the still-down
+    follow-up watches whoever is named here. Only when nobody is flagged does the plain maximum
+    stand, and that is for logging, not alerting. Empty input -> a no-person placeholder.
+
+    Single definition: the camera loop and every measurement script call this, because four
+    copies of the old one-liner were found after the loop alone had been fixed (R5; Gemini's
+    review, 2026-09-30).
+    """
+    if not results:
+        return (None, False, 0.0, "no_person", None)
+    flagged = [r for r in results if r[1]]
+    return max(flagged or results, key=lambda r: r[2])
 
 
 def detect_v3_fall(frame, state: V3FallDetectionState, fall_detector: V3PoseFallDetector,

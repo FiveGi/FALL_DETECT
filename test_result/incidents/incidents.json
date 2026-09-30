@@ -24,6 +24,22 @@
     "by_eye": {
      "verdict": "fall",
      "note": "delivery person walks up a path, goes down hard, lies there"
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A young person slips and falls heavily on a front walkway.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 18167,
+     "seconds": 12.2
+    },
+    "antigravity_flash": {
+     "error": "SUCCESS",
+     "raw": ""
     }
    },
    {
@@ -33,7 +49,19 @@
     "seconds": 2.6,
     "alerts_at": [],
     "sheet": "sheets\\1_02.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person wearing a jacket opens a screen door on a porch.",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 17986,
+     "seconds": 12.6
+    }
    },
    {
     "segment": 3,
@@ -52,6 +80,30 @@
      "elderly": false,
      "out_of_domain": false,
      "description": "A person slips on icy steps and falls on the pathway."
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person walking onto a porch slips and falls backward on the stairs.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10147,
+     "seconds": 15.4
+    },
+    "antigravity_flash": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person slips and falls down the porch steps.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.8-flash-high",
+     "tokens": 31849,
+     "seconds": 20.7
     }
    },
    {
@@ -71,6 +123,30 @@
      "elderly": false,
      "out_of_domain": false,
      "description": "A person walking to a front door slips and falls backward on the porch."
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A man walking on a porch slips and falls to the ground.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10021,
+     "seconds": 12.7
+    },
+    "antigravity_flash": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person slips on the front porch and falls to the ground.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.8-flash-high",
+     "tokens": 31342,
+     "seconds": 12.9
     }
    },
    {
@@ -94,6 +170,30 @@
     "by_eye": {
      "verdict": "fall",
      "note": "woman falls backwards on a porch at night, alert lands on the fall"
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A woman slips and falls on a porch step.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 2,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10072,
+     "seconds": 17.2
+    },
+    "antigravity_flash": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A woman slips and falls on the front porch.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 2,
+     "model": "gemini-3.8-flash-high",
+     "tokens": 31021,
+     "seconds": 10.9
     }
    },
    {
@@ -113,6 +213,30 @@
      "elderly": false,
      "out_of_domain": false,
      "description": "A man slips on ice and falls on a snowy path."
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A man slips on ice while walking down steps and falls on his back.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10690,
+     "seconds": 16.6
+    },
+    "antigravity_flash": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A man slips on ice outside and falls onto his back.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.8-flash-high",
+     "tokens": 30817,
+     "seconds": 16.8
     }
    },
    {
@@ -137,6 +261,30 @@
     "by_eye": {
      "verdict": "fall",
      "note": "person runs up a porch, slips on the wet brick and goes down, then sits up"
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A young person slips and falls backwards on a brick porch.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10620,
+     "seconds": 18.9
+    },
+    "antigravity_flash": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person runs onto a porch, slips, falls to the ground, and sits up.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.8-flash-high",
+     "tokens": 31901,
+     "seconds": 19.7
     }
    },
    {
@@ -160,6 +308,30 @@
     "by_eye": {
      "verdict": "fall",
      "note": "indoors: woman pulled off balance by a dog, goes down on the floor and stays there"
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A woman carrying groceries trips and falls to the floor.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10550,
+     "seconds": 19.0
+    },
+    "antigravity_flash": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A woman walking across the living room trips and falls to the floor.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.8-flash-high",
+     "tokens": 31419,
+     "seconds": 16.8
     }
    },
    {
@@ -179,6 +351,22 @@
      "elderly": false,
      "out_of_domain": false,
      "description": "A man jumps over a stroller, then a woman runs in and falls on the ground."
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "Man falls backward into bushes and a woman runs to help.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 2,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10513,
+     "seconds": 17.5
+    },
+    "antigravity_flash": {
+     "error": "SUCCESS",
+     "raw": ""
     }
    },
    {
@@ -199,6 +387,30 @@
      "elderly": false,
      "out_of_domain": false,
      "description": "A person slips and falls down snowy outdoor steps."
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "Two people slip and fall on an icy driveway.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 2,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10927,
+     "seconds": 19.9
+    },
+    "antigravity_flash": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "Two people slip and fall on an icy walkway outside a house.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 2,
+     "model": "gemini-3.8-flash-high",
+     "tokens": 31823,
+     "seconds": 15.7
     }
    },
    {
@@ -222,6 +434,30 @@
     "by_eye": {
      "verdict": "out_of_domain",
      "note": "a small child falls on a driveway -- a real fall, but a child"
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A young child walking up a walkway falls to the ground.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": true,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10521,
+     "seconds": 16.3
+    },
+    "antigravity_flash": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A young girl trips and falls on the walkway outside a house",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": true,
+     "people": 1,
+     "model": "gemini-3.8-flash-high",
+     "tokens": 31341,
+     "seconds": 15.1
     }
    },
    {
@@ -241,6 +477,18 @@
      "elderly": false,
      "out_of_domain": false,
      "description": "A woman carrying a child trips and falls on the porch."
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "An adult slips and falls backward on an icy driveway next to a child who is already on the ground.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 2,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 11656,
+     "seconds": 29.4
     }
    },
    {
@@ -260,6 +508,18 @@
      "elderly": false,
      "out_of_domain": false,
      "description": "A woman falls backward on her porch while interacting with children."
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A woman walking out of a door with two children falls backward onto the porch.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 3,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10195,
+     "seconds": 16.4
     }
    },
    {
@@ -279,6 +539,18 @@
      "elderly": false,
      "out_of_domain": false,
      "description": "A person walks down icy steps and slips, falling on their back."
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A man slips and falls down snow-covered stairs.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10197,
+     "seconds": 17.0
     }
    },
    {
@@ -288,7 +560,19 @@
     "seconds": 5.47,
     "alerts_at": [],
     "sheet": "sheets\\1_15.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person falls headfirst down the porch stairs and others come to help.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 3,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10542,
+     "seconds": 21.2
+    }
    },
    {
     "segment": 16,
@@ -307,6 +591,18 @@
      "elderly": false,
      "out_of_domain": false,
      "description": "A woman falls backward off a step onto the ground."
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A woman carrying items falls down in a carport.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10467,
+     "seconds": 14.2
     }
    },
    {
@@ -330,6 +626,18 @@
     "by_eye": {
      "verdict": "fall",
      "note": "person in a long coat walks down an icy path, slips and lands flat, then sits up -- an adult on a fixed home camera, the core case"
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person walking outside slips on steps and falls down.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10320,
+     "seconds": 16.0
     }
    },
    {
@@ -339,7 +647,19 @@
     "seconds": 4.0,
     "alerts_at": [],
     "sheet": "sheets\\1_18.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "TikTok logo title card",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": true,
+     "people": 0,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 9610,
+     "seconds": 9.8
+    }
    }
   ],
   "2.mp4": [
@@ -364,6 +684,18 @@
     "by_eye": {
      "verdict": "out_of_domain",
      "note": "street crossing with burned-in news graphics over a third of the frame; a real adult fall, but a public road and a news package, not a deployment this system targets"
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "Person walking towards a street trips and falls hard onto the crosswalk.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": true,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10335,
+     "seconds": 17.9
     }
    },
    {
@@ -373,7 +705,19 @@
     "seconds": 17.63,
     "alerts_at": [],
     "sheet": "sheets\\2_02.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "Edited TikTok video with text overlays showing a person on a crosswalk",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": true,
+     "people": 2,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 12135,
+     "seconds": 28.4
+    }
    },
    {
     "segment": 3,
@@ -382,7 +726,19 @@
     "seconds": 4.03,
     "alerts_at": [],
     "sheet": "sheets\\2_03.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "TikTok end screen with logo and search bar",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": true,
+     "people": 0,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 9926,
+     "seconds": 12.9
+    }
    }
   ],
   "3.mp4": [
@@ -409,6 +765,18 @@
     "by_eye": {
      "verdict": "fall",
      "note": "woman walking in a yard falls forward and stays on the ground for the rest of the segment"
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A woman looking at her phone loses her balance and falls backwards to the ground in a yard.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10559,
+     "seconds": 17.4
     }
    },
    {
@@ -418,7 +786,19 @@
     "seconds": 4.0,
     "alerts_at": [],
     "sheet": "sheets\\3_02.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "TikTok title card",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": true,
+     "people": 0,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 9907,
+     "seconds": 12.4
+    }
    }
   ],
   "4.mp4": [
@@ -439,6 +819,18 @@
      "elderly": false,
      "out_of_domain": false,
      "description": "A woman slips and falls on the porch while a man watches."
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A man slips and spills his drinks on the porch stairs, then a woman comes out and slips on the spill, falling down.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 2,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10734,
+     "seconds": 52.0
     }
    },
    {
@@ -458,6 +850,18 @@
      "elderly": false,
      "out_of_domain": false,
      "description": "A man runs to a door and falls face down on the porch."
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A shirtless man runs onto a porch, trips and falls to the ground.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10998,
+     "seconds": 23.6
     }
    },
    {
@@ -467,7 +871,19 @@
     "seconds": 5.47,
     "alerts_at": [],
     "sheet": "sheets\\4_03.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person slips on ice but regains their balance without falling to the ground.",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10724,
+     "seconds": 18.1
+    }
    },
    {
     "segment": 4,
@@ -490,6 +906,18 @@
     "by_eye": {
      "verdict": "unclear",
      "note": "elderly person with a walker ends up on the ground being helped, but the six frames skip the transition -- fell or was lowered cannot be told apart, and this is exactly the target domain so a guess would matter"
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "Woman running out of house slips and falls on her back near a man with a walker.",
+     "elderly": true,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 4,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 12479,
+     "seconds": 37.2
     }
    },
    {
@@ -509,6 +937,18 @@
      "elderly": false,
      "out_of_domain": true,
      "description": "Multiple people fall in a chain reaction on a porch, some already on the ground."
+    },
+    "antigravity": {
+     "already_down": true,
+     "can_see_image": true,
+     "description": "Woman is startled by a small explosion while two people are already lying on the porch.",
+     "elderly": true,
+     "fall": false,
+     "out_of_domain": false,
+     "people": 4,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 11539,
+     "seconds": 24.8
     }
    },
    {
@@ -518,7 +958,19 @@
     "seconds": 5.33,
     "alerts_at": [],
     "sheet": "sheets\\4_06.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "Young man stands on a front porch waiting at the door.",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10456,
+     "seconds": 19.0
+    }
    },
    {
     "segment": 7,
@@ -542,6 +994,18 @@
     "by_eye": {
      "verdict": "fall",
      "note": "woman on a porch goes backwards down the steps and ends up on the ground -- home doorbell camera, adult"
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A falling porch column strikes a woman and knocks her to the ground.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 2,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 11877,
+     "seconds": 24.7
     }
    },
    {
@@ -551,7 +1015,19 @@
     "seconds": 6.43,
     "alerts_at": [],
     "sheet": "sheets\\4_08.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A young person bends over at a front door and another person runs up and jumps onto their back, knocking them down.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": true,
+     "people": 2,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 11427,
+     "seconds": 26.7
+    }
    },
    {
     "segment": 9,
@@ -575,7 +1051,19 @@
      "verdict": "fall",
      "note": "fixed indoor camera, adult walks into a lift and goes down inside it, still down at the last frame -- a lift lobby is a fixed indoor camera with an adult, which is not what out-of-domain was meant to cover"
     },
-    "conflict": "4.mp4 seg 9: by eye fall, Gemini out_of_domain"
+    "conflict": "4.mp4 seg 9: by eye fall, Gemini out_of_domain",
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A man walks into an open elevator shaft and falls down.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10436,
+     "seconds": 18.7
+    }
    },
    {
     "segment": 10,
@@ -584,7 +1072,19 @@
     "seconds": 8.77,
     "alerts_at": [],
     "sheet": "sheets\\4_10.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A young person slips on a wet outdoor walkway, falls hard onto their back, then gets up and walks back towards the camera.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10209,
+     "seconds": 14.9
+    }
    },
    {
     "segment": 11,
@@ -593,7 +1093,19 @@
     "seconds": 6.37,
     "alerts_at": [],
     "sheet": "sheets\\4_11.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A man walking on a sidewalk loses his balance and falls onto the grass.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10207,
+     "seconds": 16.6
+    }
    },
    {
     "segment": 12,
@@ -602,7 +1114,19 @@
     "seconds": 6.6,
     "alerts_at": [],
     "sheet": "sheets\\4_12.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "People walk down porch steps and away from a house.",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": false,
+     "people": 3,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 19337,
+     "seconds": 51.2
+    }
    },
    {
     "segment": 13,
@@ -611,7 +1135,19 @@
     "seconds": 6.33,
     "alerts_at": [],
     "sheet": "sheets\\4_13.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person riding a scooter on a driveway falls down behind a parked car.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": true,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10897,
+     "seconds": 21.0
+    }
    },
    {
     "segment": 14,
@@ -620,7 +1156,11 @@
     "seconds": 7.63,
     "alerts_at": [],
     "sheet": "sheets\\4_14.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "error": "ERROR",
+     "raw": ""
+    }
    },
    {
     "segment": 15,
@@ -629,7 +1169,19 @@
     "seconds": 5.67,
     "alerts_at": [],
     "sheet": "sheets\\4_15.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A man carrying groceries slips and falls on a wet driveway.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 18704,
+     "seconds": 20.1
+    }
    },
    {
     "segment": 16,
@@ -653,6 +1205,18 @@
     "by_eye": {
      "verdict": "fall",
      "note": "night IR driveway: person walks off the porch, goes down on the path and stays down while another person stands over them"
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A woman walking towards a parked car trips and falls face first onto the driveway while a man stands nearby.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 2,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10531,
+     "seconds": 15.3
     }
    },
    {
@@ -662,7 +1226,19 @@
     "seconds": 5.53,
     "alerts_at": [],
     "sheet": "sheets\\4_17.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person in a long coat walking away from a house falls near the edge of the porch.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 11532,
+     "seconds": 29.1
+    }
    },
    {
     "segment": 18,
@@ -671,7 +1247,19 @@
     "seconds": 4.0,
     "alerts_at": [],
     "sheet": "sheets\\4_18.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "TikTok logo animation",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": true,
+     "people": 0,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 9294,
+     "seconds": 12.1
+    }
    }
   ],
   "5.mp4": [
@@ -696,6 +1284,18 @@
      "elderly": true,
      "out_of_domain": false,
      "description": "A man slips on an icy patio while walking his dog and falls."
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A man walking his dog slips and falls backwards on the stairs.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10214,
+     "seconds": 18.6
     }
    },
    {
@@ -711,6 +1311,18 @@
     "by_eye": {
      "verdict": "fall",
      "note": "woman on wet steps slips, lands sitting, gets up"
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person slips and falls backward on outdoor stairs before getting back up.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10703,
+     "seconds": 20.0
     }
    },
    {
@@ -722,7 +1334,19 @@
      8.2
     ],
     "sheet": "sheets\\5_03.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A man slips on ice and falls backward while walking outside.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 2,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 12045,
+     "seconds": 27.4
+    }
    },
    {
     "segment": 4,
@@ -731,7 +1355,19 @@
     "seconds": 2.5,
     "alerts_at": [],
     "sheet": "sheets\\5_04.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A man slips on ice and falls backward onto the ground.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10032,
+     "seconds": 17.8
+    }
    },
    {
     "segment": 5,
@@ -742,7 +1378,19 @@
      12.4
     ],
     "sheet": "sheets\\5_05.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person carrying a snow scraper slips on the snow and falls hard on their back.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10822,
+     "seconds": 24.9
+    }
    },
    {
     "segment": 6,
@@ -753,7 +1401,19 @@
      18.07
     ],
     "sheet": "sheets\\5_06.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person walking off a porch slips and falls backward.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10850,
+     "seconds": 22.4
+    }
    },
    {
     "segment": 7,
@@ -764,7 +1424,19 @@
      20.67
     ],
     "sheet": "sheets\\5_07.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A young person with a backpack slips and falls backward on an icy porch.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": true,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10639,
+     "seconds": 23.1
+    }
    },
    {
     "segment": 8,
@@ -773,7 +1445,19 @@
     "seconds": 2.87,
     "alerts_at": [],
     "sheet": "sheets\\5_08.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person walking away down a snowy path slips and falls to the ground.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10552,
+     "seconds": 21.8
+    }
    },
    {
     "segment": 9,
@@ -784,7 +1468,19 @@
      27.07
     ],
     "sheet": "sheets\\5_09.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A man falls while pulling a trash bin.",
+     "elderly": true,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10193,
+     "seconds": 17.7
+    }
    },
    {
     "segment": 10,
@@ -793,7 +1489,19 @@
     "seconds": 2.37,
     "alerts_at": [],
     "sheet": "sheets\\5_10.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A shirtless man runs onto a porch, slips, and falls hard onto the ground.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10662,
+     "seconds": 25.6
+    }
    },
    {
     "segment": 11,
@@ -804,7 +1512,19 @@
      33.67
     ],
     "sheet": "sheets\\5_11.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person walks down the snowy steps of a porch and slips, falling backwards into the snow.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10400,
+     "seconds": 19.7
+    }
    },
    {
     "segment": 12,
@@ -816,7 +1536,19 @@
      39.0
     ],
     "sheet": "sheets\\5_12.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A man walking down a path trips and falls backward over a low brick wall.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10197,
+     "seconds": 17.1
+    }
    },
    {
     "segment": 13,
@@ -827,7 +1559,19 @@
      43.17
     ],
     "sheet": "sheets\\5_13.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person slips and falls down the stairs of a porch.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 9943,
+     "seconds": 22.3
+    }
    },
    {
     "segment": 14,
@@ -838,7 +1582,19 @@
      49.2
     ],
     "sheet": "sheets\\5_14.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person wearing a backpack climbs or leans on a snowy porch railing that breaks, causing them to fall to the ground.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10705,
+     "seconds": 22.5
+    }
    },
    {
     "segment": 15,
@@ -849,7 +1605,19 @@
      52.0
     ],
     "sheet": "sheets\\5_15.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "Person carrying items trips and falls face-first onto a porch.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10160,
+     "seconds": 16.9
+    }
    },
    {
     "segment": 16,
@@ -858,7 +1626,19 @@
     "seconds": 3.03,
     "alerts_at": [],
     "sheet": "sheets\\5_16.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person slips and falls backward into a hot tub.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 3,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 12654,
+     "seconds": 36.8
+    }
    },
    {
     "segment": 17,
@@ -869,7 +1649,19 @@
      56.67
     ],
     "sheet": "sheets\\5_17.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A man falls off a truck ramp while unloading a mattress.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10212,
+     "seconds": 16.8
+    }
    },
    {
     "segment": 18,
@@ -878,7 +1670,19 @@
     "seconds": 4.4,
     "alerts_at": [],
     "sheet": "sheets\\5_18.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "Person standing on a frozen lake falls through the ice into the water.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": true,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10358,
+     "seconds": 17.5
+    }
    },
    {
     "segment": 19,
@@ -889,7 +1693,19 @@
      65.17
     ],
     "sheet": "sheets\\5_19.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person in a robe slips and falls on an icy driveway while holding a mug.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10810,
+     "seconds": 24.9
+    }
    },
    {
     "segment": 20,
@@ -898,7 +1714,19 @@
     "seconds": 4.03,
     "alerts_at": [],
     "sheet": "sheets\\5_20.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "TikTok end screen with search bar",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": true,
+     "people": 0,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 9798,
+     "seconds": 14.1
+    }
    }
   ],
   "6.mp4": [
@@ -912,7 +1740,19 @@
      7.2
     ],
     "sheet": "sheets\\6_01.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person walks onto a porch, falls off the edge to the ground, and another person runs out to help.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 2,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10290,
+     "seconds": 18.5
+    }
    },
    {
     "segment": 2,
@@ -921,7 +1761,19 @@
     "seconds": 4.03,
     "alerts_at": [],
     "sheet": "sheets\\6_02.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "TikTok logo screen with search bar",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": true,
+     "people": 0,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 9639,
+     "seconds": 17.7
+    }
    }
   ],
   "7.mp4": [
@@ -934,7 +1786,19 @@
      1.37
     ],
     "sheet": "sheets\\7_01.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A young man falls down the stairs while looking at his phone and then searches for it.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10918,
+     "seconds": 26.7
+    }
    },
    {
     "segment": 2,
@@ -945,7 +1809,19 @@
      9.1
     ],
     "sheet": "sheets\\7_02.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A young man wearing flip-flops slips and falls on icy porch stairs.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10841,
+     "seconds": 20.3
+    }
    },
    {
     "segment": 3,
@@ -956,7 +1832,19 @@
      12.8
     ],
     "sheet": "sheets\\7_03.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person slips on porch stairs and falls hard on their back.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": true,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10104,
+     "seconds": 13.4
+    }
    },
    {
     "segment": 4,
@@ -965,7 +1853,19 @@
     "seconds": 3.8,
     "alerts_at": [],
     "sheet": "sheets\\7_04.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A woman falls or jumps off a porch onto the grass.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": true,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 11086,
+     "seconds": 24.5
+    }
    },
    {
     "segment": 5,
@@ -974,7 +1874,19 @@
     "seconds": 4.0,
     "alerts_at": [],
     "sheet": "sheets\\7_05.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "TikTok end screen",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": true,
+     "people": 0,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 9287,
+     "seconds": 15.1
+    }
    }
   ],
   "8.mp4": [
@@ -985,7 +1897,19 @@
     "seconds": 5.63,
     "alerts_at": [],
     "sheet": "sheets\\8_01.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "Elderly woman with walker falls backward on walkway while a man attempts to support her.",
+     "elderly": true,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 5,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 12578,
+     "seconds": 33.0
+    }
    },
    {
     "segment": 2,
@@ -996,7 +1920,19 @@
      5.67
     ],
     "sheet": "sheets\\8_02.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": true,
+     "can_see_image": true,
+     "description": "Two people are already lying on the ground on a porch while two others attend to them.",
+     "elderly": true,
+     "fall": false,
+     "out_of_domain": false,
+     "people": 4,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 11170,
+     "seconds": 23.2
+    }
    },
    {
     "segment": 3,
@@ -1005,7 +1941,19 @@
     "seconds": 5.63,
     "alerts_at": [],
     "sheet": "sheets\\8_03.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person bends over on a porch at night.",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": false,
+     "people": 2,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 11083,
+     "seconds": 20.8
+    }
    },
    {
     "segment": 4,
@@ -1014,7 +1962,19 @@
     "seconds": 3.1,
     "alerts_at": [],
     "sheet": "sheets\\8_04.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A young man opens a screen door to enter a house.",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 9690,
+     "seconds": 11.3
+    }
    },
    {
     "segment": 5,
@@ -1023,7 +1983,19 @@
     "seconds": 2.83,
     "alerts_at": [],
     "sheet": "sheets\\8_05.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person slips on the porch stairs and falls backward to the ground.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 9962,
+     "seconds": 13.4
+    }
    },
    {
     "segment": 6,
@@ -1036,7 +2008,19 @@
      23.67
     ],
     "sheet": "sheets\\8_06.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "man falls while trying to catch a falling porch column",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 3,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 11844,
+     "seconds": 29.6
+    }
    },
    {
     "segment": 7,
@@ -1047,7 +2031,19 @@
      27.07
     ],
     "sheet": "sheets\\8_07.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person with a backpack slips on an icy porch and falls backward through a gate to the ground below.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10779,
+     "seconds": 21.3
+    }
    },
    {
     "segment": 8,
@@ -1056,7 +2052,19 @@
     "seconds": 3.37,
     "alerts_at": [],
     "sheet": "sheets\\8_08.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A man walks away from a porch and trips, falling face-first onto the path.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10384,
+     "seconds": 20.2
+    }
    },
    {
     "segment": 9,
@@ -1065,7 +2073,19 @@
     "seconds": 5.67,
     "alerts_at": [],
     "sheet": "sheets\\8_09.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A woman falls down while stepping off a porch.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10442,
+     "seconds": 14.6
+    }
    },
    {
     "segment": 10,
@@ -1074,7 +2094,19 @@
     "seconds": 5.2,
     "alerts_at": [],
     "sheet": "sheets\\8_10.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "An Amazon driver falls down the stairs.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 11449,
+     "seconds": 24.3
+    }
    },
    {
     "segment": 11,
@@ -1085,7 +2117,19 @@
      45.97
     ],
     "sheet": "sheets\\8_11.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person trips and falls forward onto the front walkway.",
+     "elderly": true,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10004,
+     "seconds": 14.9
+    }
    },
    {
     "segment": 12,
@@ -1094,7 +2138,19 @@
     "seconds": 5.67,
     "alerts_at": [],
     "sheet": "sheets\\8_12.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A drunk person stumbles backward and falls on a front porch.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 2,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10486,
+     "seconds": 17.1
+    }
    },
    {
     "segment": 13,
@@ -1103,7 +2159,19 @@
     "seconds": 8.03,
     "alerts_at": [],
     "sheet": "sheets\\8_13.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A man falls onto the grass",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 2,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10929,
+     "seconds": 19.4
+    }
    },
    {
     "segment": 14,
@@ -1112,7 +2180,19 @@
     "seconds": 4.03,
     "alerts_at": [],
     "sheet": "sheets\\8_14.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "TikTok title card",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": true,
+     "people": 0,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 9840,
+     "seconds": 11.3
+    }
    }
   ],
   "9.mp4": [
@@ -1123,7 +2203,19 @@
     "seconds": 1.3,
     "alerts_at": [],
     "sheet": "sheets\\9_01.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A blurry white animal runs quickly past the outdoor camera at night.",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": false,
+     "people": 0,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10598,
+     "seconds": 18.4
+    }
    },
    {
     "segment": 2,
@@ -1134,7 +2226,19 @@
      1.7
     ],
     "sheet": "sheets\\9_02.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "Person trips and falls rapidly out of the doorway",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 11335,
+     "seconds": 26.2
+    }
    },
    {
     "segment": 3,
@@ -1143,7 +2247,19 @@
     "seconds": 4.8,
     "alerts_at": [],
     "sheet": "sheets\\9_03.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person opens a screen door and falls forward out of the doorway.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10579,
+     "seconds": 20.3
+    }
    },
    {
     "segment": 4,
@@ -1152,7 +2268,19 @@
     "seconds": 3.57,
     "alerts_at": [],
     "sheet": "sheets\\9_04.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "Older man trips and falls forward on front steps.",
+     "elderly": true,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10687,
+     "seconds": 18.5
+    }
    },
    {
     "segment": 5,
@@ -1161,7 +2289,19 @@
     "seconds": 3.87,
     "alerts_at": [],
     "sheet": "sheets\\9_05.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A woman walks away from the camera and trips, falling face-first onto the driveway.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 2,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 9709,
+     "seconds": 12.6
+    }
    },
    {
     "segment": 6,
@@ -1172,7 +2312,19 @@
      17.0
     ],
     "sheet": "sheets\\9_06.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person slips and falls down the front porch steps.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10514,
+     "seconds": 31.8
+    }
    },
    {
     "segment": 7,
@@ -1183,7 +2335,19 @@
      19.8
     ],
     "sheet": "sheets\\9_07.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "Man falls down stairs and another person comes to help",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": true,
+     "people": 2,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 11089,
+     "seconds": 20.6
+    }
    },
    {
     "segment": 8,
@@ -1192,7 +2356,19 @@
     "seconds": 2.47,
     "alerts_at": [],
     "sheet": "sheets\\9_08.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "Person falls backward when their hanging porch chair breaks.",
+     "elderly": true,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 2,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10536,
+     "seconds": 18.2
+    }
    },
    {
     "segment": 9,
@@ -1201,7 +2377,19 @@
     "seconds": 2.53,
     "alerts_at": [],
     "sheet": "sheets\\9_09.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A man running up steps trips and falls into a cardboard box.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10612,
+     "seconds": 18.6
+    }
    },
    {
     "segment": 10,
@@ -1210,7 +2398,19 @@
     "seconds": 1.93,
     "alerts_at": [],
     "sheet": "sheets\\9_10.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "Snow falls on a man opening a truck door",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10186,
+     "seconds": 17.9
+    }
    },
    {
     "segment": 11,
@@ -1219,7 +2419,19 @@
     "seconds": 1.73,
     "alerts_at": [],
     "sheet": "sheets\\9_11.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A young person clears snow off a car.",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": true,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10450,
+     "seconds": 16.5
+    }
    },
    {
     "segment": 12,
@@ -1228,7 +2440,19 @@
     "seconds": 1.9,
     "alerts_at": [],
     "sheet": "sheets\\9_12.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person slips and falls backwards on a snowy outdoor surface.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 11020,
+     "seconds": 21.5
+    }
    },
    {
     "segment": 13,
@@ -1237,7 +2461,19 @@
     "seconds": 3.47,
     "alerts_at": [],
     "sheet": "sheets\\9_13.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "Person in blue jacket falls off the porch into bushes",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10393,
+     "seconds": 16.6
+    }
    },
    {
     "segment": 14,
@@ -1252,6 +2488,18 @@
     "by_eye": {
      "verdict": "unclear",
      "note": "night porch camera, six thumbnails cannot settle it"
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person runs out onto a deck and falls down.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10888,
+     "seconds": 20.2
     }
    },
    {
@@ -1261,7 +2509,19 @@
     "seconds": 3.87,
     "alerts_at": [],
     "sheet": "sheets\\9_15.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A woman standing at a front door loses her balance and falls out of view to the left.",
+     "elderly": true,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 11142,
+     "seconds": 22.5
+    }
    },
    {
     "segment": 16,
@@ -1270,7 +2530,19 @@
     "seconds": 4.77,
     "alerts_at": [],
     "sheet": "sheets\\9_16.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "Young woman at a front door falls out of frame.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10863,
+     "seconds": 21.3
+    }
    },
    {
     "segment": 17,
@@ -1282,7 +2554,19 @@
      52.87
     ],
     "sheet": "sheets\\9_17.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "Two people slip and fall off an icy porch.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": true,
+     "people": 2,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10196,
+     "seconds": 57.0
+    }
    },
    {
     "segment": 18,
@@ -1293,7 +2577,19 @@
      56.87
     ],
     "sheet": "sheets\\9_18.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "An adult opens a porch gate and a child with a backpack runs out.",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": false,
+     "people": 2,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10753,
+     "seconds": 20.2
+    }
    },
    {
     "segment": 19,
@@ -1302,7 +2598,19 @@
     "seconds": 1.67,
     "alerts_at": [],
     "sheet": "sheets\\9_19.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "person falls while rushing to save dog from bird attack",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 11360,
+     "seconds": 25.5
+    }
    },
    {
     "segment": 20,
@@ -1311,7 +2619,19 @@
     "seconds": 3.33,
     "alerts_at": [],
     "sheet": "sheets\\9_20.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person in a bulky coat falls off the porch while another man looks on.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 2,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 11258,
+     "seconds": 25.3
+    }
    },
    {
     "segment": 21,
@@ -1322,7 +2642,19 @@
      66.3
     ],
     "sheet": "sheets\\9_21.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "Elderly woman opens front door and falls inside",
+     "elderly": true,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 19445,
+     "seconds": 24.7
+    }
    },
    {
     "segment": 22,
@@ -1333,7 +2665,19 @@
      69.57
     ],
     "sheet": "sheets\\9_22.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A young man opens the door, steps onto the porch, slips, and falls backward onto the steps.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 9948,
+     "seconds": 15.1
+    }
    },
    {
     "segment": 23,
@@ -1342,7 +2686,19 @@
     "seconds": 2.6,
     "alerts_at": [],
     "sheet": "sheets\\9_23.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person slips on a wooden deck and falls backwards onto the ground while approaching a shed.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10505,
+     "seconds": 20.0
+    }
    },
    {
     "segment": 24,
@@ -1351,7 +2707,19 @@
     "seconds": 4.03,
     "alerts_at": [],
     "sheet": "sheets\\9_24.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "TikTok logo and search bar",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": true,
+     "people": 0,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 9987,
+     "seconds": 12.7
+    }
    }
   ],
   "10.mp4": [
@@ -1372,6 +2740,18 @@
      "elderly": false,
      "out_of_domain": true,
      "description": "A baby in a walker tumbles down a flight of stairs, then an adult rushes to the child's aid."
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A baby in a walker falls down a flight of stairs and an adult runs down to help.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": true,
+     "people": 2,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10409,
+     "seconds": 16.4
     }
    },
    {
@@ -1381,7 +2761,19 @@
     "seconds": 4.0,
     "alerts_at": [],
     "sheet": "sheets\\10_02.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "TikTok logo animation",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": true,
+     "people": 0,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 9905,
+     "seconds": 12.7
+    }
    }
   ],
   "11.mp4": [
@@ -1402,6 +2794,18 @@
      "elderly": false,
      "out_of_domain": true,
      "description": "A kid climbs onto a bunk bed and then appears to fall from it onto the bottom bunk, where another child is sleeping."
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A child falls from the top of a bunk bed.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": true,
+     "people": 2,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10712,
+     "seconds": 21.0
     }
    },
    {
@@ -1411,7 +2815,19 @@
     "seconds": 4.0,
     "alerts_at": [],
     "sheet": "sheets\\11_02.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "TikTok outro screen",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": true,
+     "people": 0,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 9917,
+     "seconds": 11.2
+    }
    }
   ],
   "12.mp4": [
@@ -1422,7 +2838,19 @@
     "seconds": 4.7,
     "alerts_at": [],
     "sheet": "sheets\\12_01.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "child falls off spinning office chair",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": true,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10113,
+     "seconds": 15.5
+    }
    },
    {
     "segment": 2,
@@ -1431,7 +2859,19 @@
     "seconds": 2.6,
     "alerts_at": [],
     "sheet": "sheets\\12_02.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A young woman jumps off a kitchen counter and lands on her feet.",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": true,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 9839,
+     "seconds": 13.0
+    }
    },
    {
     "segment": 3,
@@ -1440,7 +2880,19 @@
     "seconds": 3.63,
     "alerts_at": [],
     "sheet": "sheets\\12_03.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person falls when the wooden structure they are climbing collapses.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": true,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10450,
+     "seconds": 16.5
+    }
    },
    {
     "segment": 4,
@@ -1449,7 +2901,19 @@
     "seconds": 3.17,
     "alerts_at": [],
     "sheet": "sheets\\12_04.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "Young woman attempts to jump over a street bollard and falls.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": true,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10826,
+     "seconds": 19.9
+    }
    },
    {
     "segment": 5,
@@ -1458,7 +2922,19 @@
     "seconds": 5.43,
     "alerts_at": [],
     "sheet": "sheets\\12_05.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A woman walks to a doorway with a dog and leans over",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10666,
+     "seconds": 18.5
+    }
    },
    {
     "segment": 6,
@@ -1467,7 +2943,19 @@
     "seconds": 1.57,
     "alerts_at": [],
     "sheet": "sheets\\12_06.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person carrying a basketball hoop across a yard.",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 12578,
+     "seconds": 34.1
+    }
    },
    {
     "segment": 7,
@@ -1491,7 +2979,19 @@
      "verdict": "already_down",
      "note": "adult on the grass beside a toppled basketball hoop, already down at the first frame and still down at the last"
     },
-    "conflict": "12.mp4 seg 7: by eye already_down, Gemini out_of_domain"
+    "conflict": "12.mp4 seg 7: by eye already_down, Gemini out_of_domain",
+    "antigravity": {
+     "already_down": true,
+     "can_see_image": true,
+     "description": "A person lying on the grass trapped under a fallen basketball hoop.",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": true,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 22507,
+     "seconds": 15.5
+    }
    },
    {
     "segment": 8,
@@ -1500,7 +3000,19 @@
     "seconds": 6.17,
     "alerts_at": [],
     "sheet": "sheets\\12_08.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "TikTok video of a burnt pizza",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": true,
+     "people": 0,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 9804,
+     "seconds": 15.6
+    }
    },
    {
     "segment": 9,
@@ -1523,6 +3035,18 @@
     "by_eye": {
      "verdict": "fall",
      "note": "woman carrying a large package slips on a snowy path, goes down and stays sitting on the ground"
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A person slips and falls on a snowy porch.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 11277,
+     "seconds": 21.1
     }
    },
    {
@@ -1542,6 +3066,18 @@
      "elderly": false,
      "out_of_domain": false,
      "description": "A person walking down outdoor steps slips and falls backward."
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A young person slips and falls while walking down outdoor stairs.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": true,
+     "people": 2,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10439,
+     "seconds": 22.0
     }
    },
    {
@@ -1561,6 +3097,18 @@
      "elderly": false,
      "out_of_domain": true,
      "description": "A person falls off a boat into the water while fishing."
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A child fishing on a boat loses balance and falls into the water.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": true,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10048,
+     "seconds": 15.9
     }
    },
    {
@@ -1581,6 +3129,18 @@
      "elderly": false,
      "out_of_domain": true,
      "description": "A woman accidentally knocks a child off a couch with a cushion."
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A child falls backward off the couch onto the floor.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": true,
+     "people": 3,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 11497,
+     "seconds": 20.4
     }
    },
    {
@@ -1600,6 +3160,18 @@
      "elderly": false,
      "out_of_domain": false,
      "description": "A woman falls off a porch while trying to step down."
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "A woman falls off the edge of a porch onto the ground.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": false,
+     "people": 1,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10763,
+     "seconds": 18.6
     }
    },
    {
@@ -1623,6 +3195,18 @@
     "by_eye": {
      "verdict": "out_of_domain",
      "note": "young men doing pull-ups on a pole outdoors -- sport, and it alerted, so this is what a horizontal body on a bar looks like to the detector"
+    },
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "Four young men fall when the bar they are hanging on comes down.",
+     "elderly": false,
+     "fall": true,
+     "out_of_domain": true,
+     "people": 5,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10886,
+     "seconds": 22.9
     }
    },
    {
@@ -1632,7 +3216,19 @@
     "seconds": 4.6,
     "alerts_at": [],
     "sheet": "sheets\\12_15.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "Handheld selfie video of a woman drinking at a restaurant",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": true,
+     "people": 3,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10466,
+     "seconds": 17.7
+    }
    },
    {
     "segment": 16,
@@ -1641,7 +3237,19 @@
     "seconds": 4.03,
     "alerts_at": [],
     "sheet": "sheets\\12_16.jpg",
-    "label": null
+    "label": null,
+    "antigravity": {
+     "already_down": false,
+     "can_see_image": true,
+     "description": "TikTok end screen",
+     "elderly": false,
+     "fall": false,
+     "out_of_domain": true,
+     "people": 0,
+     "model": "gemini-3.1-pro-high",
+     "tokens": 10120,
+     "seconds": 11.6
+    }
    }
   ]
  }

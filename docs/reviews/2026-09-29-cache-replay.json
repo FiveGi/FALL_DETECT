@@ -1,0 +1,1753 @@
+{
+  "model_sha256": "0cdf7c5dac45712cff27b94cb1ed9fa8dd219ceb8895b6dda1167449a46d2028",
+  "source_sha256": "a2d7c1a94c2ea04902407c5e5ce36df78de1927a9e6f48d6391a9e9fdac369cd",
+  "runtime": {
+    "WINDOW_SIZE": 15,
+    "THRESHOLD": 0.65,
+    "PARTIAL_MIN": 4,
+    "SMOOTH_NEED": 1,
+    "SMOOTH_OF": 3,
+    "STRIDE": 10,
+    "TRACKER": "hip",
+    "COLLAPSE_ENABLED": true
+  },
+  "caches": {
+    "daylight": {
+      "directory": "58bd55e55f1d",
+      "key": {
+        "pose_model": "yolo26s-pose.pt",
+        "imgsz": 320,
+        "pose_conf": 0.3,
+        "tracker": "hip",
+        "num_poses": 4,
+        "fps": 8.0,
+        "preprocess": [
+          "auto"
+        ],
+        "dark_below": 70.0,
+        "roi_imgsz": 0,
+        "roi_full_every": 0,
+        "roi_pad": 0,
+        "simulate_dark": 1.0,
+        "dark_noise": 0.0
+      },
+      "summary": {
+        "urfd_fall": {
+          "clips": 60,
+          "alerted": 45
+        },
+        "urfd_adl": {
+          "clips": 40,
+          "alerted": 5
+        }
+      },
+      "rows": [
+        {
+          "clip": "urfd_adl__adl-01-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-02-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-03-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-04-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-05-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-06-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-07-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-08-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-09-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-10-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_adl__adl-11-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_adl__adl-12-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-13-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-14-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-15-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-16-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-17-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-18-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-19-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-20-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-21-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-22-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-23-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-24-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-25-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-26-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-27-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-28-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-29-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-30-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-31-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-32-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-33-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-34-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-35-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_adl__adl-36-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-37-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-38-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_adl__adl-39-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_adl__adl-40-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-01-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-01-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-02-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-02-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-03-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-03-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-04-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-04-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-05-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-05-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-06-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-06-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-07-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-07-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-08-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-08-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-09-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-09-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-10-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-10-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-11-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-11-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-12-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-12-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-13-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-13-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-14-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-14-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-15-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-15-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-16-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-16-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-17-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-17-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-18-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-18-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-19-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-19-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-20-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-20-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-21-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-21-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-22-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-22-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-23-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-23-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-24-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-24-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-25-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-25-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-26-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-26-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-27-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-27-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-28-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-28-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-29-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-29-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-30-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-30-cam1.mp4.npz",
+          "alerted": true
+        }
+      ]
+    },
+    "greyscale": {
+      "directory": "932fbee53d48",
+      "key": {
+        "pose_model": "yolo26s-pose.pt",
+        "imgsz": 320,
+        "pose_conf": 0.3,
+        "tracker": "hip",
+        "num_poses": 4,
+        "fps": 8.0,
+        "preprocess": [
+          "auto"
+        ],
+        "dark_below": 70.0,
+        "roi_imgsz": 0,
+        "roi_full_every": 0,
+        "roi_pad": 0,
+        "simulate_dark": 1.0,
+        "dark_noise": 0.0,
+        "simulate_ir": true,
+        "ir_vignette": 0.0,
+        "ir_noise": 0.0
+      },
+      "summary": {
+        "urfd_fall": {
+          "clips": 60,
+          "alerted": 35
+        },
+        "urfd_adl": {
+          "clips": 40,
+          "alerted": 5
+        }
+      },
+      "rows": [
+        {
+          "clip": "urfd_adl__adl-01-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-02-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-03-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-04-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-05-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-06-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-07-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-08-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-09-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-10-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_adl__adl-11-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_adl__adl-12-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-13-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-14-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-15-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-16-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-17-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-18-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-19-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-20-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-21-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-22-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-23-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-24-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-25-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-26-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-27-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-28-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-29-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-30-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-31-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-32-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-33-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-34-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-35-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_adl__adl-36-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_adl__adl-37-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-38-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_adl__adl-39-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-40-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-01-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-01-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-02-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-02-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-03-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-03-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-04-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-04-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-05-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-05-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-06-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-06-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-07-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-07-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-08-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-08-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-09-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-09-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-10-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-10-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-11-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-11-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-12-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-12-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-13-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-13-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-14-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-14-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-15-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-15-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-16-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-16-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-17-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-17-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-18-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-18-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-19-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-19-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-20-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-20-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-21-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-21-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-22-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-22-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-23-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-23-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-24-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-24-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-25-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-25-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-26-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-26-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-27-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-27-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-28-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-28-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-29-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-29-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-30-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-30-cam1.mp4.npz",
+          "alerted": true
+        }
+      ]
+    },
+    "simulated_ir": {
+      "directory": "cb5439b03087",
+      "key": {
+        "pose_model": "yolo26s-pose.pt",
+        "imgsz": 320,
+        "pose_conf": 0.3,
+        "tracker": "hip",
+        "num_poses": 4,
+        "fps": 8.0,
+        "preprocess": [
+          "auto"
+        ],
+        "dark_below": 70.0,
+        "roi_imgsz": 0,
+        "roi_full_every": 0,
+        "roi_pad": 0,
+        "simulate_dark": 1.0,
+        "dark_noise": 0.0,
+        "simulate_ir": true,
+        "ir_vignette": 0.45,
+        "ir_noise": 5.0
+      },
+      "summary": {
+        "urfd_fall": {
+          "clips": 60,
+          "alerted": 17
+        },
+        "urfd_adl": {
+          "clips": 40,
+          "alerted": 5
+        }
+      },
+      "rows": [
+        {
+          "clip": "urfd_adl__adl-01-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-02-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-03-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-04-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-05-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-06-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-07-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-08-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-09-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-10-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_adl__adl-11-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_adl__adl-12-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-13-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-14-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-15-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-16-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-17-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-18-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-19-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-20-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-21-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-22-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-23-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-24-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-25-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-26-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-27-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-28-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-29-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-30-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-31-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-32-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-33-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-34-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-35-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_adl__adl-36-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_adl__adl-37-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_adl__adl-38-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-39-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-40-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-01-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-01-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-02-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-02-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-03-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-03-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-04-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-04-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-05-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-05-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-06-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-06-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-07-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-07-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-08-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-08-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-09-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-09-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-10-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-10-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-11-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-11-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-12-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-12-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-13-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-13-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-14-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-14-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-15-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-15-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-16-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-16-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-17-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-17-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-18-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-18-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-19-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-19-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-20-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-20-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-21-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-21-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-22-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-22-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-23-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-23-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-24-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-24-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-25-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-25-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-26-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-26-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-27-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-27-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-28-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-28-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-29-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-29-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-30-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-30-cam1.mp4.npz",
+          "alerted": false
+        }
+      ]
+    },
+    "simulated_ir_forced_cleanup": {
+      "directory": "9c2963624342",
+      "key": {
+        "pose_model": "yolo26s-pose.pt",
+        "imgsz": 320,
+        "pose_conf": 0.3,
+        "tracker": "hip",
+        "num_poses": 4,
+        "fps": 8.0,
+        "preprocess": [
+          "auto"
+        ],
+        "dark_below": 999.0,
+        "roi_imgsz": 0,
+        "roi_full_every": 0,
+        "roi_pad": 0,
+        "simulate_dark": 1.0,
+        "dark_noise": 0.0,
+        "simulate_ir": true,
+        "ir_vignette": 0.45,
+        "ir_noise": 5.0
+      },
+      "summary": {
+        "urfd_fall": {
+          "clips": 60,
+          "alerted": 19
+        },
+        "urfd_adl": {
+          "clips": 40,
+          "alerted": 2
+        }
+      },
+      "rows": [
+        {
+          "clip": "urfd_adl__adl-01-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-02-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-03-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-04-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-05-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-06-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-07-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-08-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-09-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-10-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-11-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_adl__adl-12-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-13-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-14-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-15-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-16-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-17-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-18-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-19-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-20-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-21-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-22-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-23-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-24-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-25-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-26-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-27-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-28-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-29-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-30-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-31-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-32-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-33-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-34-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-35-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-36-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_adl__adl-37-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-38-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-39-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_adl__adl-40-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-01-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-01-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-02-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-02-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-03-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-03-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-04-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-04-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-05-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-05-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-06-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-06-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-07-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-07-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-08-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-08-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-09-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-09-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-10-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-10-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-11-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-11-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-12-cam0.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-12-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-13-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-13-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-14-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-14-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-15-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-15-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-16-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-16-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-17-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-17-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-18-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-18-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-19-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-19-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-20-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-20-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-21-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-21-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-22-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-22-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-23-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-23-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-24-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-24-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-25-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-25-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-26-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-26-cam1.mp4.npz",
+          "alerted": true
+        },
+        {
+          "clip": "urfd_fall__fall-27-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-27-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-28-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-28-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-29-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-29-cam1.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-30-cam0.mp4.npz",
+          "alerted": false
+        },
+        {
+          "clip": "urfd_fall__fall-30-cam1.mp4.npz",
+          "alerted": false
+        }
+      ]
+    }
+  }
+}

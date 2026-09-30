@@ -47,10 +47,22 @@ SHOT_DIR = os.path.join(OUT_DIR, 'tier_disagreements')
 # Matches notification_service.STILL_DOWN_SECONDS; imported rather than repeated would pull in
 # Flask, and that module is deliberately importable without it.
 STILL_DOWN_SECONDS = float(os.environ.get('STILL_DOWN_SECONDS', 10))
-# Same rule the camera loop applies: still down if they were not upright for most of the
-# elapsed window. The loop uses 0.8 of elapsed; anything less generous would report a tier the
-# deployment would not actually produce.
-DOWN_FRACTION = 0.8
+
+
+def _load_still_down_rule():
+    """notification_service.still_down_confirmed, executed directly so Flask is not needed --
+    the camera loop's own rule rather than a restatement of it, which is how this file once
+    drifted from the loop (it kept a 0.8 fraction after the loop's rule changed)."""
+    path = os.path.join(ROOT, 'app', 'services', 'notification_service.py')
+    src = open(path, encoding='utf-8').read().replace(
+        'from app.services.line_service import send_line_message_async',
+        'send_line_message_async = None')
+    ns = {}
+    exec(compile(src, path, 'exec'), ns)
+    return ns['still_down_confirmed'], ns['seen_down_since_alert']
+
+
+v3_still_down, v3_seen_since = _load_still_down_rule()
 
 
 def tier_for_clip(det, frames, fps):
@@ -63,9 +75,11 @@ def tier_for_clip(det, frames, fps):
         det._replay = [(kp, (kp[v3.LEFT_HIP, :2] + kp[v3.RIGHT_HIP, :2]) / 2.0) for kp in people]
         results = v3.detect_v3_fall_multi(None, state, det, config=None)
         if alert_at is None:
-            top = max(results, key=lambda r: r[2]) if results else None
+            top = v3.alert_result(results) if results else None
             if top and top[1]:
                 alert_at, alert_track = i, top[0]
+                p = state.person_states.get(alert_track)
+                seen_at_alert = p.frames_seen_down if p else 0
             continue
         if i - alert_at >= window:
             break
@@ -79,7 +93,11 @@ def tier_for_clip(det, frames, fps):
     # Not enough footage after the alert to answer: the tier stays where a fresh alert starts.
     if observed < STILL_DOWN_SECONDS:
         return True, 'check', alert_at, down, observed
-    tier = 'confirmed' if down >= DOWN_FRACTION * observed else 'check'
+    # The live rule, not a copy of it: same function, same frame counts.
+    elapsed_frames = int(round(observed * fps))
+    tier = ('confirmed' if person is not None and v3_still_down(
+        person.frames_since_upright,
+        v3_seen_since(person.frames_seen_down, seen_at_alert), elapsed_frames) else 'check')
     return True, tier, alert_at, down, observed
 
 

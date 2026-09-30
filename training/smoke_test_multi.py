@@ -23,7 +23,7 @@ while True:
     results = v3.detect_v3_fall_multi(frame, state, detector, config=None)
     any_detected = any(r[1] for r in results)
     if any_detected:
-        top = max(results, key=lambda r: r[2])
+        top = v3.alert_result(results)
         any_alerts.append((round(t, 2), round(top[2], 2), len(results)))
     frame_idx += 1
 cap.release()
