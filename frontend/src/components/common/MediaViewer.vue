@@ -87,8 +87,8 @@
 
 <!-- SETUP -->
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { convertToServerUrl, isLocalPath, getSuggestedServerUrl } from '@/utils/videoUtils'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { convertToServerUrl, isLocalPath } from '@/utils/videoUtils'
 import v89Logo from '@/assets/V89_logo.png'
 
 const props = defineProps({
@@ -153,39 +153,82 @@ const videoElement = ref(null)
 const mjpegElement = ref(null)
 const showLocalPathWarning = ref(false)
 
-const processedUrl = computed(() => {
-  if (!props.url) return ''
+import streamService from '@/services/streamService'
 
-  // ถ้าใช้ Stream API และมี cameraId ให้ใช้ stream endpoint
+// Resolved asynchronously, not computed: the live view needs a short-lived media token fetched
+// from the server first (see streamService.getCameraStreamUrl), and a computed property cannot
+// await -- the <img> would have received "[object Promise]" (found by Gemini's review).
+const processedUrl = ref('')
+let refreshTimer = null
+let streamRetries = 0
+// Every resolve gets a number; only the newest may install its answer. Comparing camera and
+// overlay was not enough: two requests for the SAME camera (a retry and a scheduled refresh)
+// could land out of order, the older URL winning and both arming timers (Codex REVIEW-3).
+let requestSeq = 0
+let unmounted = false
+const MAX_STREAM_RETRIES = 3
+
+// Every URL this component hands to its parent goes through here. The live-view URL carries a
+// media token, and parents log these events (MonitorView prints event.url on error), so an
+// un-sanitised URL put a working credential into the browser console (Codex REVIEW-3).
+function urlForEvents() {
+  return (processedUrl.value || '').replace(/([?&](?:t|token)=)[^&]+/gi, '$1REDACTED')
+}
+
+function clearRefresh() {
+  if (refreshTimer) {
+    clearTimeout(refreshTimer)
+    refreshTimer = null
+  }
+}
+
+async function resolveUrl() {
+  clearRefresh()
+  const mySeq = ++requestSeq
+  if (!props.url) {
+    processedUrl.value = ''
+    return
+  }
+
+  // ถ้าใช้ Stream API และมี cameraId ให้ใช้ stream endpoint (with a fresh media token)
   if (props.useStreamApi && props.cameraId) {
-    const streamUrl = getMjpegStreamUrl(props.cameraId, props.overlay)
-    // ถ้า stream URL ไม่สามารถสร้างได้ ให้ fallback ไปใช้ URL เดิม
-    return streamUrl || props.url
+    handleLoadStart('mjpeg')
+    const got = await streamService.getCameraStreamUrl(props.cameraId, props.overlay)
+    // Superseded by a newer request, or the viewer has gone: install nothing, arm nothing.
+    if (mySeq !== requestSeq || unmounted) return
+    if (got) {
+      processedUrl.value = got.url
+      // The server ends a view after maxViewSeconds, and an <img> usually just freezes on the
+      // last frame instead of firing an error, so reconnect with a fresh token shortly before.
+      clearRefresh()
+      refreshTimer = setTimeout(resolveUrl, Math.max(10, got.maxViewSeconds - 30) * 1000)
+    } else {
+      // ถ้า stream URL ไม่สามารถสร้างได้ ให้ fallback ไปใช้ URL เดิม
+      processedUrl.value = props.url
+    }
+    return
   }
 
   if (isLocalPath(props.url)) {
     showLocalPathWarning.value = true
-    const suggested = getSuggestedServerUrl(props.url)
-    // console.warn(`Local file path detected: ${props.url}. Suggested server URL: ${suggested}`)
-    return convertToServerUrl(props.url)
+    processedUrl.value = convertToServerUrl(props.url)
+    return
   }
 
   showLocalPathWarning.value = false
-  return props.url
-})
-
-// Import stream service
-import streamService from '@/services/streamService'
-
-// Helper function to get MJPEG stream URL
-function getMjpegStreamUrl(cameraId, overlay) {
-  try {
-    return streamService.getCameraStreamUrl(cameraId, overlay)
-  } catch (error) {
-    console.error(`Failed to get MJPEG stream URL for camera ${cameraId}:`, error)
-    return ''
-  }
+  processedUrl.value = props.url
 }
+
+// A new camera or setting is a fresh start, so it gets a fresh retry budget.
+watch(() => [props.url, props.cameraId, props.overlay, props.useStreamApi], () => {
+  streamRetries = 0
+  resolveUrl()
+}, { immediate: true })
+onUnmounted(() => {
+  unmounted = true
+  requestSeq += 1          // any response still in flight is now stale
+  clearRefresh()
+})
 
 // Function to check if URL is MJPEG stream
 function isMjpegStream(url) {
@@ -273,17 +316,34 @@ function handleLoadStart(mediaType) {
   isLoading.value = true
   hasError.value = false
   errorMessage.value = ''
-  emit('loadstart', { mediaType, url: processedUrl.value })
+  emit('loadstart', { mediaType, url: urlForEvents() })
 }
 
 function handleLoad(mediaType) {
+  if (mediaType === 'mjpeg') streamRetries = 0
   isLoading.value = false
   hasError.value = false
   errorMessage.value = ''
-  emit('load', { mediaType, url: processedUrl.value })
+  emit('load', { mediaType, url: urlForEvents() })
 }
 
 function handleError(mediaType) {
+  // A live view that fails -- typically its token expired or the server closed a long view --
+  // is retried with a FRESH token a few times with backoff before the error is shown.
+  if (mediaType === 'mjpeg' && props.useStreamApi && props.cameraId &&
+      streamRetries < MAX_STREAM_RETRIES) {
+    streamRetries += 1
+    isLoading.value = true
+    clearRefresh()
+    refreshTimer = setTimeout(resolveUrl, 1000 * 2 ** (streamRetries - 1))
+    return
+  }
+  // Out of retries: stop EVERYTHING, including the pre-expiry refresh, so a dead view does not
+  // quietly keep reconnecting every ten minutes behind an error message (Codex REVIEW-3).
+  if (mediaType === 'mjpeg') {
+    clearRefresh()
+    requestSeq += 1
+  }
   isLoading.value = false
   hasError.value = true
 
@@ -297,7 +357,7 @@ function handleError(mediaType) {
 
   emit('error', {
     mediaType,
-    url: processedUrl.value,
+    url: urlForEvents(),
     originalUrl: props.url,
     message: errorMessage.value
   })
@@ -305,14 +365,14 @@ function handleError(mediaType) {
 
 function handleMetadataLoaded() {
   emit('metadata-loaded', {
-    url: processedUrl.value,
+    url: urlForEvents(),
     videoElement: videoElement.value
   })
 }
 
 function handleCanPlay() {
   emit('canplay', {
-    url: processedUrl.value,
+    url: urlForEvents(),
     videoElement: videoElement.value
   })
 }

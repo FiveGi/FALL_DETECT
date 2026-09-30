@@ -1,0 +1,37 @@
+$ docker compose version
+exit=0
+Docker Compose version v5.5.0
+WARNING: Error loading config file: open C:\Users\USER\.docker\config.json: Access is denied.
+
+$ C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/check_coherence_fixtures.py
+exit=0
+PASS real files: cpu crop 256/8 is measured
+PASS explicit cadence 0 (= every frame at runtime) is NOT measured
+PASS cadence 1 is NOT measured
+PASS crop 300/1 coming from .env is seen (roi=300) and NOT measured
+PASS no crop anywhere -> full-frame row, measured
+PASS GPU overlay with its own env_file still sees the base .env crop (roi=300)
+PASS shell env V3_ROI_IMGSZ=300 cannot change the verdict
+all coherence fixtures passed
+
+$ C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe .ai_evidence/review3b_compose.py
+exit=1
+Checker GPU: {'imgsz': 960, 'fps': 20.0, 'roi': 300, 'roi_every': 1} measured= False
+Compose GPU: {'V3_IMGSZ': '960', 'V3_ROI_FULL_EVERY': '1', 'V3_ROI_IMGSZ': '300', 'V3_TARGET_FPS': '20'}
+Traceback (most recent call last):
+  File "D:\project\PROJECT\Backend-Elderly-Surveillance-main\.ai_evidence\review3b_compose.py", line 16, in <module>
+    assert got['roi']==0 and key in c.MEASURED and str(env['V3_ROI_IMGSZ'])=='300'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+
+$ C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe .ai_evidence/review3b_closure_compose.py
+exit=0
+Checker GPU: {'imgsz': 960, 'fps': 20.0, 'roi': 300, 'roi_every': 1} measured= False
+Compose GPU: {'V3_IMGSZ': '960', 'V3_ROI_FULL_EVERY': '1', 'V3_ROI_IMGSZ': '300', 'V3_TARGET_FPS': '20'}
+PASS: checker and Compose retain 300/1; checker reports unmeasured. Synthetic, 0 clips.
+
+$ C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe .ai_evidence/review3b_closure_duplicate.py
+exit=0
+Checker GPU: {'imgsz': 960, 'fps': 20.0, 'roi': 0, 'roi_every': 1} measured= True
+Compose GPU: {'V3_IMGSZ': '960', 'V3_ROI_FULL_EVERY': '1', 'V3_ROI_IMGSZ': '0', 'V3_TARGET_FPS': '20'}
+PASS: repeated-file case matches installed Compose (crop 0). Synthetic configuration dataset, 0 clips.

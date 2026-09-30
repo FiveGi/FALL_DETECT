@@ -26,6 +26,9 @@ services:
       # it goes back here along with the single OMP thread that keeps torch out of the way of
       # frame decoding.
       - V3_IMGSZ=960
+      # Explicitly OFF: the base file turns the person-crop on for the CPU server, and an
+      # overlay inherits whatever it does not set (Codex). The crop was never measured at 960.
+      - V3_ROI_IMGSZ=0
       - OMP_NUM_THREADS=1
       # Classify at a fixed rate rather than however fast this machine happens to be. The
       # camera loop has no stride, so without this the sampling rate is whatever the hardware

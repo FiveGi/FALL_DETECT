@@ -52,6 +52,7 @@ export const API_ENDPOINTS = {
   // video streaming
   STREAM: {
     CAMERA: (id) => `/stream/camera/${id}`,
+    MEDIA_TOKEN: (id) => `/stream/camera/${id}/media-token`,
     START: (id) => `/stream/camera/${id}/start`,
     STOP: (id) => `/stream/camera/${id}/stop`,
     STATUS: (id) => `/stream/camera/${id}/status`,

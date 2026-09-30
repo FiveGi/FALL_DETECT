@@ -131,11 +131,15 @@ def measured_key(imgsz, window, fps, partial_min, preprocess, threshold, roi_img
     The crop cadence is in the key because a crop measured with a full-frame pass every 8 frames
     says nothing about cadence 1, which never crops at all."""
     roi = int(roi_imgsz or 0)
+    # The cadence the RUNTIME uses, not the number written down: v3_fall_detection does
+    # `% max(ROI_FULL_EVERY, 1)`, so 0 means a full pass every frame. Normalising here means an
+    # explicit 0 can never borrow the every-8 row's measurement (Codex REVIEW-3).
+    every = max(int(roi_full_every), 1) if (roi and roi_full_every is not None) else (8 if roi else 0)
     return (int(imgsz) if imgsz is not None else None, window,
             float(fps) if fps is not None else None, partial_min,
             tuple(preprocess or ()) or ('off',),
             round(float(threshold), 4) if threshold is not None else None,
-            roi, int(roi_full_every or 0) if roi else 0)
+            roi, every)
 
 
 # What one 1080p camera sustains, measured uncapped (V3_TARGET_FPS=0) by reading the camera
@@ -171,24 +175,67 @@ def onnx_input_frames(path):
 
 
 def compose_profiles():
-    """-> {'cpu': (imgsz, fps), 'gpu': (imgsz, fps)} from the two compose files.
+    """-> {'cpu': settings, 'gpu': settings}: the worker's EFFECTIVE environment per profile.
 
-    docker-compose.yml IS the CPU deployment; docker-compose.gpu.yml overlays the GPU one on
-    top of it, so a value it does not set is inherited. Both are checked, because the server
-    this ships to has no GPU and the CPU profile used to be nobody's job.
+    docker-compose.yml IS the CPU deployment; docker-compose.gpu.yml overlays the GPU one, and
+    Compose merges an overlay's `environment:` over the base's -- a value the overlay does not
+    set is inherited. This used to regex each file separately for two keys, and then the
+    measured-config lookup took the person-crop setting from THIS script's own environment, so
+    a shell variable could change the verdict and the GPU profile silently inherited the CPU
+    crop (Codex review). Now the worker service is read as YAML and merged the way Compose does.
     """
-    def settings(path):
-        text = open(os.path.join(ROOT, path), encoding='utf-8').read()
-        fps = re.search(r'V3_TARGET_FPS=([0-9.]+)', text)
-        imgsz = re.search(r'V3_IMGSZ=([0-9]+)', text)
-        return (int(imgsz.group(1)) if imgsz else None,
-                float(fps.group(1)) if fps else None)
+    import yaml
 
-    cpu = settings('docker-compose.yml')
-    gpu = settings('docker-compose.gpu.yml')
-    gpu = (gpu[0] if gpu[0] is not None else cpu[0],
-           gpu[1] if gpu[1] is not None else cpu[1])
-    return {'cpu': cpu, 'gpu': gpu}
+    def read_env_file(path):
+        out = {}
+        full = os.path.join(ROOT, path)
+        if not os.path.exists(full):
+            return out
+        for line in open(full, encoding='utf-8'):
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                k, _, v = line.partition('=')
+                out[k.strip()] = v.strip().strip('"').strip("'")
+        return out
+
+    def worker(path):
+        doc = yaml.safe_load(open(os.path.join(ROOT, path), encoding='utf-8')) or {}
+        svc = (doc.get('services') or {}).get('celery_worker') or {}
+        env = svc.get('environment') or {}
+        if isinstance(env, list):
+            env = dict(item.split('=', 1) if '=' in item else (item, '') for item in env)
+        files = svc.get('env_file') or []
+        return ([files] if isinstance(files, str) else list(files),
+                {str(k): str(v) for k, v in env.items()})
+
+    # Compose precedence, lowest first: env_file entries, then `environment:`; an overlay's
+    # entries replace the base's. env_file values DO reach the container when `environment:`
+    # does not set the key, so ignoring them let a crop set in .env run while this reported the
+    # full-frame row as measured (Codex REVIEW-3).
+    base_files, base_env = worker('docker-compose.yml')
+    gpu_files, gpu_env = worker('docker-compose.gpu.yml')
+    cpu = {}
+    for f in base_files:
+        cpu.update(read_env_file(f))
+    cpu.update(base_env)
+    # Compose CONCATENATES an overlay's env_file list onto the base's (Codex REVIEW-3b,
+    # confirmed against `docker compose config`); replacing it let a base .env crop vanish from
+    # the GPU profile's view.
+    gpu = {}
+    for f in base_files + [f for f in gpu_files if f not in base_files]:
+        gpu.update(read_env_file(f))
+    gpu.update(base_env)
+    gpu.update(gpu_env)
+
+    def settings(env):
+        def num(key, cast):
+            v = env.get(key)
+            return cast(v) if v not in (None, '') else None
+        return {'imgsz': num('V3_IMGSZ', int), 'fps': num('V3_TARGET_FPS', float),
+                'roi': num('V3_ROI_IMGSZ', int) or 0,
+                'roi_every': num('V3_ROI_FULL_EVERY', int)}   # None = unset; measured_key decides
+
+    return {'cpu': settings(cpu), 'gpu': settings(gpu)}
 
 
 def main():
@@ -206,8 +253,9 @@ def main():
     print(f'training           WINDOW_SIZE {ds.WINDOW_SIZE}, TEMPORAL_STRIDE {ds.TEMPORAL_STRIDE}, '
           f'{md.FEATURES_PER_FRAME} features')
     for _name in ('cpu', 'gpu'):
-        _imgsz, _fps = profiles[_name]
-        print(f'{_name} profile        imgsz {_imgsz}, V3_TARGET_FPS {_fps}')
+        _p = profiles[_name]
+        print(f'{_name} profile        imgsz {_p["imgsz"]}, V3_TARGET_FPS {_p["fps"]}, '
+              f'crop {_p["roi"]} every {_p["roi_every"] if _p["roi"] else "-"}')
     print()
 
     check('runtime window matches the deployed ONNX',
@@ -224,19 +272,19 @@ def main():
           v3.FEATURES_PER_FRAME == features, f'{v3.FEATURES_PER_FRAME} vs {features}')
     train_seconds = ds.WINDOW_SIZE * ds.TEMPORAL_STRIDE / SOURCE_FPS
     for name in ('cpu', 'gpu'):
-        imgsz, fps = profiles[name]
+        imgsz, fps = profiles[name]['imgsz'], profiles[name]['fps']
+        roi, roi_every = profiles[name]['roi'], profiles[name]['roi_every']
         check(f'{name}: camera rate is pinned, not left to the hardware', bool(fps),
               '' if fps else f'V3_TARGET_FPS missing from the {name} compose file')
         if not fps:
             continue
         preprocess = tuple(v3.PREPROCESS) or ('off',)
         measured = MEASURED.get(measured_key(imgsz, v3.WINDOW_SIZE, fps, v3.PARTIAL_MIN,
-                                             preprocess, v3.THRESHOLD, v3.ROI_IMGSZ,
-                                             v3.ROI_FULL_EVERY))
+                                             preprocess, v3.THRESHOLD, roi, roi_every))
         check(f'{name}: this exact configuration has been measured', measured is not None,
               measured or f'imgsz {imgsz}, window {v3.WINDOW_SIZE}, {fps:.0f} fps, partial '
               f'from {v3.PARTIAL_MIN}, preprocess {"+".join(preprocess)}, threshold '
-              f'{v3.THRESHOLD:g}, crop {v3.ROI_IMGSZ} every {v3.ROI_FULL_EVERY} is not in MEASURED -- run the sweep before deploying it')
+              f'{v3.THRESHOLD:g}, crop {roi} every {roi_every} is not in MEASURED -- run the sweep before deploying it')
         check(f'{name}: the rate is one the machine sustains', fps <= SUSTAINED_FPS[name],
               f'pinned at {fps:.0f} fps, measured ceiling {SUSTAINED_FPS[name]:.1f} fps '
               f'for one camera')

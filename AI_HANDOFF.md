@@ -310,6 +310,60 @@ Known failures / untested cases: I am guessing approach-and-bend, sitting near t
 Decision needed, if any: agree a deployment false-alert budget; reserve source-video/camera-disjoint evaluation before tuning, grouping compilation siblings together; clips already used to invent this rule are exploratory, not untouched confirmation ([triage](AI_HANDOFF.md#L317), [tuning plan](AI_HANDOFF.md#L359)).
 Next actor / exact next action: Claude / propose the split manifest, clip counts and negative exposure per surface, freeze thresholds on development only, then compare baseline vs rule on identical held-out inputs; use blinded human adjudication for uncertain outcomes, not Gemini alone ([rules](docs/AI_COLLABORATION.md#L18)); no implementation approved here.
 
+### 2026-09-30 - Codex: DISCUSSION - CPU defaults and MJPEG capability
+A: I disagree with leaving the GPU overlay unchanged: base worker ROI settings would be inherited ([merge logic](tools/check_config_coherence.py#L173), [overlay](docker-compose.gpu.yml#L20)); explicitly disable GPU ROI. Environment-over-env_file precedence is consistent with [R3](AI_HANDOFF.md#L176), but pins are not UI-overridable defaults and require container recreation. Check resolved worker settings, not file-wide regex/process env ([checker](tools/check_config_coherence.py#L180), [lookup](tools/check_config_coherence.py#L232)); settle with CPU/base+GPU `docker compose ... config` ROI assertions, conflicting .env/process-env fixtures, and recreated-worker settings versus UI-reported settings.
+B: I disagree that connect-only expiry is sufficient merely because it is normal MJPEG: the proposed camera-only capability permits replay until expiry and an established leaked connection indefinitely ([proposal](AI_HANDOFF.md#L378)); bind subject + camera + revocation version, recheck current authorization, and bound stream lifetime/revocation delay. Require HTTPS, strong nondefault signing secret, query-token redaction in proxy/app/error telemetry, no-store on issuance too, and no token persistence; these are design requirements, not verified deployment holes. A signature does not encrypt the payload; remove wildcard CORS, but do not treat CORS as replay protection ([headers](app/routes/stream.py#L106)).
+Task ID / objective: AB-DISCUSSION / critique the owner-approved designs only.
+Implementer / reviewer / supporting investigator: Claude / Codex / none.
+Phase: changes_requested
+Changed files / diff or commit reference: AI_HANDOFF.md, append within Codex section only.
+Behavior before -> after: runtime unchanged; scoped media credentials are appropriate, subject to the design gaps above.
+Checks: `Select-String` and bounded `Get-Content -Encoding UTF8` inspected handoff/rules, stream route, Compose base/overlay and coherence checker; `git status --short` recorded existing changes. Initial `rg` unavailable; one range-reader failed, Compose reread succeeded with output truncation. Static review only; dataset N/A, 0 clips, no runtime/security/coherence tests run.
+Known failures / untested cases: add missing/expired/revoked JWT issuance, nonowner/admin policy ([authorization](app/routes/stream.py#L43)), tampered/malformed/wrong-salt/wrong-type/oversized media tokens, JWT-as-media and media-as-JWT, exact expiry/future timestamp, deleted/transferred camera and revoked user/session, concurrent replay and active-stream expiry tests; reject before camera lookup/generator work ([route](app/routes/stream.py#L84)). Test token/log/cache leakage and connection limits; ?overlay=1 also needs explicit scope or denial because it invokes AI work ([overlay](app/routes/stream.py#L96)). A: zero-vs-missing ROI, altered cadence -> unmeasured, and shell-env independence need negative fixtures.
+Decision needed, if any: define maximum stolen-token viewing duration and logout/ownership-change revocation semantics; camera-only signing cannot enforce those by itself (proposal B).
+Next actor / exact next action: Claude / revise A to preserve GPU ROI=0 and resolve effective configuration; revise B with bounded lifetime, revocation and leak controls, then implement and stage the named negative tests plus browser rendering evidence for delta review.
+
+### 2026-09-30 — Codex: REVIEW-3 — changes requested
+Review/evidence: [findings, source lines, commands and limits](.ai_evidence/review3_review.md); [Python output](.ai_evidence/review3_probe.txt), [frontend output](.ai_evidence/review3_frontend.txt). Synthetic fixtures; dataset N/A, **0 clips**.
+P1 reconnect: fourth image failure leaves the 570-second refresh armed indefinitely; same-camera out-of-order responses install stale URLs/two timers, and pending responses re-arm after unmount ([MediaViewer](frontend/src/components/common/MediaViewer.vue#L182), report findings 1/3; reproduced).
+P1 coherence: explicit cadence 0 becomes measured cadence 8 although runtime uses 1; missing ROI ignores env_file crop 300/1 and reports measured full-frame ([checker](tools/check_config_coherence.py#L186), report finding 2; reproduced). Current CPU/GPU Compose defaults do match.
+P1 lifetime: bounded yields a frame at t=601 before checking its 600-second deadline; a producer that does not yield cannot be interrupted ([bounded](app/services/media_token.py#L96), report finding 4; late-frame reproduction, stalled-camera path static).
+P2 leakage: encoded `%74=` survives redaction; terminal frontend errors log token-bearing event.url ([filter](app/services/media_token.py#L108), [caller](frontend/src/views/MonitorView.vue#L625), report finding 5; reproduced).
+P1 dependency: revocation lookup errors return “not revoked,” affecting verify and JWT issuance; logout ignores failed blacklist writes ([blocklist](app/models/token_blocklist.py#L18), [logout](app/routes/auth.py#L117), report finding 6; read failure reproduced, endpoint faults untested).
+I disagree that B satisfies the agreed design while wildcard CORS remains; settle with an unrelated-Origin media GET. Default-secret forgery is reproduced in isolation, not asserted for deployment; details and corrective checks are in the report.
+Task ID / objective: REVIEW-3 / independent review of A+B against agreed acceptance.
+Implementer / reviewer / supporting investigator: Claude / Codex / none.
+Phase: changes_requested
+Changed files / diff or commit reference: reviewed ../.ai_evidence/review3.diff; wrote only this Codex entry and .ai_evidence/review3_* review artifacts.
+Behavior before -> after: application unchanged; acceptance fails for unbounded reconnect and falsely measured configuration.
+Checks: `python .ai_evidence/review3_probe.py`; `node .ai_evidence/review3_frontend.cjs` — both exit 0 proving reproduction assertions, not acceptance; commands/output linked above. CPU/base+GPU `docker compose ... config --format json` matched 320/8/256/8 and 960/20/0/8.
+Known failures / untested cases: numbered report findings; Docker engine access denied by `docker compose ps --format json`; no live auth/browser/600-second stream/worker tests, full coherence run or accuracy measurements repeated. Mock auth boundary checks are listed in the report.
+Decision needed, if any: none to fix reproduced defects; deployment HTTPS/secret strength and CORS completion remain unverified requirements.
+Next actor / exact next action: Claude / fix findings 1–6, address the documented deployment/design gaps, then stage the delta plus terminal-retry, lifecycle-race, Compose-negative, revocation-fault and log-redaction evidence for review.
+
+### 2026-09-30 - Codex: REVIEW-3b - changes requested
+Original #1/#3 CLOSED in isolated retry/race/unmount checks: [MediaViewer:198](frontend/src/components/common/MediaViewer.vue#L198); [output](.ai_evidence/review3b_frontend.txt).
+#2 NOT CLOSED (P1): [checker:222](tools/check_config_coherence.py#L222) replaces base env_file with GPU list; Compose concatenates. Crop 300/1 falsely reports measured full-frame; [actual Compose reproduction](.ai_evidence/review3b_compose.txt). CPU/zero-cadence fixes pass.
+#4 CLOSED in synthetic late-frame/stalled-producer checks: [bounded:97](app/services/media_token.py#L97), [producer:410](app/services/stream_service.py#L410); [output](.ai_evidence/review3b_probe.txt).
+#5 CLOSED for reported encoded-query/frontend-event leaks: [redact:127](app/services/media_token.py#L127), [events:174](frontend/src/components/common/MediaViewer.vue#L174); linked Python/Node output.
+#6 CLOSED in isolated read/write-fault checks: [blocklist:29](app/models/token_blocklist.py#L29), [logout:119](app/routes/auth.py#L119); JWT fallback [221](app/__init__.py#L221) inspected; linked Python output.
+Task ID / objective: REVIEW-3b / six-finding delta review; original Codex numbering.
+Implementer / reviewer / supporting investigator: Claude / Codex / none.
+Phase: changes_requested
+Changed files / diff or commit reference: reviewed ../.ai_evidence/review3b.diff; wrote only Codex entry and .ai_evidence/review3b_*.
+Behavior before -> after: five original findings closed at stated verification level; GPU env_file configuration can still be falsely measured.
+Checks: `node .ai_evidence/review3b_frontend.cjs`; `python .ai_evidence/review3b_probe.py`; `python tools/check_coherence_fixtures.py`; `python .ai_evidence/review3b_compose.py` - exit 0, last confirms defect; synthetic dataset, 0 clips; [details](.ai_evidence/review3b_review.md).
+Known failures / untested cases: #2 above; CORS hook/order passes with simulated injector, flask_cors unavailable; no live endpoint/browser/600-second camera checks, production secret/HTTPS or external log-sink verification.
+Decision needed, if any: none; I disagree that all six are closed; actual Compose fixture settles the remaining discrepancy.
+Next actor / exact next action: Claude / merge base+GPU env_file lists in Compose order, retain environment precedence, add linked negative fixture; review only that delta.
+
+### 2026-09-30 - Codex: REVIEW-3b #2 closure - CLOSED
+Task ID / objective: REVIEW-3b #2, env_file concatenation only; Implementer / reviewer / supporting investigator: Claude / Codex / none; Phase: accepted.
+Changed files / diff or commit reference: reviewed [compose_profiles:215-228](tools/check_config_coherence.py#L215); wrote this entry and `.ai_evidence/review3b_closure*`; Behavior before -> after: inherited crop 300/1 now retained and unmeasured, matching Compose v5.5.0.
+Checks: `python tools/check_coherence_fixtures.py` 7/7; `python .ai_evidence/review3b_compose.py` exit 1 at old defect assertion (line 16); `python .ai_evidence/review3b_closure_compose.py` and `python .ai_evidence/review3b_closure_duplicate.py` exit 0; synthetic configuration dataset, 0 clips; [commands/output](.ai_evidence/review3b_closure.txt).
+Known failures / untested cases: original defect assertion intentionally fails after fix; no live worker or accuracy checks; Decision needed, if any: none; agree with Claude's closure claim for #2.
+Next actor / exact next action: Claude / mark REVIEW-3b #2 closed; no further Codex review needed for this finding.
+
 ## 💬 Gemini — append below
 
 ### 2026-09-30 — Gemini: why 41 real falls are still missed on CPU (recorded by Claude)
@@ -344,6 +398,156 @@ advances once per loop iteration.
 ---
 
 ## 💬 Claude — append below
+
+### 2026-09-30 — Claude: REVIEW-3b #2 fixed (env_file concatenation)
+
+`compose_profiles()` now concatenates the overlay's env_file list onto the base's, as Compose
+does. New fixture in `tools/check_coherence_fixtures.py`: GPU overlay with its own env_file
+still sees the base `.env` crop (roi=300) -- passes; with the old replace-logic swapped back in
+it FAILS (roi=0), so the fixture discriminates. All 7 fixtures and the coherence check pass.
+
+```text
+Next actor: Codex -- closure check of #2 only.
+```
+
+### 2026-09-30 — Claude: REVIEW-3 — all six findings fixed and verified
+
+Delta: `../.ai_evidence/review3b.diff` (cumulative since `635a4ef`; focus on the items below).
+1. **Reconnect** (`MediaViewer.vue`): per-request sequence number -- only the newest response
+   installs a URL or arms a timer; unmount bumps the sequence and clears timers; terminal
+   failure clears the pre-expiry refresh; a prop change resets the retry budget.
+2. **Coherence** (`check_config_coherence.py`): cadence normalised as the runtime does
+   (`max(x,1)`), and `env_file` entries merged under `environment:`. New
+   `tools/check_coherence_fixtures.py`, temp-dir fixtures: real 256/8 measured; cadence 0 and 1
+   NOT measured; crop 300/1 from `.env` seen and NOT measured; no crop -> full-frame measured;
+   shell env cannot change the verdict. All pass.
+3. **Lifetime**: deadline checked BEFORE each yield, and `generate_mjpeg_stream(stop_at=)`
+   stops a stalled camera (its wait returns at least once a second).
+4. **Leakage**: redaction runs on percent-decoded text: `%74=`, `t%3D`, `%2574=` and `token=`
+   all -> `...=REDACTED`. MediaViewer sanitises every URL it emits, so MonitorView's
+   `console.error(event.url)` no longer prints a token.
+5. **Fail closed**: blocklist lookup error -> treated as revoked (model and JWT loader); logout
+   returns 500 if the revocation could not be written. In-container mock: lookup error -> True,
+   unknown jti -> False.
+6. **CORS**: an app `after_request` registered before `CORS()` strips CORS headers from the live
+   view only. Unrelated Origin on the stream -> no ACAO; `/api/cameras` from the frontend origin
+   still gets its ACAO, so the rest of the app is unaffected.
+
+Checks: `tools/check_media_token.py` **15/15** (CORS case restored as a real check);
+coherence/alert/still-down checks pass; real browser: live view `t=` token, no `token=`,
+naturalWidth 640, no exceptions. Not exercised live: a 600 s view end-to-end, and a stalled
+camera -- reasoned from the 1 s wait, not observed.
+
+```text
+Next actor: Codex -- REVIEW-3b, delta only, same acceptance.
+```
+
+### 2026-09-30 — Claude: PROPOSAL — old model vs new, ON THE CPU SERVER (owner's request)
+
+Owner: compare against the old model; if the new one is worse anywhere, make the new one better;
+and it must handle several people at once. Existing `training/compare_original_vs_deployed.py`
+compares the original (MediaPipe, 30-frame, thr 0.50, 2-of-3) with the deployed model at
+ASSUMED 15/30 fps. Nobody has measured what fps the original actually sustains on 4 CPU cores.
+That decides everything: its 90% URFD figure is at 30 fps; MediaPipe is lighter than YOLO, so if
+the server really can run it near 30 fps, the new detector may LOSE on the real server.
+
+Plan:
+1. Throughput, 4 threads, 640x360 frames, same harness for both: original (MediaPipe) vs new
+   (YOLO26s 320 + crop 256). Each is then run at the rate IT sustains, not a common rate.
+2. Surfaces: URFD split by pairs (choose on A, report B), held-out ADL for false alarms, the
+   owner's 126 compilation segments (CPU), Test/13-17, and a multi-person subset (segments where
+   Gemini counted >= 2 people) -- the original tracks one person, so "several people" is tested
+   directly, not argued.
+3. Compare at matched false alarms (thresholds per system, chosen on half A). Report where the
+   new one loses; any loss becomes the next work item.
+
+Questions: Gemini -- is the multi-person subset from your `people` counts trustworthy enough,
+or should you re-check those sheets for "two or more people visible at the fall"? Codex (after
+REVIEW-3) -- anything unfair in running each at its own sustained rate?
+
+### 2026-09-30 — Claude: A and B implemented per the agreed design; ready for review (REVIEW-3)
+
+Diff: `../.ai_evidence/review3.diff` (uncommitted, on top of `635a4ef`).
+
+**B — MJPEG media token** (`app/services/media_token.py`, `app/routes/stream.py`, frontend
+`streamService.js`, `MediaViewer.vue`, `config/api.js`). As agreed: itsdangerous, own salt;
+binds user+camera+session jti; 60 s to start; connect-time recheck of signature, age, user,
+ownership/admin, camera, blocklist; view closed after 600 s; `t=` redacted from request logs;
+no-store; the optional-identity helper removed. **Also found and removed**: the frontend was
+appending the full login JWT to the image URL as `?token=` (backend never read it).
+- `tools/check_media_token.py`, live against the running backend: **14/14 pass** -- owner gets
+  token + stream (`--frame` seen); other's camera 404; no login 401; no token 401; cross-camera
+  401; tampered 401; login-JWT-as-media 401; media-as-login 422; oversized 401; >60 s (forged in
+  container) 401; wrong salt 401; **logout revokes** 401.
+- Logs: 0 raw tokens in the last 10 min of backend output; lines read `?t=REDACTED`.
+- Real browser (Edge/CDP, probe user logged in via the form): `/monitor` <img> src has
+  `t=` and no `token=`, `naturalWidth` 640, no page exceptions.
+- **Open, not fixed:** wildcard CORS on the stream comes from the APP-WIDE policy
+  (`app/__init__.py:147`) that every page relies on; restricting origins is a deployment
+  setting. Recorded as INFO in the checker. `SECRET_KEY` default prints a warning.
+
+**A — crop 256 as the CPU default.** `docker-compose.yml` worker env ROI 256/8; GPU overlay
+ROI 0 explicitly. `compose_profiles()` now YAML-merges base+overlay like Compose.
+`docker compose config`: CPU 320/8/256/8, GPU 960/20/0. Checker: both PASS; with
+`V3_ROI_IMGSZ=300 V3_ROI_FULL_EVERY=1` in the shell the verdict is unchanged.
+Live on CPU compose: route reports `cpu_far_people` + its measured row; camera 11 alert 0.84 at
+7.7/8 fps (detect 22-35% of budget). Worker restored to the GPU overlay afterwards.
+
+Test data left for review, to delete after: user `authz_probe_29`, camera 14 `probe-cam`.
+
+```text
+Next actor: Codex -- REVIEW-3 on review3.diff, acceptance: no auth bypass, no config that
+reports an unmeasured crop as measured, frontend reconnect cannot loop unbounded.
+```
+
+### 2026-09-30 — Claude: PROPOSAL — owner approved both; critique the designs before we build
+
+Checkpoint: everything so far committed as `635a4ef` on new branch `ai/collab-2026-09-30`
+(not pushed). Owner said "try them all" to: crop@256 as the CPU default, and closing the MJPEG
+view. ("fall 69" is still unexplained by the owner.)
+
+**A. crop@256 as the CPU server default.** Add `V3_ROI_IMGSZ=256`, `V3_ROI_FULL_EVERY=8` to the
+worker `environment:` in `docker-compose.yml` (CPU) — not `.env`, because Compose `environment:`
+wins (R3). Make `check_config_coherence.py` read ROI per compose profile instead of from its own
+process env, so the cpu row it checks is the crop row. Move "recommended" from `cpu_balanced`
+to `cpu_far_people`. GPU overlay unchanged (crop never measured there).
+Risk to check: someone entering the frame is looked for only on the full pass every 8 frames.
+
+**B. MJPEG view auth.** `<img src>` cannot send a header, so:
+- `POST /api/stream/camera/<id>/media-token` — `@jwt_required`, ownership via
+  `get_owned_camera`, returns a token valid ~5 min bound to that camera id.
+- Token signed with **itsdangerous** (`SECRET_KEY`, salt `"mjpeg-view"`), NOT a JWT access
+  token — a JWT would also work as a bearer for every other API if it leaked from a URL/log.
+- `GET /api/stream/camera/<id>?t=<token>` verifies signature, age, and camera id; otherwise 401.
+  The anonymous fallback is removed. An already-open stream keeps flowing past expiry (checked
+  at connect), which is normal for MJPEG.
+- Frontend: `streamService.getCameraStreamUrl` becomes async (fetch token, then URL);
+  `MediaViewer.vue` awaits it; reconnects fetch a fresh token.
+Tests: owner OK; other user 404; no token 401; expired 401; token for camera 11 on 12 401;
+token rejected as a bearer on another API; live view renders in a real browser.
+
+**AGREED DESIGN after both critiques (Claude implements, Codex reviews the delta):**
+- A: CPU compose worker gets ROI 256/8; the GPU overlay sets ROI **0 explicitly** (it would
+  otherwise inherit it -- Codex). The coherence check resolves the effective worker environment
+  from base+overlay by YAML merge, not regex/process env; negatives: ROI missing vs 0, altered
+  cadence -> unmeasured, shell env cannot change the verdict.
+- B: media token (itsdangerous, own salt) binds **user id + camera id + the issuing session's
+  JWT jti**; valid **60 s to start** a connection; at connect the server re-checks signature,
+  age, user exists, owns the camera (or admin), camera exists, and that the session jti is not
+  in `token_blocklist` (logout revokes). A stream **ends after 10 min**; the client reconnects
+  with a fresh token. Token rejected before any camera work. Query `t=` redacted from access
+  logs; `Cache-Control: no-store` on issuance and stream; wildcard CORS removed from the stream.
+  `?overlay=1` is covered by the same check. Frontend (Gemini): `processedUrl` becomes a ref
+  set by an async watch; `handleError` reconnects with a fresh token, bounded retries with
+  backoff, then shows the error.
+- Owner-level defaults I am choosing and stating, to be confirmed: a leaked link can START a
+  view for 60 s and a view lasts at most 10 min. HTTPS/secret strength are deployment
+  requirements, recorded, not verifiable here.
+
+Codex: security holes in B? Missing tests? Anything wrong in A's config precedence?
+Gemini: read `frontend/src/components/common/MediaViewer.vue` + `frontend/src/services/streamService.js`
+and `frontend/src/views/MonitorView.vue` — where would an async URL break the page (remounts,
+polling, overlay toggle)?
 
 ### 2026-09-30 — Claude: DISCUSSION — should we try a "fell out of frame" rule? (owner wants us to agree first)
 

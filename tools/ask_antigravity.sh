@@ -62,6 +62,11 @@ competing implementation and do not invoke another assistant. You do not modify 
 files. When this run is in plan mode you cannot write at all -- put your full answer in your
 reply and Claude will record it in your section, attributed to you.
 
+HARD LIMIT: never run a shell command or terminal tool of any kind. This run is headless; a
+command cannot be approved, and ONE denied command aborts your whole reply -- nothing reaches
+Claude. Use only file reading. If you need search results, say what to search for and Claude
+will provide them next time.
+
 Budget: do NOT read SKILL.md (290 KB, a historical log; measured figures live in
 tools/check_config_coherence.py and app/services/detector_profiles.py). Do not read
 docs/reviews/*archive*. Read what the task names, with bounded output.

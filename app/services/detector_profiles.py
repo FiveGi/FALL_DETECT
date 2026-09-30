@@ -28,8 +28,8 @@ ENV_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
 # key -> (label, settings, what it scored, when to choose it)
 PROFILES = {
     'cpu_balanced': {
-        'label': 'CPU server — balanced (recommended)',
-        'label_th': 'เครื่อง CPU — สมดุล (แนะนำ)',
+        'label': 'CPU server — balanced, full frame',
+        'label_th': 'เครื่อง CPU — สมดุล ภาพเต็ม',
         'measured_th': 'ชุดทดสอบ URFD: ตรวจพบการล้ม 45/60; คลิปที่ไม่ล้มซึ่งแยกไว้ทดสอบ ไม่แจ้งเตือนผิด: 43/56',
         'note_th': 'ค่าเริ่มต้นของระบบ ต้องใช้ภาพความละเอียดต่ำจากช่องภาพรองของกล้อง',
         'hardware': 'cpu',
@@ -37,7 +37,7 @@ PROFILES = {
                 'V3_THRESHOLD': '0.65', 'V3_PREPROCESS': 'auto',
                 'V3_PREPROCESS_DARK_BELOW': '70', 'V3_ROI_IMGSZ': '0'},
         'measured': 'URFD 45/60 falls; held-out clean 43/56',
-        'note': 'What ships. Needs the camera pointed at its low-resolution substream.',
+        'note': 'The previous default. Needs the camera pointed at its low-resolution substream.',
     },
     'cpu_fewer_false_alarms': {
         'label': 'CPU server — fewer false alarms',
@@ -82,8 +82,8 @@ PROFILES = {
                 'is recall.',
     },
     'cpu_far_people': {
-        'label': 'CPU server — people far from the camera (crop around each person)',
-        'label_th': 'เครื่อง CPU — คนอยู่ไกลกล้อง (ตัดภาพเฉพาะรอบตัวคน)',
+        'label': 'CPU server — crop around each person (recommended, default)',
+        'label_th': 'เครื่อง CPU — คนอยู่ไกลกล้อง (ตัดภาพเฉพาะรอบตัวคน) (แนะนำ ค่าเริ่มต้น)',
         'measured_th': 'ชุดทดสอบ URFD: ตรวจพบการล้ม 46/60; คลิปที่ไม่ล้มซึ่งแยกไว้ทดสอบ ไม่แจ้งเตือนผิด: 42/56; '
                        'คลิปของเจ้าของระบบ: 34/75 เทียบกับ 28/75',
         'note_th': 'ตัดภาพรอบตัวคนขนาด 256 พิกเซล ช่วยให้เห็นคนที่อยู่ไกลชัดขึ้น '

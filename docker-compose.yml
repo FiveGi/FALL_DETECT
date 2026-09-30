@@ -80,6 +80,14 @@ services:
       # production server is a QEMU VM with slower cores and will sit below it, so measure
       # there before trusting the recall figures above.
       - V3_TARGET_FPS=8
+      # Pose on a crop around the people at 256 px, full-frame pass every 8 frames. Owner's
+      # compilation footage at this profile: 34/75 real falls caught against 28/75 full-frame,
+      # false alarms 1 against 2; URFD 46/60 against 45/60; ~11% cheaper per frame on four
+      # threads. Risk: a person entering the picture is looked for on the full pass only
+      # (about once a second). Owner approved as the default, 2026-09-30. Set in `environment:`
+      # rather than .env on purpose: Compose environment wins over env_file (Codex, R3).
+      - V3_ROI_IMGSZ=256
+      - V3_ROI_FULL_EVERY=8
       # OMP_NUM_THREADS is deliberately NOT set: app/services/cpu_tuning reads the container's
       # real CPU quota and pins torch and onnxruntime to it, after the pose model loads.
       # Pinning it to 1 here (as this file used to) halved the frame rate on a CPU-only host.

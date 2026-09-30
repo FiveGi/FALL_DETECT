@@ -1,5 +1,5 @@
 from flask import Blueprint, Response, jsonify, request
-from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
+from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
 from app.models.camera import Camera
 from app.services.stream_service import (
     stream_manager, 
@@ -9,6 +9,10 @@ from app.services.stream_service import (
 )
 from app.services.logging_service import save_system_log
 from app.services.authz import admin_required
+from app.services import media_token
+
+# Query-string media tokens must never reach the request log.
+media_token.install_log_redaction()
 
 bp = Blueprint('stream', __name__, url_prefix='/api/stream')
 
@@ -53,39 +57,38 @@ def get_owned_camera(camera_id):
     return Camera.query.filter_by(id=camera_id, user_id=user_id).first()
 
 
-def get_current_user_id():
-    """Caller identity where one may legitimately be absent -- only the MJPEG route below.
+@bp.route('/camera/<int:camera_id>/media-token', methods=['POST'])
+@jwt_required()
+def issue_media_token(camera_id):
+    """A short-lived credential for the live view of ONE camera -- see app/services/media_token.
 
-    Everything else on this blueprint now requires a token, so this must not be used to decide
-    access. It is kept for logging on the one route that cannot demand an Authorization header.
+    Requires the normal login and ownership (admins excepted), exactly as the other stream
+    routes do; the token it returns can then be put in an <img src>, which cannot carry a header.
     """
-    try:
-        verify_jwt_in_request(optional=True)
-        return int(get_jwt_identity()) if get_jwt_identity() else None
-    except Exception:
-        return None
+    camera = get_owned_camera(camera_id)
+    if not camera:
+        return jsonify({'error': f'No camera found with ID {camera_id}.'}), 404
+    token = media_token.issue(current_user_id_int(), camera_id, get_jwt().get('jti'))
+    resp = jsonify({'token': token, 'expires_in': media_token.START_SECONDS,
+                    'max_view_seconds': media_token.STREAM_MAX_SECONDS})
+    resp.headers['Cache-Control'] = 'no-store'
+    return resp
 
 
-# NOT closed yet, and the only one: a browser loads this as <img src=...> and cannot attach
-# an Authorization header, so requiring a token here would black out the live view. Closing
-# it needs a scoped, expiring media token (or an authenticated proxy) -- a design decision,
-# not a decorator. Until then this route still serves any camera's video to anyone who can
-# reach the API, and that is the remaining half of this hole.
 @bp.route('/camera/<int:camera_id>', methods=['GET'])
 def stream_camera(camera_id):
     """
-    Stream video from a specific camera as MJPEG
-    Returns: MJPEG video stream
+    Stream video from a specific camera as MJPEG, to the holder of a media token (?t=).
+
+    This was the last anonymous route: any camera, to anyone who could reach the API. It now
+    requires a token from POST .../media-token, checked in full at connect time and before any
+    camera work, and the view ends after media_token.STREAM_MAX_SECONDS so a leaked link cannot
+    watch indefinitely. The client fetches a fresh token and reconnects.
     """
-    # Anonymous by necessity -- see the note on the route. Identity is for the log only, and it
-    # must come from the optional helper: this is the one route with no @jwt_required(), so
-    # get_jwt_identity() raises here rather than returning None.
-    current_user_id = get_current_user_id()
-    camera = Camera.query.get(camera_id)
-    
-    if not camera:
-        return jsonify({'error': f'No camera found with ID {camera_id}.'}), 404
-    
+    camera, status = media_token.verify(request.args.get('t'), camera_id)
+    if camera is None:
+        return jsonify({'error': 'Not authorised to view this camera.'}), status
+
     try:
         # Deliberately not logged. Opening a video element is a page view, not a system event,
         # and the dashboard reconnects streams constantly: this single line produced 800+ of
@@ -95,26 +98,27 @@ def stream_camera(camera_id):
 
         # Pose-skeleton overlay is opt-in (?overlay=1) -- it re-runs the AI model on
         # served frames, which competes with celery_worker's actual detection for CPU
-        # on this host. Default is the raw video, which is cheap to re-encode and
-        # doesn't touch the detector at all.
+        # on this host. Covered by the same token check as the raw view.
         draw_overlay = request.args.get('overlay', '').lower() in ('1', 'true', 'yes')
 
-        # Generate MJPEG stream
+        # No CORS headers: an <img> does not need them, and a wildcard only widened who could
+        # read the response from script.
+        deadline = media_token.view_deadline()
         return Response(
-            generate_mjpeg_stream(camera_id, camera.url, camera.name, draw_overlay=draw_overlay),
+            media_token.bounded(
+                generate_mjpeg_stream(camera_id, camera.url, camera.name,
+                                      draw_overlay=draw_overlay, stop_at=deadline),
+                deadline),
             mimetype='multipart/x-mixed-replace; boundary=frame',
             headers={
                 'Cache-Control': 'no-cache, no-store, must-revalidate',
                 'Pragma': 'no-cache',
                 'Expires': '0',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization'
             }
         )
-        
+
     except Exception as e:
-        save_system_log('ERROR', f'Stream error for camera {camera.name}: {str(e)}', 'STREAM', current_user_id)
+        save_system_log('ERROR', f'Stream error for camera {camera.name}: {str(e)}', 'STREAM', camera.user_id)
         return jsonify({'error': f'Failed to start stream for camera {camera_id}'}), 500
 
 

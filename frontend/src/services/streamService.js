@@ -14,44 +14,30 @@ export default {
    * overlay=true จะให้ backend วาดกรอบ+เส้น skeleton จากโมเดล pose ทับภาพ
    * (ใช้โมเดลจริงอีกครั้งเพื่อวาด จึงหน่วงกว่าโหมดปกติที่ส่งวิดีโอดิบ)
    */
-  getCameraStreamUrl: (cameraId, overlay = false) => {
+  getCameraStreamUrl: async (cameraId, overlay = false) => {
+    // The live view is an <img>, which cannot send an Authorization header, so it carries a
+    // short-lived media token instead: valid for 60 s to START a view of this one camera, and
+    // useless as a login anywhere else. This used to append the user's full login token as
+    // ?token=, which put a credential for every API into server logs and browser history --
+    // and the backend never read it. See app/services/media_token.py.
+    // Returns { url, maxViewSeconds } or null.
     try {
-      const token = getAuthToken()
       const baseUrl = getApiBaseUrl()
-
-      // ตรวจสอบว่า baseUrl มีค่าและถูกต้อง
-      if (!baseUrl) {
-        throw new Error('API base URL is not defined')
-      }
-
-      const endpoint = API_ENDPOINTS.STREAM.CAMERA(cameraId)
-
-      // ตรวจสอบว่า endpoint มีค่า
-      if (!endpoint) {
-        throw new Error('Stream endpoint is not defined')
-      }
-
-      // สร้าง absolute URL
-      // ใช้ Backend URL โดยตรง: http://localhost:8932
-      //const backendUrl = 'http://localhost:8932'
-      const fullUrl = `${baseUrl}${endpoint}`
-
-      console.log(`[StreamService] Creating stream URL for camera ${cameraId}:`, fullUrl)
-
-      const url = new URL(fullUrl)
-
-      if (token) {
-        url.searchParams.append('token', token)
-      }
-      if (overlay) {
-        url.searchParams.append('overlay', '1')
-      }
-
-      return url.toString()
+      if (!baseUrl) throw new Error('API base URL is not defined')
+      const res = await fetch(`${baseUrl}${API_ENDPOINTS.STREAM.MEDIA_TOKEN(cameraId)}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${getAuthToken()}` },
+        cache: 'no-store'
+      })
+      if (!res.ok) throw new Error(`media token refused (HTTP ${res.status})`)
+      const body = await res.json()
+      const url = new URL(`${baseUrl}${API_ENDPOINTS.STREAM.CAMERA(cameraId)}`)
+      url.searchParams.append('t', body.token)
+      if (overlay) url.searchParams.append('overlay', '1')
+      return { url: url.toString(), maxViewSeconds: body.max_view_seconds || 600 }
     } catch (error) {
       console.error(`Error creating camera stream URL for camera ${cameraId}:`, error)
-      // Return a fallback URL หรือ empty string
-      return ''
+      return null
     }
   },
 
