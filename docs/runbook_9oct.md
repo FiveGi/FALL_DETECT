@@ -10,7 +10,7 @@
 
 ## 0. อัปเดตระบบบน server เป็นเวอร์ชันทดสอบ (คนที่เข้า server ได้ ทำก่อนวันทดสอบ ~30 นาที)
 
-เวอร์ชันที่จะใช้: ป้าย (tag) **`systest-2026-10-09`** รหัส commit **[เติม: SHA ตอนหยุดแก้โค้ด 8 ต.ค. 12:00]**
+เวอร์ชันที่จะใช้: ป้าย (tag) **`systest-2026-10-09b`** (รุ่นเย็น 8 ต.ค. — เจ้าของเลือก: ผู้ใช้ทุกคนใส่ LINE ID ของตัวเองในหน้าเว็บได้, ลบผู้ใช้ได้) รหัส commit **ทีมส่งให้ทางเจ้าของ** (ป้ายเดิม `systest-2026-10-09` ไม่ใช้แล้ว)
 
 **กฎ: ถ้าขั้นไหนขึ้นข้อความ error หรือผลไม่ตรงที่เขียนไว้ → หยุดทันที ส่งข้อความนั้นให้ทีม ห้ามลองแก้เอง ห้ามสั่ง `git stash` / `git reset`**
 
@@ -48,11 +48,11 @@ echo "backup = ~/backup-$STAMP"
 ### 0.3 ดึงเวอร์ชันใหม่
 ```
 git fetch origin --tags
-git rev-parse 'systest-2026-10-09^{commit}'
+git rev-parse 'systest-2026-10-09b^{commit}'
 ```
 - ตัวเลขที่ได้ต้อง**ตรงกับรหัส commit ด้านบน** ทุกตัวอักษร ถ้าไม่ตรง → หยุด
 ```
-git checkout systest-2026-10-09
+git checkout systest-2026-10-09b
 ```
 - ถ้าขึ้น `error: Your local changes ... would be overwritten` → หยุด ส่งให้ทีม (ห้ามใช้ `-f`)
 - ข้อความ `You are in 'detached HEAD' state` = ปกติ ไม่ต้องทำอะไร
@@ -140,6 +140,7 @@ docker compose up -d --force-recreate
 
 ## 4. LINE
 
+- **ผู้ใช้แต่ละคนใส่ LINE ID ของตัวเองได้ในหน้าเว็บ "ตั้งค่าการแจ้งเตือน"** (บอท LINE ตัวเดียวของระบบ — token อยู่ใน .env แอดมินเท่านั้นเปลี่ยนได้; ทักบอท 1 ครั้ง บอทตอบ LINE ID กลับมาให้คัดลอก)
 - สวิตช์ที่ใช้จริงคือ**สวิตช์ของผู้ใช้ในหน้าเว็บ "ตั้งค่าการแจ้งเตือน"** (`LINE_ENABLED` ใน `.env` ใช้แค่ตอนสร้างการตั้งค่าครั้งแรก)
 - ปุ่ม "รับทราบ" ใน LINE **(ไม่บังคับ — ถ้าทำไม่ได้ ข้ามไป ใช้ปุ่มรับทราบในหน้าเว็บแทนได้เหมือนกัน)** ต้องตั้งครบ 3 อย่าง (คนที่ดูแลบัญชี LINE Official Account ทำ): (1) ใน LINE Developers Console → เลือก channel → แท็บ Messaging API → Webhook URL = `[เติม: https://<server>]/api/line/webhook` → กด Verify → เปิด Use webhook (2) `LINE_CHANNEL_SECRET` ใน `.env` (แท็บ Basic settings → Channel secret) (3) `PUBLIC_BASE_URL=[เติม: https://<server>]` ใน `.env` → แล้ว `docker compose up -d`
   - ถ้าใน `.env` **ไม่มี** `LINE_CHANNEL_SECRET` หรือ `PUBLIC_BASE_URL` → ระบบจะไม่แสดงปุ่ม ข้อความ LINE จะลงท้ายว่า "กดรับทราบได้ที่หน้าเว็บ เมนู 'มอนิเตอร์'" (หน้า "ตั้งค่าการแจ้งเตือน" บอกว่าขาดอะไร)

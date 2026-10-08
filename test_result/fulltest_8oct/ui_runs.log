@@ -1,0 +1,113 @@
+=== CLIP 14 expect=fall window=180  14:35:09
+PASS  login
+PASS  clip dropdown lists 14.mp4
+PASS  saved and moved to the Monitor page
+PASS  camera card shown on Monitor
+START_AT 2026-10-08T07:35:15.933Z
+PASS  start detection pressed -> camera running
+PASS  our camera is the selected one (its alerts are listed)
+PASS  fall alert appears in the alert list  -- after 31 s
+ALERT_TEXT "08/10/2026 14:35:39 การแจ้งเตือน: อาจมีการล้ม — ต้องตรวจสอบ (กล้อง: UI clip14 9667 - ทดสอบผ่านหน้าเว็บ) รอตรวจสอบ · คะแนน 88 รับทราบ 60 วินาทีก่อนเกิดเหตุ อันตราย จากกล้อง: UI clip14 9667 NOTI"
+PASS  alert clip (up to 60 s before) plays from the page  -- duration 4.4 s
+PASS  pressed "รับทราบ" in the web -> "✓ รับทราบแล้ว"
+PASS  stop detection pressed -> camera stopped
+PASS  camera deleted from the Cameras page
+UI CLIP TEST PASS
+=== END 14 rc=127  14:35:54
+=== CLIP 15 expect=fall window=180  14:35:54
+PASS  login
+PASS  clip dropdown lists 15.mp4
+FAIL  saved and moved to the Monitor page
+FAIL  camera card shown on Monitor
+START_AT 2026-10-08T07:36:35.589Z
+FAIL  start detection pressed -> camera running
+FAIL  our camera is the selected one (its alerts are listed)
+FAIL  fall alert appears in the alert list  -- none in 180 s
+FAIL  stop detection pressed -> camera stopped
+PASS  camera deleted from the Cameras page
+UI CLIP TEST FAIL
+=== END 15 rc=127  14:41:13
+=== CLIP 16 expect=fall window=180  14:41:14
+PASS  login
+PASS  clip dropdown lists 16.mp4
+PASS  saved and moved to the Monitor page
+PASS  camera card shown on Monitor
+START_AT 2026-10-08T07:41:19.888Z
+PASS  start detection pressed -> camera running
+PASS  our camera is the selected one (its alerts are listed)
+PASS  fall alert appears in the alert list  -- after 18 s
+ALERT_TEXT "08/10/2026 14:41:35 การแจ้งเตือน: อาจมีการล้ม — ต้องตรวจสอบ (กล้อง: UI clip16 74353 - ทดสอบผ่านหน้าเว็บ) รอตรวจสอบ · คะแนน 88 รับทราบ 60 วินาทีก่อนเกิดเหตุ อันตราย จากกล้อง: UI clip16 74353 NOTI"
+PASS  alert clip (up to 60 s before) plays from the page  -- duration 6.4 s
+PASS  pressed "รับทราบ" in the web -> "✓ รับทราบแล้ว"
+PASS  stop detection pressed -> camera stopped
+PASS  camera deleted from the Cameras page
+UI CLIP TEST PASS
+=== END 16 rc=127  14:41:49
+=== CLIP 13 expect=fall window=180  14:41:49
+PASS  login
+PASS  clip dropdown lists 13.mp4
+PASS  saved and moved to the Monitor page
+PASS  camera card shown on Monitor
+START_AT 2026-10-08T07:41:56.300Z
+PASS  start detection pressed -> camera running
+PASS  our camera is the selected one (its alerts are listed)
+FAIL  fall alert appears in the alert list  -- none in 180 s
+PASS  stop detection pressed -> camera stopped
+PASS  camera deleted from the Cameras page
+UI CLIP TEST FAIL
+=== END 13 rc=127  14:45:09
+=== CLIP 17 expect=none window=180  14:45:09
+PASS  login
+PASS  clip dropdown lists 17.mp4
+PASS  saved and moved to the Monitor page
+PASS  camera card shown on Monitor
+START_AT 2026-10-08T07:45:17.184Z
+PASS  start detection pressed -> camera running
+PASS  our camera is the selected one (its alerts are listed)
+PASS  no fall alert for a clip with no fall (watched 180 s)
+PASS  stop detection pressed -> camera stopped
+PASS  camera deleted from the Cameras page
+UI CLIP TEST PASS
+=== END 17 rc=127  14:48:30
+=== CLIP 10 expect=fall window=120  14:48:30
+PASS  login
+PASS  clip dropdown lists 10.mp4
+PASS  saved and moved to the Monitor page
+PASS  camera card shown on Monitor
+START_AT 2026-10-08T07:48:36.226Z
+PASS  start detection pressed -> camera running
+PASS  our camera is the selected one (its alerts are listed)
+FAIL  fall alert appears in the alert list  -- none in 120 s
+PASS  stop detection pressed -> camera stopped
+PASS  camera deleted from the Cameras page
+UI CLIP TEST FAIL
+=== END 10 rc=127  14:50:44
+=== CLIP 11 expect=fall window=120  14:50:45
+PASS  login
+PASS  clip dropdown lists 11.mp4
+PASS  saved and moved to the Monitor page
+PASS  camera card shown on Monitor
+START_AT 2026-10-08T07:50:51.273Z
+PASS  start detection pressed -> camera running
+PASS  our camera is the selected one (its alerts are listed)
+FAIL  fall alert appears in the alert list  -- none in 120 s
+PASS  stop detection pressed -> camera stopped
+PASS  camera deleted from the Cameras page
+UI CLIP TEST FAIL
+=== END 11 rc=127  14:52:59
+=== CLIP 15 RERUN (owner-list wait fix) 14:53:06
+PASS  login
+PASS  clip dropdown lists 15.mp4
+PASS  saved and moved to the Monitor page
+PASS  camera card shown on Monitor
+START_AT 2026-10-08T07:53:11.870Z
+PASS  start detection pressed -> camera running
+PASS  our camera is the selected one (its alerts are listed)
+PASS  fall alert appears in the alert list  -- after 11 s
+ALERT_TEXT "08/10/2026 14:53:22 การแจ้งเตือน: อาจมีการล้ม — ต้องตรวจสอบ (กล้อง: UI clip15 86407 - ทดสอบผ่านหน้าเว็บ) รอตรวจสอบ · คะแนน 84 รับทราบ 60 วินาทีก่อนเกิดเหตุ อันตราย จากกล้อง: UI clip15 86407 NOTI"
+PASS  alert clip (up to 60 s before) plays from the page  -- duration 5.4 s
+PASS  pressed "รับทราบ" in the web -> "✓ รับทราบแล้ว"
+PASS  stop detection pressed -> camera stopped
+PASS  camera deleted from the Cameras page
+UI CLIP TEST PASS
+=== END 15 RERUN 14:53:31

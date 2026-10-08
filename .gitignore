@@ -122,3 +122,8 @@ training/models_cache/
 # Runtime-generated alert snapshot images (app/services/alert_service.py saves a
 # frame here on every fall_red/alone_yellow alert) -- not source, regenerated on use.
 /tmp/
+# Not shipped (8 Oct): local training runs and stock weights nothing uses (re-downloadable; yolo26x exceeds GitHub 100 MB)
+runs/
+/yolo26n.pt
+models/yolo26l-pose.pt
+models/yolo26x-pose.pt
