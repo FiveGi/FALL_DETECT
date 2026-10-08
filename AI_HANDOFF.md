@@ -3844,3 +3844,5 @@ Codex audit: CHANGES P1 runbook without --build ignores the pins -> 0.4 now `up 
 running image before-9oct, 0.5 re-tags it (dry-run on this PC OK); P2 tag not yet pushed (made last, on the reviewed
 commit); P2 README clip walkthrough -> choose "ตรวจจับการล้ม". Gemini runbook: SHA from team, stop after 0.1,
 `ls -d ~/backup-*`, nano for .env -- applied.
+
+## Codex 2026-10-08 (relayed) — fresh-clone re-check: APPROVE on 30c37e8; tag systest-2026-10-09b created on it.
