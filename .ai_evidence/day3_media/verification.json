@@ -1,0 +1,47 @@
+{
+  "command": "python tools/day3_media.py verify",
+  "checks": [
+    {
+      "output": "report\\videos\\day3_compare_near.mp4",
+      "sha256": "a28acd64c352445b55ef10360665189e1f2b546f5d8b76a02b1c3221ce62e5b9",
+      "frames_decoded": 32,
+      "fps": 8.0,
+      "seconds": 4.0,
+      "dimensions": [
+        960,
+        1022
+      ],
+      "codec": "h264",
+      "alert_timeline_parity": true
+    },
+    {
+      "output": "report\\videos\\day3_compare_multi.mp4",
+      "sha256": "5855b495bda37688417db664ca2416dfe83df2db154fbfb5b2699ab183be992b",
+      "frames_decoded": 44,
+      "fps": 8.0,
+      "seconds": 5.5,
+      "dimensions": [
+        960,
+        1022
+      ],
+      "codec": "h264",
+      "alert_timeline_parity": true
+    },
+    {
+      "output": "report\\img\\day3_coco_false_person_grid.jpg",
+      "dimensions": [
+        1500,
+        1000
+      ],
+      "sha256": "ca7977f1a4f96907ebd3e9044a82d95de67cb1b2a14317843a5a717a39246437"
+    },
+    {
+      "output": "report\\img\\day3_t2_paired_deltas.png",
+      "dimensions": [
+        1800,
+        990
+      ],
+      "sha256": "f9fcf05235f6475569e2a3ff1e3b958a9d740095451e9801359766dcd1def91f"
+    }
+  ]
+}

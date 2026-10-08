@@ -1,0 +1,200 @@
+{
+  "command": "python tools/day3_media.py chart",
+  "threshold": 0.65,
+  "pose": "nightaug_s44",
+  "phases": 8,
+  "counts": [
+    75,
+    25,
+    25,
+    14
+  ],
+  "near_keys": [
+    "1.mp4#12",
+    "1.mp4#16",
+    "1.mp4#3",
+    "1.mp4#5",
+    "12.mp4#13",
+    "4.mp4#1",
+    "4.mp4#16",
+    "4.mp4#2",
+    "4.mp4#4",
+    "5.mp4#10",
+    "5.mp4#11",
+    "5.mp4#13",
+    "5.mp4#4",
+    "5.mp4#5",
+    "5.mp4#9",
+    "6.mp4#1",
+    "7.mp4#2",
+    "8.mp4#7",
+    "9.mp4#16",
+    "9.mp4#19",
+    "9.mp4#20",
+    "9.mp4#3",
+    "9.mp4#4",
+    "9.mp4#8",
+    "9.mp4#9"
+  ],
+  "pairs": [
+    {
+      "seed": 45,
+      "control": [
+        36.625,
+        13.375,
+        10.75,
+        6.375
+      ],
+      "full": [
+        42.625,
+        16.125,
+        13.875,
+        8.5
+      ],
+      "delta": [
+        6.0,
+        2.75,
+        3.125,
+        2.125
+      ],
+      "sources": [
+        {
+          "row": "training/data/stage1/results_pinned.jsonl:22",
+          "track": "training\\data\\multi_diag_v2\\track_metric_t2.txt:2",
+          "owner_files": "training/data/stage1/T1_ctrl_s45_065_pinned_owner[0-7].json",
+          "near_counts": [
+            10,
+            9,
+            12,
+            11,
+            9,
+            10,
+            13,
+            12
+          ]
+        },
+        {
+          "row": "training/data/stage1/results_pinned.jsonl:35",
+          "track": "training\\data\\multi_diag_v2\\track_metric_step1b.txt:4",
+          "owner_files": "training/data/stage1/T2_truncfull_s45_065_pinned_owner[0-7].json",
+          "near_counts": [
+            13,
+            14,
+            16,
+            12,
+            14,
+            13,
+            14,
+            15
+          ]
+        }
+      ]
+    },
+    {
+      "seed": 46,
+      "control": [
+        40.625,
+        14.375,
+        14.875,
+        4.75
+      ],
+      "full": [
+        48.125,
+        18.875,
+        16.875,
+        9.375
+      ],
+      "delta": [
+        7.5,
+        4.5,
+        2.0,
+        4.625
+      ],
+      "sources": [
+        {
+          "row": "training/data/stage1/results_pinned.jsonl:24",
+          "track": "training\\data\\multi_diag_v2\\track_metric_t2.txt:3",
+          "owner_files": "training/data/stage1/T1_ctrl_s46_065_pinned_owner[0-7].json",
+          "near_counts": [
+            14,
+            14,
+            15,
+            14,
+            17,
+            14,
+            15,
+            16
+          ]
+        },
+        {
+          "row": "training/data/stage1/results_pinned.jsonl:48",
+          "track": "training\\data\\multi_diag_v2\\track_metric_step1b.txt:5",
+          "owner_files": "training/data/stage1/T2_truncfull_s46_065_pinned_owner[0-7].json",
+          "near_counts": [
+            17,
+            16,
+            17,
+            17,
+            17,
+            17,
+            17,
+            17
+          ]
+        }
+      ]
+    },
+    {
+      "seed": 47,
+      "control": [
+        36.125,
+        15.75,
+        14.0,
+        6.375
+      ],
+      "full": [
+        40.0,
+        17.75,
+        15.0,
+        7.0
+      ],
+      "delta": [
+        3.875,
+        2.0,
+        1.0,
+        0.625
+      ],
+      "sources": [
+        {
+          "row": "training/data/stage1/results_pinned.jsonl:26",
+          "track": "training\\data\\multi_diag_v2\\track_metric_t2.txt:4",
+          "owner_files": "training/data/stage1/T1_ctrl_s47_065_pinned_owner[0-7].json",
+          "near_counts": [
+            12,
+            15,
+            15,
+            12,
+            13,
+            14,
+            16,
+            15
+          ]
+        },
+        {
+          "row": "training/data/stage1/results_pinned.jsonl:50",
+          "track": "training\\data\\multi_diag_v2\\track_metric_step1b.txt:6",
+          "owner_files": "training/data/stage1/T2_truncfull_s47_065_pinned_owner[0-7].json",
+          "near_counts": [
+            14,
+            15,
+            17,
+            15,
+            15,
+            15,
+            13,
+            16
+          ]
+        }
+      ]
+    }
+  ]
+}

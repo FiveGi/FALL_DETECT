@@ -1,0 +1,11 @@
+﻿Night FA limit baseline+1 = 4.33333333333333; source training/data/stage1/results_pinned.jsonl:1; plan_final.md:32-33.
+URFD half-B 28 falls/20 ADL; GMDCSA val 16 ADL (8 caches); simulated night 60 falls/40 ADL x3; owner 75 falls/13 negatives, multi25 (8 phases). Cached metrics only, 0 clips rerun.
+training/data/stage1/results_pinned.jsonl:35 T2_truncfull_s45_065: 26.0/15.6/10.5/4.33333333333333/1.25; owner=42.625,multi=16.125; failed=ADL
+training/data/stage1/results_pinned.jsonl:36 T2_truncfull_s45_rule: 23.4/16.5/10.9/3.66666666666667/0.5; owner=37.125,multi=15.25; failed=
+training/data/stage1/results_pinned.jsonl:48 T2_truncfull_s46_065: 23.2/12.8/11.0/6.66666666666667/0.875; owner=48.125,multi=18.875; failed=ADL,nightFA
+training/data/stage1/results_pinned.jsonl:49 T2_truncfull_s46_rule: 22.0/13.9/11.1/6.33333333333333/0.5; owner=44.125,multi=17.75; failed=ADL,nightFA
+training/data/stage1/results_pinned.jsonl:50 T2_truncfull_s47_065: 21.5/16.4/10.2/3.66666666666667/1.625; owner=40,multi=17.75; failed=falls
+training/data/stage1/results_pinned.jsonl:51 T2_truncfull_s47_rule: 21.5/16.4/10.2/3.66666666666667/1.625; owner=40,multi=17.75; failed=falls
+Only s45_rule passes these five numeric checks; full scorecard/CPU/promotion not verified.
+Counts provenance: training/measure/stage1_eval_pinned.py:2-6; training/data/multi_diag_v2/plan_final.md:27-34.
+Command: & ([scriptblock]::Create((Get-Content -Raw .ai_evidence/verify_t2full_revised_codex.ps1)))

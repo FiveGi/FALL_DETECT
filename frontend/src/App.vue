@@ -197,15 +197,16 @@ watch(
             </RouterLink>
 
             <!-- เมนูการจัดการสำหรับ Admin (เรียงตามความสำคัญ) -->
+            <!-- every user sets up their own LINE (owner, 8 Oct) -->
+            <RouterLink :to="'/notification-settings'" :class="{ active: currentRoutePath === '/notification-settings' }">
+              ตั้งค่าการแจ้งเตือน
+            </RouterLink>
             <template v-if="authStore.isAdmin">
               <RouterLink :to="'/camera'" :class="{ active: currentRoutePath === '/camera' }">
                 จัดการกล้อง
               </RouterLink>
               <RouterLink :to="'/users'" :class="{ active: currentRoutePath === '/users' }">
                 จัดการผู้ใช้
-              </RouterLink>
-              <RouterLink :to="'/notification-settings'" :class="{ active: currentRoutePath === '/notification-settings' }">
-                ตั้งค่าการแจ้งเตือน
               </RouterLink>
               <RouterLink :to="'/system-logs'" :class="{ active: currentRoutePath === '/system-logs' }">
                 บันทึกระบบ

@@ -37,11 +37,18 @@ class LineSettings(db.Model):
     def get_settings(cls, user_id):
         settings = cls.query.filter_by(user_id=user_id).first()
         if not settings:
+            # One system bot (owner, 8 Oct): every user gets the bot's TOKEN, but only an administrator gets the .env
+            # LINE id and switch -- those belong to whoever set up .env. Seeding them for everyone sent a new
+            # ordinary user's alerts to the owner's phone (found in the web test: a fresh user's test push arrived
+            # on the owner's LINE without any id typed).
+            from app.models.user import User
+            user = db.session.get(User, user_id)
+            is_admin = bool(user and user.is_admin())
             settings = cls(
                 user_id=user_id,
                 channel_access_token=Config.LINE_CHANNEL_ACCESS_TOKEN or None,
-                line_user_id=Config.LINE_USER_ID or None,
-                enabled=Config.LINE_ENABLED,
+                line_user_id=(Config.LINE_USER_ID or None) if is_admin else None,
+                enabled=Config.LINE_ENABLED if is_admin else False,
             )
             db.session.add(settings)
             db.session.commit()

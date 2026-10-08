@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1" name="viewport"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<title>ผลทดสอบเต็มระบบ 8 ต.ค.</title>
+<style>
+/* Same tokens and components as the first report (report_day2_3.html), so the two read as one series. */
+:root {
+  --bg: #f6f7f9; --paper: #ffffff; --ink: #17202a; --muted: #5a6472; --rule: #dde2e8;
+  --accent: #0b6e6e; --accent-soft: #e3f1f0;
+  --good: #1a7f37;  --good-bg: #e6f4ea;
+  --warn: #9a6400;  --warn-bg: #fdf3dc;
+  --bad: #b42318;   --bad-bg: #fde8e7;
+  --body: "IBM Plex Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12161b; --paper: #1a2027; --ink: #e6e9ed; --muted: #9aa4b1; --rule: #2c343d;
+    --accent: #4fb8b4; --accent-soft: #16302f;
+    --good: #5cc27a; --good-bg: #15301e; --warn: #e2b04a; --warn-bg: #33280f; --bad: #f08a80; --bad-bg: #3a1a18;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12161b; --paper: #1a2027; --ink: #e6e9ed; --muted: #9aa4b1; --rule: #2c343d;
+  --accent: #4fb8b4; --accent-soft: #16302f;
+  --good: #5cc27a; --good-bg: #15301e; --warn: #e2b04a; --warn-bg: #33280f; --bad: #f08a80; --bad-bg: #3a1a18;
+  color-scheme: dark;
+}
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.75; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-inline: 16px; padding-block: 40px 80px; }
+.col { max-width: 74ch; }
+header.doc { border-bottom: 2px solid var(--ink); padding-bottom: 18px; margin-bottom: 28px; }
+.eyebrow { font-size: 13px; letter-spacing: .06em; color: var(--muted); }
+h1 { font-size: 2.1rem; line-height: 1.3; margin: 6px 0 10px; font-weight: 700; text-wrap: balance; }
+h2 { font-size: 1.45rem; margin: 56px 0 12px; padding-top: 14px; border-top: 1px solid var(--rule); text-wrap: balance; }
+h3 { font-size: 1.12rem; margin: 30px 0 8px; }
+p, li { margin: 0 0 10px; }
+p, li, dd, td, code, a { overflow-wrap: anywhere; }
+.meta { color: var(--muted); font-size: 14px; display: flex; flex-wrap: wrap; gap: 6px 22px; }
+.summary { background: var(--paper); border: 1px solid var(--rule); border-left: 4px solid var(--accent); padding: 18px 22px; margin: 18px 0; }
+.summary h2 { margin-top: 0; padding-top: 0; border-top: 0; }
+.summary ul { margin: 0; padding-left: 20px; }
+.tbl { overflow-x: auto; margin: 14px 0 20px; border: 1px solid var(--rule); background: var(--paper); overscroll-behavior-x: contain; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; min-width: 640px; }
+caption { text-align: left; padding: 9px 12px; font-weight: 600; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--rule); }
+th { font-weight: 600; color: var(--muted); font-size: 13px; background: var(--bg); }
+td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.pill { display: inline-block; font-size: 12.5px; font-weight: 600; padding: 1px 9px; border-radius: 99px; white-space: nowrap; }
+.ok { color: var(--good); background: var(--good-bg); }
+.wip { color: var(--warn); background: var(--warn-bg); }
+.open { color: var(--bad); background: var(--bad-bg); }
+.pill.tried { color: var(--muted); background: var(--bg); border: 1px solid var(--rule); }
+figure { margin: 18px 0 26px; }
+figure img { display: block; width: 100%; max-width: 100%; height: auto; border: 1px solid var(--rule); background: #000; box-sizing: border-box; }
+figcaption { font-size: 14px; color: var(--muted); margin-top: 8px; max-width: 80ch; }
+figcaption b { color: var(--ink); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 18px; }
+.grid2 > * { min-width: 0; }
+.note { font-size: 14px; color: var(--muted); }
+.plain { background: var(--paper); border: 1px solid var(--rule); padding: 14px 18px; margin: 10px 0; max-width: 74ch; }
+.plain b { color: var(--accent); }
+.plain p:last-child { margin-bottom: 0; }
+.ask { background: var(--paper); border: 1px solid var(--rule); padding: 14px 18px; margin: 10px 0; }
+.ask b { color: var(--accent); }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: .9em; background: var(--accent-soft); padding: 0 4px; }
+details summary { cursor: pointer; color: var(--accent); font-weight: 600; margin: 6px 0 8px; min-height: 44px; display: flex; align-items: center; }
+a:focus-visible, summary:focus-visible, .tbl:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+nav a { display: inline-block; padding: 5px 12px 5px 0; }
+section { scroll-margin-top: 16px; }
+footer { margin-top: 40px; border-top: 1px solid var(--rule); padding-top: 15px; }
+.win { font-weight: 600; }
+@media (max-width: 560px) { h1 { font-size: 1.6rem; } }
+@media print { nav { display: none; } .wrap { max-width: none; } body { background: white; color: black; } }
+</style></head>
+<body><main class="wrap">
+
+<header class="doc">
+  <span class="eyebrow">รายงานทดสอบเต็มระบบ · ระบบตรวจจับการล้มสำหรับผู้สูงอายุ · 8 ต.ค. 2026</span>
+  <h1>ใช้งานทุกฟังก์ชัน วัดความแม่น และเทียบกับระบบเดิม</h1>
+  <p class="col">ทดสอบบนเครื่องพัฒนาด้วย CPU 4 คอร์ (จำลองเซิร์ฟเวอร์ที่ไม่มีการ์ดจอ) ใช้ <b>โมเดลตัวจริงที่จะใช้วันที่ 9</b>
+  ทุกการทดสอบการใช้งานทำผ่านหน้าเว็บ เหมือนที่ผู้ใช้เห็น</p>
+  <div class="meta"><span>โมเดล: yolo26s-pose + fall_classifier_v3 (เกณฑ์ 0.65)</span><span>ภาพ 320 px · ครอปภาพคนขนาด 256 · เป้า 8 ภาพ/วินาที · สูงสุด 4 คน</span></div>
+  <nav aria-label="สารบัญ"><a href="#simple">สรุป</a><a href="#func">ฟังก์ชัน</a><a href="#acc">ความแม่น</a><a href="#old">เทียบระบบเดิม</a><a href="#issues">ปัญหาที่พบ</a><a href="#owner">สิ่งที่ต้องตัดสินใจ</a><a href="#src">ที่มาตัวเลข</a></nav>
+</header>
+
+<section class="summary" id="simple">
+<h2>ฉบับอ่านง่าย (อ่าน 2 นาที)</h2>
+<ul>
+<li><span class="pill ok">ใช้ได้</span> <b>ทุกฟังก์ชันที่ลองผ่านหน้าเว็บทำงาน</b> — เพิ่มกล้อง, เริ่ม/หยุดตรวจจับ, แจ้งเตือนขึ้นหน้าเว็บ, เปิดคลิปย้อนหลัง, กดรับทราบ, ผู้ใช้ใส่ LINE ของตัวเอง, จัดการผู้ใช้, แบบประเมิน Thai-FRAT, เปลี่ยนโมเดล, กล้อง RTSP หลุดแล้วกลับมาเอง</li>
+<li><span class="pill ok">ใช้ได้</span> <b>คลิปคนล้มจริง 4 คลิป จับได้ 3</b> (14, 15, 16) แจ้งเตือนประมาณ <b>8–10 วินาที</b>หลังล้ม คลิปที่จับไม่ได้คือคลิป 13 (ยากที่สุด ยาวแค่ 5 วินาที)</li>
+<li><span class="pill ok">ใช้ได้</span> <b>คลิปไม่มีคนล้ม (17 กลุ่มคนออกกำลังกาย) ระบบเงียบ</b> ตลอด 3 นาที — ระบบเดิมเตือนผิดในคลิปนี้</li>
+<li><span class="pill ok">ดีกว่าเดิม</span> เทียบกับระบบเดิมบนข้อมูลชุดเดียวกัน: ระบบใหม่<b>จับการล้มในชุดมาตรฐานได้มากกว่า เตือนผิดน้อยกว่า และดีกว่าชัดเจนตอนกลางคืน</b></li>
+<li><span class="pill open">ยังแย่กว่าเดิม</span> <b>บนคลิปของเจ้าของเอง ระบบเดิมยังจับการล้มได้มากกว่า</b> (44 จาก 75 เทียบกับ 34) แต่ระบบเดิมเตือนผิดมากกว่า (5 เทียบกับ 1.75) — ดูหัวข้อ <a href="#old">เทียบระบบเดิม</a></li>
+<li><span class="pill wip">ต้องระวัง</span> ความเร็วจริงตอนทดสอบ <b>4.3–6.6 ภาพ/วินาที ต่ำกว่าเป้า 8</b> ยิ่งช้า ยิ่งจับพลาดง่าย</li>
+<li><span class="pill wip">รอเจ้าของ</span> ปุ่ม "รับทราบ" ใน LINE + คลิปย้อนหลังใน LINE ยังทดสอบไม่ได้ จนกว่าจะใส่ <code>LINE_CHANNEL_SECRET</code> ใน .env</li>
+</ul>
+</section>
+
+<section id="func">
+<h2>1. ใช้งานทุกฟังก์ชัน</h2>
+<p class="col">ทุกแถวคือการทดสอบที่รันจริงวันนี้ (8 ต.ค. 14:35–15:05) แถวที่เขียนว่า "หน้าเว็บ" คือเปิดเบราว์เซอร์จริงแล้วกดเหมือนผู้ใช้
+ไม่มีการส่ง LINE จริงระหว่างทดสอบรอบนี้ (สวิตช์ LINE ของทุกคนปิดอยู่ ตรวจแล้วก่อนเริ่ม)</p>
+<div class="tbl" tabindex="0"><table>
+<thead><tr><th>ฟังก์ชัน</th><th>ทดสอบอย่างไร</th><th>ผล</th></tr></thead>
+<tbody>
+<tr><td>เข้าสู่ระบบ + เปิดทุกหน้า (8 หน้า)</td><td>หน้าเว็บ: เปิดทีละหน้า, ตัวอักษรบนปุ่มอ่านออก, ใช้บนจอมือถือกว้าง 390 px ได้</td><td><span class="pill ok">ผ่าน</span></td></tr>
+<tr><td>เพิ่มกล้อง (ไฟล์วิดีโอทดสอบ) → มอนิเตอร์ → เริ่มตรวจจับ</td><td>หน้าเว็บ ทำซ้ำ 8 ครั้ง (คลิป 10, 11, 13–17 และ 15 ซ้ำ)</td><td><span class="pill ok">ผ่าน</span> <span class="note">ครั้งแรกของคลิป 15 ล้มเหลวเพราะสคริปต์ทดสอบเลือกเจ้าของกล้องก่อนรายชื่อโหลดเสร็จ — แก้สคริปต์แล้วรันใหม่ผ่าน</span></td></tr>
+<tr><td>แจ้งเตือนการล้มขึ้นหน้าเว็บ (ป๊อปอัป + รายการแจ้งเตือน)</td><td>หน้าเว็บ คลิป 14, 15, 16</td><td><span class="pill ok">ผ่าน</span></td></tr>
+<tr><td>คลิปย้อนหลังในแจ้งเตือน</td><td>หน้าเว็บ: เปิดคลิปจากรายการแจ้งเตือน เล่นได้ 4.4–6.4 วินาที</td><td><span class="pill ok">ผ่าน</span> <span class="note">คลิปเก็บได้สูงสุด 60 วินาทีก่อนเหตุ แต่ในการทดสอบกล้องเพิ่งเปิดได้ไม่กี่วินาที จึงสั้น</span></td></tr>
+<tr><td>กดรับทราบในเว็บ</td><td>หน้าเว็บ: กด "รับทราบ" → ขึ้น "✓ รับทราบแล้ว"</td><td><span class="pill ok">ผ่าน</span></td></tr>
+<tr><td>หยุดตรวจจับ + ลบกล้อง</td><td>หน้าเว็บ ทุกรอบ</td><td><span class="pill ok">ผ่าน</span></td></tr>
+<tr><td>ผู้ใช้ทั่วไปใส่ LINE ID ของตัวเอง</td><td>หน้าเว็บ: แอดมินสร้างผู้ใช้ → ผู้ใช้เห็นเมนู "ตั้งค่าการแจ้งเตือน" → ใส่ ID → เปิดสวิตช์ → บันทึก → รีโหลดแล้วยังอยู่ → ปิด → แอดมินลบผู้ใช้</td><td><span class="pill ok">ผ่าน</span></td></tr>
+<tr><td>ผู้ใช้ทั่วไปเปลี่ยน token บอทไม่ได้ / ไม่เห็นกลุ่ม LINE ของคนอื่น</td><td>ทดสอบหลังบ้าน 15 ข้อ (test_line_routes)</td><td><span class="pill ok">ผ่าน 15/15</span></td></tr>
+<tr><td>แจ้งเตือนซ้ำเมื่อไม่มีคนรับทราบ (escalation)</td><td>ทดสอบหลังบ้าน 15 ข้อ ไม่ส่ง LINE จริง (test_line_escalation)</td><td><span class="pill ok">ผ่าน</span></td></tr>
+<tr><td>ข้อความ LINE ถึงมือถือจริง</td><td>ทดสอบไปแล้วเมื่อ 8 ต.ค. 12:27 และ 14:10 (ข้อความทดสอบ, อยู่คนเดียว, ล้ม 88%)</td><td><span class="pill ok">ผ่าน</span></td></tr>
+<tr><td>ปุ่ม "รับทราบ" ใน LINE + คลิปใน LINE</td><td>ต้องมี <code>LINE_CHANNEL_SECRET</code> และทางเข้าชั่วคราวจากอินเทอร์เน็ต</td><td><span class="pill wip">รอเจ้าของใส่ secret</span></td></tr>
+<tr><td>แบบประเมิน Thai-FRAT</td><td>หน้าเว็บ: กรอก 6 ข้อ → คะแนนรวม 65 ถูกต้อง → ดูรายละเอียด → แก้ข้อ 1 → คะแนนเป็น 40 ถูกต้อง → ลบ</td><td><span class="pill ok">ผ่าน</span></td></tr>
+<tr><td>เปลี่ยนโมเดล (ตัวจริง ↔ ทางเลือก A) และย้อนกลับ</td><td>test_model_switch + test_compose_model_default</td><td><span class="pill ok">ผ่าน</span></td></tr>
+<tr><td>กล้อง RTSP: ปิด, ค้าง, หลุด, กลับมา</td><td>test_rtsp_robustness กับกล้องจำลอง — ไม่ค้าง, ต่อใหม่ได้เอง, อ่าน 8 ภาพ/วินาทีนาน 180 วินาทีไม่ตกเลย</td><td><span class="pill ok">ผ่าน</span></td></tr>
+<tr><td>จำกัดสูงสุด 4 คนต่อภาพ</td><td>test_people_cap + test_replay_cap</td><td><span class="pill ok">ผ่าน</span></td></tr>
+<tr><td>อัปเกรดบนเซิร์ฟเวอร์ตามคู่มือ (ซ้อม)</td><td>ซ้อมทำตามคู่มือ runbook_9oct ตั้งแต่ต้น</td><td><span class="pill ok">ผ่าน</span></td></tr>
+</tbody></table></div>
+</section>
+
+<section id="acc">
+<h2>2. ความแม่น</h2>
+
+<h3>2.1 คลิปทดสอบ ผ่านหน้าเว็บ (สิ่งที่ผู้ใช้จะเห็นจริง)</h3>
+<p class="col">แต่ละคลิปเปิดเป็นกล้อง 1 ตัว ดูผลในหน้าเว็บนาน 3 นาที (คลิป 10, 11 นาน 2 นาที) วิดีโอเล่นวนซ้ำ จึงนับเฉพาะ<b>รอบแรก</b>
+เวลาล้มในคลิปดูด้วยตาจากภาพทุกครึ่งวินาที</p>
+<div class="tbl" tabindex="0"><table>
+<thead><tr><th>คลิป</th><th>เนื้อหา</th><th>ควรเป็น</th><th>ผล</th><th class="n">ล้มที่วินาที</th><th class="n">เตือนหลังล้ม</th><th class="n">คนในภาพ</th></tr></thead>
+<tbody>
+<tr><td>14</td><td>ยายถือไม้เท้าล้มในห้องนั่งเล่น</td><td>เตือน</td><td><span class="pill ok">เตือน</span></td><td class="n">~4.0</td><td class="n">~10 วิ</td><td class="n">1</td></tr>
+<tr><td>15</td><td>ชายล้มในทางเดินโรงพยาบาล มีอีกคนเดินผ่าน</td><td>เตือน</td><td><span class="pill ok">เตือน</span></td><td class="n">~5.0</td><td class="n">~8 วิ</td><td class="n">2</td></tr>
+<tr><td>16</td><td>ชายสะดุดล้มกลางลานคนเยอะ</td><td>เตือน</td><td><span class="pill ok">เตือน</span></td><td class="n">~6.5</td><td class="n">~10.5 วิ</td><td class="n">4</td></tr>
+<tr><td>13</td><td>ชายลื่นล้มลงคลานบนทางเท้าเปียก (คลิปยาว 5 วิ)</td><td>เตือน</td><td><span class="pill open">ไม่เตือน</span></td><td class="n">~2.5</td><td class="n">—</td><td class="n">1</td></tr>
+<tr><td>17</td><td>กลุ่มคนออกกำลังกาย ไม่มีใครล้ม</td><td>เงียบ</td><td><span class="pill ok">เงียบ</span></td><td class="n">—</td><td class="n">—</td><td class="n">หลายคน</td></tr>
+<tr><td>10</td><td>เด็กเล็กตกบันได (นอกขอบเขต)</td><td>—</td><td><span class="pill tried">ไม่เตือน</span></td><td class="n">~3</td><td class="n">—</td><td class="n">—</td></tr>
+<tr><td>11</td><td>เด็กตกเตียงสองชั้น กล้องกลางคืน (นอกขอบเขต)</td><td>—</td><td><span class="pill tried">ไม่เตือน</span></td><td class="n">~11</td><td class="n">—</td><td class="n">—</td></tr>
+</tbody></table></div>
+<p class="note col">ผลรวมในขอบเขต: ล้มจริง 4 คลิป เตือน 3 · ไม่มีล้ม 1 คลิป เงียบ 1 · คลิปเด็ก 10, 11 อยู่นอกขอบเขตของระบบ (เด็ก, ภาพเล็ก, วิดีโออัดซ้ำจากมือถือ) ไม่นับ
+· "เตือนหลังล้ม" เป็นค่าประมาณจากเวลาในบันทึกระบบเทียบกับเวลาล้มในคลิป รวมเวลาเปิดกล้องราว 1–2 วินาทีแล้ว
+· ตัวอย่างแค่ 5 คลิป ใช้ยืนยันว่า<b>ระบบทั้งสายทำงานจริง</b> ไม่ใช่ตัวเลขความแม่นของระบบ — ความแม่นดูที่ 2.2</p>
+
+<div class="grid2">
+<figure><img src="img/fulltest_8oct/snapshot_clip14.jpg" alt="ภาพแนบแจ้งเตือนคลิป 14: ยายนั่งล้มอยู่บนพื้น ไม้เท้าหล่นข้างตัว"/>
+<figcaption><b>ภาพที่แนบกับแจ้งเตือน คลิป 14</b> — เป็นภาพตอนยายล้มอยู่บนพื้นแล้ว (ในภาพมีคนเดียว)</figcaption></figure>
+<figure><img src="img/fulltest_8oct/snapshot_clip16.jpg" alt="ภาพแนบแจ้งเตือนคลิป 16: ชายนอนบนพื้น มีคนยืนดูอยู่ด้านหลังหลายคน"/>
+<figcaption><b>ภาพที่แนบกับแจ้งเตือน คลิป 16</b> — ในภาพมี 4 คน คนที่อยู่บนพื้นมีคนเดียวคือคนที่ล้ม
+แต่ภาพยังไม่มีกรอบบอกว่าระบบเลือกคนไหน จึงยืนยันได้แค่ว่า "เตือนตอนมีคนล้มอยู่จริง"</figcaption></figure>
+</div>
+<figure><img src="img/fulltest_8oct/web_alert_clip16.jpg" alt="หน้ามอนิเตอร์: ป๊อปอัปแจ้งเตือนมุมซ้ายบน และรายการแจ้งเตือนด้านขวา"/>
+<figcaption><b>หน้ามอนิเตอร์ตอนแจ้งเตือนคลิป 16</b> — ป๊อปอัปมุมซ้ายบน และรายการ "การแจ้งเตือน: อาจมีการล้ม — ต้องตรวจสอบ" ด้านขวา
+(กล้อง "test", "ทดสอบ 1", "probe-cam" ในภาพไม่ใช่กล้องที่สร้างในการทดสอบนี้ ไม่ได้แตะต้อง)</figcaption></figure>
+<figure><img class="light" src="img/fulltest_8oct/sheet_clip13.jpg" alt="ภาพทุกครึ่งวินาทีของคลิป 13: ชายเดินแล้วล้มลงคลานที่วินาทีที่ 2.5–3.5"/>
+<figcaption><b>คลิป 13 ที่ระบบจับไม่ได้</b> — ล้มลงท่าคลาน (มือและเข่าแตะพื้น) ไม่ได้นอนราบ และคลิปจบหลังล้มเพียง 2 วินาที
+ระบบต้องดูท่าทางต่อเนื่องราว 2 วินาทีก่อนตัดสิน จึงไม่ทัน (ระบบเดิมก็จับไม่ได้)</figcaption></figure>
+
+<h3>2.2 ชุดวัดมาตรฐาน (วัดเหมือนเดิมทุกครั้ง ใช้ตัดสินว่าดีขึ้นหรือแย่ลง)</h3>
+<p class="col">ตัวเลขเฉลี่ยจาก 8 รอบ (เริ่มตัดภาพต่างจังหวะกัน) ยกเว้นกลางคืน 3 รอบ (สัญญาณรบกวนต่างกัน)
+"ตัวจริง" คือโมเดลที่จะใช้วันที่ 9 · "ทางเลือก A" คือโมเดลที่ฝึกเพิ่มสำหรับกลางคืน เปลี่ยนได้ด้วย 3 บรรทัดใน .env</p>
+<div class="tbl" tabindex="0"><table>
+<thead><tr><th>ชุดวัด</th><th class="n">ตัวจริง (ใช้ 9 ต.ค.)</th><th class="n">ทางเลือก A</th><th>อ่านว่า</th></tr></thead>
+<tbody>
+<tr><td>URFD ล้ม (ครึ่ง B, 28 คลิป) จับได้</td><td class="n">21.8</td><td class="n">23.4</td><td>ยิ่งมากยิ่งดี</td></tr>
+<tr><td>URFD กิจวัตร (ครึ่ง B, 20 คลิป) ไม่เตือนผิด</td><td class="n">17.1</td><td class="n">16.5</td><td>ยิ่งมากยิ่งดี</td></tr>
+<tr><td>GMDCSA กิจวัตร (16 คลิป) ไม่เตือนผิด</td><td class="n">7.1</td><td class="n">10.9</td><td>ยิ่งมากยิ่งดี</td></tr>
+<tr><td>กลางคืนจำลอง: ล้ม 60 คลิป จับได้</td><td class="n">17 / 16 / 20</td><td class="n">37 / 40 / 36</td><td>ยิ่งมากยิ่งดี</td></tr>
+<tr><td>กลางคืนจำลอง: กิจวัตร 40 คลิป เตือนผิด</td><td class="n">4 / 3 / 3</td><td class="n">7 / 2 / 2</td><td>ยิ่งน้อยยิ่งดี</td></tr>
+<tr><td>คลิปของเจ้าของ: ล้ม 75 ครั้ง จับได้</td><td class="n">33.75</td><td class="n">37.1</td><td>ยิ่งมากยิ่งดี</td></tr>
+<tr><td>คลิปของเจ้าของ: ช่วงไม่มีล้ม 13 ช่วง เตือนผิด</td><td class="n">1.75</td><td class="n">0.5</td><td>ยิ่งน้อยยิ่งดี</td></tr>
+<tr><td>คลิปของเจ้าของ: ล้มขณะมีหลายคน 25 ครั้ง จับได้</td><td class="n">10.9</td><td class="n">15.25</td><td>ยิ่งมากยิ่งดี</td></tr>
+<tr><td>Le2i ครึ่งแรก: ล้ม 47 คลิป จับได้</td><td class="n">41–43</td><td class="n">42–43</td><td>ยิ่งมากยิ่งดี</td></tr>
+<tr><td>Le2i ครึ่งแรก: ไม่มีล้ม 16 คลิป เตือนผิด</td><td class="n">0</td><td class="n">0</td><td>ยิ่งน้อยยิ่งดี</td></tr>
+</tbody></table></div>
+<div class="plain"><p><b>ทำไมวันที่ 9 ยังใช้ตัวจริง ไม่ใช้ A ที่ตัวเลขดีกว่า:</b> A มองเฟอร์นิเจอร์บางอย่างเป็นคน (เก้าอี้ยาวในห้องว่าง 8 จาก 12 ภาพ)
+ทำให้เตือน "อยู่คนเดียว" ทั้งที่ห้องว่าง และเห็นคนในภาพห้องว่างบ่อยกว่าตัวจริงเกือบ 2 เท่า (13.3% เทียบกับ 7.3% ของภาพในบ้านที่ไม่มีคน 300 ภาพ) เจ้าของเลือกตัวจริงเมื่อ 8 ต.ค. — A ยังสลับใช้ได้ใน .env</p></div>
+
+<h3>2.3 ความเร็ว (สำคัญ เพราะช้า = จับพลาด)</h3>
+<div class="tbl" tabindex="0"><table>
+<thead><tr><th>สถานการณ์ (CPU 4 คอร์)</th><th class="n">ภาพ/วินาที</th><th>เทียบเป้า 8</th></tr></thead>
+<tbody>
+<tr><td>กล้องเดียว คลิป 14 (1 คน) — วัดซ้ำ 3 รอบ</td><td class="n">6.6</td><td><span class="pill wip">ต่ำกว่าเป้า</span></td></tr>
+<tr><td>กล้องเดียว คลิป 17 (คนเยอะ) — วัดซ้ำ 3 รอบ</td><td class="n">5.7</td><td><span class="pill wip">ต่ำกว่าเป้า</span></td></tr>
+<tr><td>กล้องเดียว คลิป 17 ระหว่างทดสอบผ่านหน้าเว็บวันนี้ (นาทีที่ 2–3)</td><td class="n">4.3–4.7</td><td><span class="pill open">ต่ำกว่าเป้ามาก</span></td></tr>
+<tr><td>4 กล้องพร้อมกัน (คลิป 14, 15, 16, 1)</td><td class="n">5.3–5.9 ต่อกล้อง</td><td><span class="pill wip">ต่ำกว่าเป้า</span></td></tr>
+</tbody></table></div>
+<p class="note col">วันนี้ช้ากว่าที่เคยวัด อาจเพราะเครื่องรันงานเทียบระบบเดิม 3 งานพร้อมกัน (คนละคอร์ แต่ใช้หน่วยความจำร่วม)
+ส่วนที่กินเวลาคือขั้นตรวจหาคนในภาพ 81–85% · เซิร์ฟเวอร์จริงมี 4 คอร์เหมือนกัน — ถ้าวันที่ 9 เห็นตัวเลข "Detection rate" ต่ำกว่า 5 ให้บันทึกไว้<br/><b>วันที่ 9:</b> ยิ่งเปิดกล้องพร้อมกันมาก แต่ละกล้องยิ่งช้า (4 กล้อง ≈ 5.3–5.9 ภาพ/วินาที) — ถ้าต้องการดูความแม่นของการจับล้มโดยไม่ให้ความเร็วเป็นตัวถ่วง ให้ทดสอบทีละ 1–2 กล้องก่อน</p>
+</section>
+
+<section id="old">
+<h2>3. เทียบกับระบบเดิม</h2>
+<p class="col"><b>ระบบเดิม</b> = โค้ดชุดแรกของโปรเจกต์ (commit ce401fa: MediaPipe + ตัวตัดสินเดิม ตรวจลายนิ้วมือไฟล์แล้วว่าเป็นตัวเดิมจริง)
+รันบน<b>คลิปชุดเดียวกัน</b> และนับคะแนนด้วย<b>โปรแกรมนับตัวเดียวกัน</b>กับระบบใหม่ แต่ละระบบรันที่ความเร็วที่ตัวเองทำได้จริงบน CPU
+(ระบบเดิม 14 ภาพ/วินาที เพราะเบากว่า, ระบบใหม่ 8)</p>
+<div class="tbl" tabindex="0"><table>
+<thead><tr><th>ชุดวัด</th><th class="n">ระบบเดิม</th><th class="n">ใหม่ ตัวจริง</th><th class="n">ใหม่ A</th><th>ใครดีกว่า</th></tr></thead>
+<tbody>
+<tr><td>URFD ล้ม (ครึ่ง B, 28) จับได้</td><td class="n">14</td><td class="n">21.8</td><td class="n">23.4</td><td class="win">ใหม่</td></tr>
+<tr><td>URFD ล้มทั้งหมด (60) จับได้</td><td class="n">25</td><td class="n">—</td><td class="n">—</td><td class="note">ใหม่วัดเฉพาะครึ่ง B (ครึ่ง A ใช้ปรับค่า)</td></tr>
+<tr><td>URFD กิจวัตร (ครึ่ง B, 20) ไม่เตือนผิด</td><td class="n">13</td><td class="n">17.1</td><td class="n">16.5</td><td class="win">ใหม่</td></tr>
+<tr><td>GMDCSA กิจวัตร (16) ไม่เตือนผิด</td><td class="n">8</td><td class="n">7.1</td><td class="n">10.9</td><td><span class="win">เดิม ≈ ตัวจริง</span> · A ดีกว่า</td></tr>
+<tr><td>กลางคืนจำลอง ล้ม (60) จับได้</td><td class="n">10 / 12 / 12</td><td class="n">17 / 16 / 20</td><td class="n">37 / 40 / 36</td><td class="win">ใหม่ (A ดีกว่าเดิม 3 เท่า)</td></tr>
+<tr><td>กลางคืนจำลอง กิจวัตร (40) เตือนผิด</td><td class="n">8 / 10 / 12</td><td class="n">4 / 3 / 3</td><td class="n">7 / 2 / 2</td><td class="win">ใหม่</td></tr>
+<tr><td>คลิปทดสอบ 13–16 (ล้มจริง 4) จับได้</td><td class="n">3</td><td class="n">3</td><td class="n">—</td><td>เท่ากัน (พลาดคลิป 13 ทั้งคู่)</td></tr>
+<tr><td>คลิปทดสอบ 17 (ไม่มีล้ม)</td><td class="n">เตือนผิด</td><td class="n">เงียบ</td><td class="n">—</td><td class="win">ใหม่</td></tr>
+<tr><td>คลิปของเจ้าของ: ล้ม 75 ครั้ง จับได้</td><td class="n">44</td><td class="n">33.75</td><td class="n">37.1</td><td class="win">เดิม</td></tr>
+<tr><td>คลิปของเจ้าของ: 13 ช่วงไม่มีล้ม เตือนผิด</td><td class="n">5</td><td class="n">1.75</td><td class="n">0.5</td><td class="win">ใหม่</td></tr>
+<tr><td>คลิปของเจ้าของ: ล้มขณะมีหลายคน (25) มีเตือน</td><td class="n">16</td><td class="n">10.9</td><td class="n">15.25</td><td>เดิม (ดูหมายเหตุ)</td></tr>
+<tr><td>เห็นคนที่ล้มนอนอยู่ (ภาพยาก: 2 วินาทีหลังล้ม)</td><td class="n">71.7%</td><td class="n">81.2%</td><td class="n">—</td><td class="win">ใหม่</td></tr>
+<tr><td>ความเร็วบน CPU</td><td class="n">14 ภาพ/วิ</td><td class="n">5.7–6.6</td><td class="n">—</td><td class="win">เดิม (เบากว่า)</td></tr>
+</tbody></table></div>
+
+<div class="plain">
+<p><b>สรุปแบบตรงไปตรงมา:</b> ระบบใหม่ดีกว่าเดิมในเกือบทุกชุดวัด โดยเฉพาะ<b>ตอนกลางคืน</b>และ<b>การไม่เตือนผิด</b>
+แต่<b>บนคลิปของเจ้าของเอง ระบบเดิมจับการล้มได้มากกว่า 10 ครั้งจาก 75</b> (44 เทียบกับ 34) ซึ่งไม่ใช่ความต่างเล็กน้อย</p>
+<p>เหตุผลหลัก: ระบบเดิม "ไวกว่า" — เตือนง่ายกว่า จึงจับได้มากกว่าแต่ก็เตือนผิดมากกว่า (5 เทียบกับ 1.75)
+และวิ่งเร็วกว่าเกือบ 2 เท่าบน CPU (เห็นจังหวะล้มต่อเนื่องกว่า) ทางเลือก A ปิดช่องว่างได้บางส่วน (37 จาก 75 และหลายคน 15)</p>
+<p>สิ่งที่ยังต้องทำต่อหลังวันที่ 9: ทำให้ระบบใหม่เร็วขึ้นบน CPU และแก้ปัญหา A เห็นเฟอร์นิเจอร์เป็นคน แล้วจึงเปลี่ยนเป็น A</p>
+</div>
+<details><summary>หมายเหตุความยุติธรรมของการเทียบ</summary>
+<ul class="col">
+<li>ตัวเลขระบบเดิมมาจากการรัน 1 รอบ ส่วนระบบใหม่เป็นค่าเฉลี่ย 8 รอบ (กลางคืน 3 รอบทั้งคู่)</li>
+<li>กลางคืน: ทั้งสองระบบใช้วิธีจำลองภาพกล้องอินฟราเรดและเลขสุ่มชุดเดียวกัน แต่เพราะรันคนละความเร็ว ภาพที่ได้จึงไม่ใช่ภาพเดียวกันทุกเฟรม</li>
+<li>"จับได้" นับเมื่อมีแจ้งเตือนในช่วงที่มีการล้ม ไม่ได้ตรวจว่าเตือนถูกคนหรือเร็วแค่ไหน — ระบบเดิมดูได้ทีละคนเท่านั้น
+ตัวเลข "หลายคน 16" ของระบบเดิมจึงไม่ได้แปลว่าเลือกคนที่ล้มถูก</li>
+<li>ช่วงที่วัดความเร็วต่างเครื่องมือกัน: ระบบเดิม 14 ภาพ/วิ วัดที่ CPU 3.5 คอร์ (30 ก.ย.), ระบบใหม่ 5.7–6.6 วัดที่ 4 คอร์ (8 ต.ค.)</li>
+<li>Le2i: ยังไม่ได้รันระบบเดิม จึงไม่ได้ใส่ในตารางเทียบ</li>
+</ul>
+</details>
+</section>
+
+<section id="issues">
+<h2>4. ปัญหาที่พบ (ยังไม่แก้ — รอหลังวันที่ 9 หรือรอเจ้าของตัดสิน)</h2>
+<div class="tbl" tabindex="0"><table>
+<thead><tr><th>ปัญหา</th><th>ผลต่อผู้ใช้</th><th>ความเร่งด่วน</th></tr></thead>
+<tbody>
+<tr><td>ความเร็วต่ำกว่าเป้า 8 ภาพ/วินาที</td><td>จับการล้มพลาดง่ายขึ้น โดยเฉพาะเมื่อคนเยอะหรือหลายกล้อง</td><td><span class="pill open">สูง</span></td></tr>
+<tr><td>รูปและคลิปแจ้งเตือนไม่มีการลบอัตโนมัติ (ตอนนี้ 1.5 GB, 859 ไฟล์)</td><td>ใช้งานนาน ๆ ดิสก์เซิร์ฟเวอร์จะเต็ม</td><td><span class="pill wip">กลาง</span></td></tr>
+<tr><td>การ์ดกล้องขึ้น "อันตราย" คู่กับ "กิจกรรมล่าสุด: ไม่ตรวจพบการล้ม"</td><td>สับสนว่าตอนนี้ปลอดภัยหรือไม่</td><td><span class="pill wip">กลาง</span></td></tr>
+<tr><td>ลบกล้องแล้วประวัติแจ้งเตือนของกล้องนั้นหายจากหน้ามอนิเตอร์</td><td>ย้อนดูเหตุการณ์เก่าไม่ได้</td><td><span class="pill wip">กลาง</span></td></tr>
+<tr><td>ฟอร์มเพิ่มกล้องตั้งค่าเริ่มต้นเป็น "ลุกจากเตียง" + ช่วง 21:00–05:00</td><td>ถ้าไม่เปลี่ยนเป็น "ตรวจจับการล้ม" จะไม่ตรวจการล้ม (คู่มือวันที่ 9 เขียนเตือนไว้แล้ว)</td><td><span class="pill wip">กลาง</span></td></tr>
+<tr><td>แจ้งเตือน "ลุกจากเตียง" แสดง "คะแนน 128"</td><td>ตัวเลขไม่มีความหมายสำหรับผู้ใช้</td><td><span class="pill tried">ต่ำ</span></td></tr>
+<tr><td>หน้า /thai-frat-form ถ้าพิมพ์ที่อยู่เข้าไปตรง ๆ แล้วบันทึก จะไม่บันทึกจริง แต่ขึ้นว่าบันทึกแล้ว</td><td>ไม่มีปุ่มไหนในเว็บพาไปหน้านี้ (สร้างใหม่ทำที่หน้ารายการ ซึ่งบันทึกได้จริง) — พบจากการทดสอบวันนี้</td><td><span class="pill tried">ต่ำ</span></td></tr>
+<tr><td>ความปลอดภัย: รูปแจ้งเตือนเปิดได้โดยไม่ต้องล็อกอิน, รหัสแอดมินเริ่มต้น, ปุ่มรับทราบใน LINE ไม่ตรวจว่าใครกด</td><td>คนนอกที่รู้ที่อยู่ไฟล์เปิดรูปได้ / ควรเปลี่ยนรหัสแอดมินบนเซิร์ฟเวอร์</td><td><span class="pill wip">กลาง</span></td></tr>
+</tbody></table></div>
+</section>
+
+<section id="owner">
+<h2>5. สิ่งที่ต้องให้เจ้าของทำหรือตัดสิน</h2>
+<div class="ask"><b>1. ใส่ LINE_CHANNEL_SECRET ใน .env</b> — เพื่อทดสอบปุ่ม "รับทราบ" และคลิปย้อนหลังใน LINE (ทีมจะตั้งทางเข้าชั่วคราวที่เปิดเฉพาะ 2 ช่องทางนี้ แล้วปิดหลังทดสอบ)</div>
+<div class="ask"><b>2. จะเอาการแก้ไขหลังแท็ก (ทำแท็กเมื่อ 8 ต.ค. เที่ยง) ขึ้นเซิร์ฟเวอร์วันที่ 9 ไหม</b> — แท็ก <code>systest-2026-10-09</code> ยังไม่มีเรื่อง "ผู้ใช้ทุกคนใส่ LINE ของตัวเองได้" และ "ลบผู้ใช้ได้"
+ถ้าต้องการ ทีมจะทำแท็กใหม่หลังผ่านการตรวจ</div>
+<div class="ask"><b>3. กล้องที่ไม่ใช่ของการทดสอบ</b> — ในระบบมีกล้อง "test" (คลิป 15, แอดมิน), "ทดสอบ 1" (คลิป 13) และ "probe-cam" (ผู้ใช้ authz_probe_29) ทีมไม่ได้แตะ
+และกล้อง "test" ตัวเดิม (คลิป 1, ลุกจากเตียง) ที่สคริปต์ทดสอบลบไปโดยไม่ตั้งใจเมื่อบ่ายวันนี้ (8 ต.ค.) จะให้สร้างคืนไหม</div>
+</section>
+
+<section id="src">
+<h2>6. ที่มาของตัวเลข</h2>
+<details><summary>ไฟล์ผลทุกตัว</summary>
+<ul class="col">
+<li>ทดสอบผ่านหน้าเว็บ: <code>tools/ui_clip_test.mjs</code>, <code>tools/ui_line_settings_test.mjs</code>, <code>tools/ui_thaifrat_test.mjs</code>, <code>tools/smoke_test_frontend.mjs</code> — บันทึกผล <code>.ai_evidence/fulltest/ui_runs.log</code></li>
+<li>ทดสอบหลังบ้าน: <code>tests/test_line_routes.py</code>, <code>test_line_escalation.py</code>, <code>test_model_switch.py</code>, <code>test_compose_model_default.sh</code>, <code>test_rtsp_robustness.py</code>, <code>test_people_cap.py</code>, <code>test_replay_cap.py</code></li>
+<li>ชุดวัดมาตรฐานระบบใหม่: <code>training/data/stage1/results_pinned.jsonl</code> แถว <code>parity_deployed</code> (ตัวจริง) และ <code>P3off_A070</code> (A)</li>
+<li>Le2i: <code>training/data/le2i_final/score.txt</code></li>
+<li>ระบบเดิม กลางวัน + คลิปเจ้าของ: <code>training/data/exp_ir/original_14fps.json</code> (30 ก.ย.) นับด้วย <code>training/measure/score_incidents.py</code> และการแบ่งครึ่ง <code>training/urfd_split.py</code></li>
+<li>ระบบเดิม กลางคืน (วัดวันนี้): <code>original_14fps_night_s0/s7/s13.json</code> จาก <code>eval_original.py</code> โหมด <code>NIGHT_SEED</code></li>
+<li>ความเร็ว: <code>training/data/system_test/cap_latency.txt</code>, <code>capacity_clips.txt</code> และบันทึกระบบ "Detection rate"</li>
+<li>เฟอร์นิเจอร์เป็นคน: <code>training/data/system_test/phantom_probe_coco.txt</code>, <code>phantom_confirm.txt</code></li>
+<li>เห็นคนที่ล้มนอนอยู่ 81.2% / 71.7%: SKILL.md บรรทัด 1684 (2 วินาทีสุดท้ายของคลิปล้ม GMDCSA 15 คลิป + Test 2 คลิป)</li>
+</ul>
+</details>
+</section>
+
+<footer class="note">เนื้อหาและการทดสอบ: Claude · ตรวจตัวเลขกับไฟล์ต้นทาง: Codex · ตรวจเทคนิคและความอ่านง่าย: Gemini</footer>
+</main></body></html>

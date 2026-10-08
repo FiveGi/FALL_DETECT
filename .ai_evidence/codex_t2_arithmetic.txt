@@ -1,0 +1,29 @@
+Command: Invoke-Command -ScriptBlock ([scriptblock]::Create((Get-Content .ai_evidence/codex_t2_arithmetic.ps1 -Raw)))
+Owner: 75 fall segments + 13 negatives, 9 source clips; 8 phases x 7 models = 56 JSONs.
+near count=25
+medium count=24
+far count=24
+unknown count=2
+T1_ctrl_s45_065 near/medium/far=10.75/11.125/14.625 caught=36.625 FA=0.625 multi=13.375; training/data/stage1/t1_eval.log:8; JSON lines 2-21 profile,22+ segments
+T1_ctrl_s46_065 near/medium/far=14.875/12.125/13.625 caught=40.625 FA=0.75 multi=14.375; training/data/stage1/t1_eval.log:10; JSON lines 2-21 profile,22+ segments
+T1_ctrl_s47_065 near/medium/far=14/9.75/12.375 caught=36.125 FA=1.125 multi=15.75; training/data/stage1/t1_eval.log:12; JSON lines 2-21 profile,22+ segments
+T2_trunc_s45_065 near/medium/far=10.5/11.75/14.875 caught=37.25 FA=1.375 multi=14.375; training/data/stage1/t2_eval.log:1; JSON lines 2-21 profile,22+ segments
+T2_trunc_s46_065 near/medium/far=15.125/13.625/15.5 caught=45 FA=2.75 multi=18.25; training/data/stage1/t2_eval.log:3; JSON lines 2-21 profile,22+ segments
+T2_trunc_s47_065 near/medium/far=11.25/11.875/12 caught=35.125 FA=0.875 multi=15.25; training/data/stage1/t2_eval.log:5; JSON lines 2-21 profile,22+ segments
+T2_truncfull_s45_065 near/medium/far=13.875/13.375/15.375 caught=42.625 FA=1.25 multi=16.125; training/data/stage1/t2_eval.log:7; JSON lines 2-21 profile,22+ segments
+halfB_falls paired deltas=2.2,-1.9,-2.1 mean=-0.6
+halfB_adl_clean paired deltas=1,0.4,0.399999999999999 mean=0.6
+val_adl_clean paired deltas=1.2,0,2.9 mean=1.36666666666667
+owner_caught paired deltas=0.625,4.375,-1 mean=1.33333333333333
+owner_fa paired deltas=0.75,2,-0.25 mean=0.833333333333333
+owner_multi paired deltas=1,3.875,-0.5 mean=1.45833333333333
+night_falls paired deltas=2,7.33333333333334,-2 mean=2.44444444444445
+night_fa paired deltas=-2.33333333333333,1.33333333333333,-7 mean=-2.66666666666667
+45 bucket deltas=-0.25,0.625,0.25,0
+46 bucket deltas=0.25,1.5,1.875,0.75
+47 bucket deltas=-2.75,2.125,-0.375,0
+TRUNC-full s45 bucket deltas=3.125,2.25,0.75,-0.125
+PASS: 56 JSON profiles, complete truth keys, all phase-level caught/FA/multi agree with 7 log rows; bucket map covers all 75 falls.
+Limits: summary arithmetic only for URFD/day/night; no inference, recipe validation, queue inspection or training performed.
+Counts per requested verdict: URFD halfB 28 falls/20 ADL; val 16 ADL; simulated night 60 falls/40 ADL x3 noise draws; multi 25 designated segments (scorer list ../.ai_evidence/multi_person_genuine.txt:1; separate from bucket-map multi flags).
+Provenance: training/t1_eval.sh:12 and training/t2_eval.sh:10; training/measure/stage1_eval_pinned.py:57-76; training/measure/score_incidents.py:26-59; training/data/day_first/owner_size_buckets_v4.json:1.

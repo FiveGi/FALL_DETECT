@@ -43,7 +43,7 @@ const router = createRouter({
             name: 'notification-settings',
             component: () =>
                 import ('../views/NotificationSettingsView.vue'),
-            meta: { requiresAuth: true, requiresAdmin: true },
+            meta: { requiresAuth: true },
         },
         {
             path: '/system-logs',

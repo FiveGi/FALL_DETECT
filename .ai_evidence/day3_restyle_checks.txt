@@ -1,0 +1,8 @@
+Command: PowerShell restyle and exact string assertions, 2026-10-05.
+Inputs: report/report_day3.html (before edit), report/report_first_style_ref.html.
+PASS: entire body byte-for-byte equivalent as UTF-8 text, including text, numbers, media, ids, links and script.
+PASS: head content preserved except CSS and the reference's two font links.
+PASS: first style block copied exactly from the reference.
+Static inspection: both tables retain existing .tbl scrolling containers; base CSS sets overflow-x:auto and min-width:640px; adapter limits container width.
+Dataset / clip counts: not applicable (presentation-only change).
+Not run: browser rendering, phone overflow measurement, visual light/dark comparison; no services started or stopped.

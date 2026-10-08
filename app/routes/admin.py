@@ -145,9 +145,31 @@ def delete_user(user_id):
         return jsonify({'error': f'Cannot delete user with {active_cameras} active cameras. Please stop all cameras first.'}), 400
     
     username = user.username
-    
+
+    # The models declare no cascades, so every row pointing at the user blocked the delete with a 500 (found 8 Oct
+    # when a user who had saved LINE settings could not be deleted). Data with value of its own is never deleted
+    # silently: cameras (and with them their alert history) and Thai-FRAT assessments must be handled first.
+    owned_cameras = Camera.query.filter_by(user_id=user_id).count()
+    owned_assessments = ThaiFratAssessment.query.filter_by(creator_id=user_id).count()
+    if owned_cameras or owned_assessments:
+        return jsonify({'error': f'Cannot delete user "{username}": they still own {owned_cameras} camera(s) and '
+                                 f'{owned_assessments} Thai-FRAT assessment(s). Delete or reassign them first.'}), 400
+
     try:
-        # Delete user's cameras and assessments (cascade should handle this)
+        from app.models.line_settings import LineSettings
+        from app.models.token_blocklist import TokenBlocklist
+        from app.models.notification_history import NotificationHistory
+        from app.models.system_log import SystemLog
+        # Rows that mean nothing without the user go with them; history keeps its rows and loses only the name.
+        from app.models.thai_frat_assessment import AssessmentShare
+        LineSettings.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+        # Shares TO this user are keyed by USERNAME: left behind, a new account registered later under the same name
+        # would inherit access to those assessments. Shares BY the user (shared_by_id) would also block the delete.
+        AssessmentShare.query.filter((AssessmentShare.shared_with_username == username)
+                                     | (AssessmentShare.shared_by_id == user_id)).delete(synchronize_session=False)
+        TokenBlocklist.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+        NotificationHistory.query.filter_by(acknowledged_by=user_id).update({'acknowledged_by': None}, synchronize_session=False)
+        SystemLog.query.filter_by(user_id=user_id).update({'user_id': None}, synchronize_session=False)
         db.session.delete(user)
         db.session.commit()
         save_system_log('INFO', f'User deleted by admin: {username}', 'USER_MANAGEMENT', current_user.id)

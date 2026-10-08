@@ -1,0 +1,14 @@
+Command: python report/merge_day2_3.py
+PASS: first-reference base CSS identical; one TOC, one H1, unique IDs, all fragment targets resolve.
+PASS: both reports retain all body text nodes (multiplicity), tables, images, videos, sources, figures and details after documented heading/control changes.
+Content duplicates removed: none. Original navigation consolidated; day-3 theme button replaced by shared button.
+PASS: all 24 relative media files exist; all 8 draft web URLs remain clickable.
+PASS: 7 cost means and 20 night screen counts equal recorded artifacts (URFD 60 falls /40 ADL per night cache; cost 60 frames).
+Numerical corrections: no source scalar changed; narrowed >2x to IR, +1..+3 to D1 (G: 0/-1), clarified full preprocessing sequence costs and forced-open G timing.
+Not run: model measurements, browser layout/playback, remote URL availability. Two night images visually inspected with view_image.
+Evidence: AI_HANDOFF.md headings 2026-10-02 00:00 and 05:25; training/data/multi_diag_v2/preprocess_cost.txt:1-8; pose_screen_0500.txt:1-8,14-23,33-42.
+PASS: Pillow verify decoded all 19 image files; 15 copied assets have SHA256 provenance in report_day2_3_copied_media.txt.
+Source hashes:
+report_day2.html SHA256 deb3aec734051ab6541cd87e8c730db9d67285f80937fb84c6a116351612a04b
+report_day3.html SHA256 a0431f88fb9731fa67c294334d310c2df8319754e833a980f158112ce0ef09aa
+report_first_style_ref.html SHA256 2c80db53b90f6f99d9f41382f9b2c204ce4235542110f0de752dd61b54ad9553

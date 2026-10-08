@@ -1,0 +1,7 @@
+﻿Command: & ([scriptblock]::Create((Get-Content .ai_evidence/day3_media/build_report.ps1 -Raw -Encoding UTF8)))
+PASS: generated HTML; unique IDs; all local src/href paths and internal anchors resolve; copied audit image SHA256 hashes match sources.
+Section order: 
+s1, s4b, terms, s2, s3, s4, s5, s6, s7, s8, s9, evidence
+Static inspection: inline Day 2 CSS; light/dark automatic + theme button; 560px mobile rules; scrollable table; 4 images / 2 videos.
+Initial direct ps1 invocation was blocked by script execution policy; scriptblock invocation completed.
+Not run: numeric checks, inference, experiments, browser rendering/playback, independent review; 0 dataset clips rerun.

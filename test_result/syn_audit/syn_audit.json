@@ -1,0 +1,842 @@
+[
+ {
+  "clip": "fall/fall_ch_191",
+  "cam_shift_max": 0.0477,
+  "cam_shift_mean": 0.0113,
+  "min_response": 0.119,
+  "labels": "0:0.0-1.3 1:1.3-3.6 2:3.6-5.1"
+ },
+ {
+  "clip": "fall/fall_el_190",
+  "cam_shift_max": 0.0028,
+  "cam_shift_mean": 0.001,
+  "min_response": 0.402,
+  "labels": "1:0.0-5.1"
+ },
+ {
+  "clip": "fall/fall_mi_003",
+  "cam_shift_max": 0.0007,
+  "cam_shift_mean": 0.0002,
+  "min_response": 0.589,
+  "labels": "1:0.0-1.6 2:1.6-5.1"
+ },
+ {
+  "clip": "fall/fall_te_003",
+  "cam_shift_max": 0.0125,
+  "cam_shift_mean": 0.0073,
+  "min_response": 0.492,
+  "labels": "9:0.0-5.1"
+ },
+ {
+  "clip": "fall/fall_to_120",
+  "cam_shift_max": 0.0021,
+  "cam_shift_mean": 0.001,
+  "min_response": 0.784,
+  "labels": "1:0.0-0.2 1:0.2-5.1"
+ },
+ {
+  "clip": "fall/fall_yo_183",
+  "cam_shift_max": 0.0238,
+  "cam_shift_mean": 0.0033,
+  "min_response": 0.084,
+  "labels": "1:0.0-1.2 2:1.2-5.1"
+ },
+ {
+  "clip": "fallen/fallen_ch_103",
+  "cam_shift_max": 0.0028,
+  "cam_shift_mean": 0.0008,
+  "min_response": 0.323,
+  "labels": "1:0.0-0.5 2:0.5-5.1"
+ },
+ {
+  "clip": "fallen/fallen_el_135",
+  "cam_shift_max": 0.0022,
+  "cam_shift_mean": 0.0006,
+  "min_response": 0.723,
+  "labels": "2:0.0-5.1"
+ },
+ {
+  "clip": "fallen/fallen_mi_138",
+  "cam_shift_max": 0.0026,
+  "cam_shift_mean": 0.0009,
+  "min_response": 0.413,
+  "labels": "1:0.0-5.1"
+ },
+ {
+  "clip": "fallen/fallen_te_111",
+  "cam_shift_max": 0.0094,
+  "cam_shift_mean": 0.0018,
+  "min_response": 0.328,
+  "labels": "1:0.0-0.9 2:0.9-5.1"
+ },
+ {
+  "clip": "fallen/fallen_to_011",
+  "cam_shift_max": 0.003,
+  "cam_shift_mean": 0.0006,
+  "min_response": 0.388,
+  "labels": "5:0.0-1.1 6:1.1-5.1"
+ },
+ {
+  "clip": "fallen/fallen_yo_101",
+  "cam_shift_max": 0.0008,
+  "cam_shift_mean": 0.0002,
+  "min_response": 0.378,
+  "labels": "1:0.0-1.1 2:1.1-3.6 7:3.6-4.8 4:4.8-5.1"
+ },
+ {
+  "clip": "lie_down/lie_down_ch_039",
+  "cam_shift_max": 0.0031,
+  "cam_shift_mean": 0.0015,
+  "min_response": 0.144,
+  "labels": "5:0.0-5.1"
+ },
+ {
+  "clip": "lie_down/lie_down_el_173",
+  "cam_shift_max": 0.0016,
+  "cam_shift_mean": 0.0005,
+  "min_response": 0.37,
+  "labels": "5:0.0-5.1"
+ },
+ {
+  "clip": "lie_down/lie_down_mi_041",
+  "cam_shift_max": 0.0201,
+  "cam_shift_mean": 0.0023,
+  "min_response": 0.182,
+  "labels": "5:0.0-2.7 6:2.7-5.1"
+ },
+ {
+  "clip": "lie_down/lie_down_te_191",
+  "cam_shift_max": 0.0055,
+  "cam_shift_mean": 0.0015,
+  "min_response": 0.846,
+  "labels": "5:0.0-2.1 6:2.1-5.1"
+ },
+ {
+  "clip": "lie_down/lie_down_to_070",
+  "cam_shift_max": 0.0037,
+  "cam_shift_mean": 0.0019,
+  "min_response": 0.714,
+  "labels": "6:0.0-3.9 5:3.9-5.1"
+ },
+ {
+  "clip": "lie_down/lie_down_yo_002",
+  "cam_shift_max": 0.0041,
+  "cam_shift_mean": 0.002,
+  "min_response": 0.438,
+  "labels": "5:0.0-4.7 6:4.7-5.1"
+ },
+ {
+  "clip": "lying/lying_ch_170",
+  "cam_shift_max": 0.0014,
+  "cam_shift_mean": 0.0004,
+  "min_response": 0.694,
+  "labels": "6:0.0-5.1"
+ },
+ {
+  "clip": "lying/lying_el_120",
+  "cam_shift_max": 0.0003,
+  "cam_shift_mean": 0.0001,
+  "min_response": 0.974,
+  "labels": "6:0.0-5.1"
+ },
+ {
+  "clip": "lying/lying_mi_065",
+  "cam_shift_max": 0.0,
+  "cam_shift_mean": 0.0,
+  "min_response": 0.997,
+  "labels": "6:0.0-5.1"
+ },
+ {
+  "clip": "lying/lying_te_107",
+  "cam_shift_max": 0.0006,
+  "cam_shift_mean": 0.0003,
+  "min_response": 0.987,
+  "labels": "6:0.0-5.1"
+ },
+ {
+  "clip": "lying/lying_to_024",
+  "cam_shift_max": 0.0007,
+  "cam_shift_mean": 0.0003,
+  "min_response": 0.913,
+  "labels": "6:0.0-5.1"
+ },
+ {
+  "clip": "lying/lying_yo_021",
+  "cam_shift_max": 0.0001,
+  "cam_shift_mean": 0.0,
+  "min_response": 0.998,
+  "labels": "6:0.0-5.1"
+ },
+ {
+  "clip": "other/other_ch_102",
+  "cam_shift_max": 0.0008,
+  "cam_shift_mean": 0.0002,
+  "min_response": 0.828,
+  "labels": "9:0.0-5.1"
+ },
+ {
+  "clip": "other/other_el_137",
+  "cam_shift_max": 0.0006,
+  "cam_shift_mean": 0.0002,
+  "min_response": 0.642,
+  "labels": "9:0.0-5.1"
+ },
+ {
+  "clip": "other/other_mi_098",
+  "cam_shift_max": 0.0099,
+  "cam_shift_mean": 0.0025,
+  "min_response": 0.775,
+  "labels": "9:0.0-5.1"
+ },
+ {
+  "clip": "other/other_te_089",
+  "cam_shift_max": 0.0062,
+  "cam_shift_mean": 0.0023,
+  "min_response": 0.899,
+  "labels": "11:0.0-5.1"
+ },
+ {
+  "clip": "other/other_to_132",
+  "cam_shift_max": 0.0297,
+  "cam_shift_mean": 0.0145,
+  "min_response": 0.402,
+  "labels": "9:0.0-5.1"
+ },
+ {
+  "clip": "other/other_yo_104",
+  "cam_shift_max": 0.0006,
+  "cam_shift_mean": 0.0004,
+  "min_response": 0.681,
+  "labels": "9:0.0-5.1"
+ },
+ {
+  "clip": "sit_down/sit_down_ch_067",
+  "cam_shift_max": 0.0014,
+  "cam_shift_mean": 0.0004,
+  "min_response": 0.43,
+  "labels": "3:0.0-5.1"
+ },
+ {
+  "clip": "sit_down/sit_down_el_193",
+  "cam_shift_max": 0.0011,
+  "cam_shift_mean": 0.0003,
+  "min_response": 0.66,
+  "labels": "3:0.0-2.4 4:2.4-5.1"
+ },
+ {
+  "clip": "sit_down/sit_down_mi_077",
+  "cam_shift_max": 0.0002,
+  "cam_shift_mean": 0.0,
+  "min_response": 0.93,
+  "labels": "3:0.0-3.5 4:3.5-5.1"
+ },
+ {
+  "clip": "sit_down/sit_down_te_142",
+  "cam_shift_max": 0.0003,
+  "cam_shift_mean": 0.0001,
+  "min_response": 0.99,
+  "labels": "3:0.0-1.6 4:1.6-5.1"
+ },
+ {
+  "clip": "sit_down/sit_down_to_119",
+  "cam_shift_max": 0.0003,
+  "cam_shift_mean": 0.0002,
+  "min_response": 0.797,
+  "labels": "3:0.0-1.6 4:1.6-5.1"
+ },
+ {
+  "clip": "sit_down/sit_down_yo_121",
+  "cam_shift_max": 0.0007,
+  "cam_shift_mean": 0.0003,
+  "min_response": 0.501,
+  "labels": "3:0.0-2.6 4:2.6-5.1"
+ },
+ {
+  "clip": "sitting/sitting_ch_115",
+  "cam_shift_max": 0.0007,
+  "cam_shift_mean": 0.0005,
+  "min_response": 0.968,
+  "labels": "4:0.0-5.1"
+ },
+ {
+  "clip": "sitting/sitting_el_019",
+  "cam_shift_max": 0.0008,
+  "cam_shift_mean": 0.0002,
+  "min_response": 0.97,
+  "labels": "4:0.0-5.1"
+ },
+ {
+  "clip": "sitting/sitting_mi_194",
+  "cam_shift_max": 0.0002,
+  "cam_shift_mean": 0.0001,
+  "min_response": 0.995,
+  "labels": "4:0.0-5.1"
+ },
+ {
+  "clip": "sitting/sitting_te_158",
+  "cam_shift_max": 0.0033,
+  "cam_shift_mean": 0.0016,
+  "min_response": 0.929,
+  "labels": "4:0.0-5.1"
+ },
+ {
+  "clip": "sitting/sitting_to_194",
+  "cam_shift_max": 0.0059,
+  "cam_shift_mean": 0.0016,
+  "min_response": 0.934,
+  "labels": "4:0.0-5.1"
+ },
+ {
+  "clip": "sitting/sitting_yo_111",
+  "cam_shift_max": 0.0004,
+  "cam_shift_mean": 0.0002,
+  "min_response": 0.995,
+  "labels": "4:0.0-5.1"
+ },
+ {
+  "clip": "stand_up/stand_up_ch_001",
+  "cam_shift_max": 0.0012,
+  "cam_shift_mean": 0.0003,
+  "min_response": 0.707,
+  "labels": "7:0.0-1.7 8:1.7-2.0 9:2.0-5.1"
+ },
+ {
+  "clip": "stand_up/stand_up_el_147",
+  "cam_shift_max": 0.0182,
+  "cam_shift_mean": 0.0043,
+  "min_response": 0.298,
+  "labels": "7:0.0-5.1"
+ },
+ {
+  "clip": "stand_up/stand_up_mi_183",
+  "cam_shift_max": 0.0024,
+  "cam_shift_mean": 0.0006,
+  "min_response": 0.464,
+  "labels": "7:0.0-2.1 8:2.1-5.1"
+ },
+ {
+  "clip": "stand_up/stand_up_te_152",
+  "cam_shift_max": 0.0218,
+  "cam_shift_mean": 0.0082,
+  "min_response": 0.591,
+  "labels": "7:0.0-3.5 8:3.5-5.1"
+ },
+ {
+  "clip": "stand_up/stand_up_to_197",
+  "cam_shift_max": 0.0026,
+  "cam_shift_mean": 0.001,
+  "min_response": 0.928,
+  "labels": "7:0.0-2.1 9:2.1-5.1"
+ },
+ {
+  "clip": "stand_up/stand_up_yo_096",
+  "cam_shift_max": 0.003,
+  "cam_shift_mean": 0.001,
+  "min_response": 0.594,
+  "labels": "7:0.0-2.4 0:2.4-5.1"
+ },
+ {
+  "clip": "standing/standing_ch_055",
+  "cam_shift_max": 0.0013,
+  "cam_shift_mean": 0.0004,
+  "min_response": 0.825,
+  "labels": "8:0.0-5.1"
+ },
+ {
+  "clip": "standing/standing_el_074",
+  "cam_shift_max": 0.0007,
+  "cam_shift_mean": 0.0002,
+  "min_response": 0.855,
+  "labels": "8:0.0-5.1"
+ },
+ {
+  "clip": "standing/standing_mi_093",
+  "cam_shift_max": 0.0003,
+  "cam_shift_mean": 0.0001,
+  "min_response": 0.951,
+  "labels": "8:0.0-5.1"
+ },
+ {
+  "clip": "standing/standing_te_132",
+  "cam_shift_max": 0.0033,
+  "cam_shift_mean": 0.0017,
+  "min_response": 0.545,
+  "labels": "8:0.0-1.4 0:1.4-4.6 8:4.6-5.1"
+ },
+ {
+  "clip": "standing/standing_to_102",
+  "cam_shift_max": 0.0009,
+  "cam_shift_mean": 0.0003,
+  "min_response": 0.892,
+  "labels": "8:0.0-5.1"
+ },
+ {
+  "clip": "standing/standing_yo_073",
+  "cam_shift_max": 0.0013,
+  "cam_shift_mean": 0.0006,
+  "min_response": 0.809,
+  "labels": "8:0.0-5.1"
+ },
+ {
+  "clip": "walking/walking_ch_151",
+  "cam_shift_max": 0.0009,
+  "cam_shift_mean": 0.0003,
+  "min_response": 0.978,
+  "labels": "0:0.0-5.1"
+ },
+ {
+  "clip": "walking/walking_el_065",
+  "cam_shift_max": 0.0023,
+  "cam_shift_mean": 0.0016,
+  "min_response": 0.68,
+  "labels": "0:0.0-5.1"
+ },
+ {
+  "clip": "walking/walking_mi_140",
+  "cam_shift_max": 0.0288,
+  "cam_shift_mean": 0.0057,
+  "min_response": 0.209,
+  "labels": "0:0.0-5.1"
+ },
+ {
+  "clip": "walking/walking_te_131",
+  "cam_shift_max": 0.0012,
+  "cam_shift_mean": 0.0003,
+  "min_response": 0.82,
+  "labels": "0:0.0-5.1"
+ },
+ {
+  "clip": "walking/walking_to_141",
+  "cam_shift_max": 0.0207,
+  "cam_shift_mean": 0.004,
+  "min_response": 0.175,
+  "labels": "0:0.0-5.1"
+ },
+ {
+  "clip": "walking/walking_yo_195",
+  "cam_shift_max": 0.0166,
+  "cam_shift_mean": 0.0039,
+  "min_response": 0.345,
+  "labels": "0:0.0-5.1"
+ },
+ {
+  "clip": "fall/fall_ch_004",
+  "cam_shift_max": 0.0024,
+  "cam_shift_mean": 0.0012,
+  "min_response": 0.486,
+  "labels": "1:0.0-3.0 4:3.0-5.1"
+ },
+ {
+  "clip": "fall/fall_el_008",
+  "cam_shift_max": 0.001,
+  "cam_shift_mean": 0.0005,
+  "min_response": 0.708,
+  "labels": "1:0.0-3.9 4:3.9-5.1"
+ },
+ {
+  "clip": "fall/fall_mi_090",
+  "cam_shift_max": 0.0008,
+  "cam_shift_mean": 0.0003,
+  "min_response": 0.546,
+  "labels": "0:0.0-3.5 1:3.5-5.1"
+ },
+ {
+  "clip": "fall/fall_te_018",
+  "cam_shift_max": 0.002,
+  "cam_shift_mean": 0.0011,
+  "min_response": 0.56,
+  "labels": "1:0.0-3.2 11:3.2-5.1"
+ },
+ {
+  "clip": "fall/fall_to_052",
+  "cam_shift_max": 0.0131,
+  "cam_shift_mean": 0.0076,
+  "min_response": 0.386,
+  "labels": "1:0.0-5.1"
+ },
+ {
+  "clip": "fall/fall_yo_174",
+  "cam_shift_max": 0.003,
+  "cam_shift_mean": 0.0017,
+  "min_response": 0.617,
+  "labels": "1:0.0-1.8 11:1.8-3.7 7:3.7-5.1"
+ },
+ {
+  "clip": "fallen/fallen_ch_168",
+  "cam_shift_max": 0.0005,
+  "cam_shift_mean": 0.0002,
+  "min_response": 0.978,
+  "labels": "1:0.0-5.1"
+ },
+ {
+  "clip": "fallen/fallen_el_113",
+  "cam_shift_max": 0.0007,
+  "cam_shift_mean": 0.0002,
+  "min_response": 0.776,
+  "labels": "1:0.0-1.5 2:1.5-5.1"
+ },
+ {
+  "clip": "fallen/fallen_mi_104",
+  "cam_shift_max": 0.0026,
+  "cam_shift_mean": 0.0012,
+  "min_response": 0.556,
+  "labels": "2:0.0-5.1"
+ },
+ {
+  "clip": "fallen/fallen_te_082",
+  "cam_shift_max": 0.0065,
+  "cam_shift_mean": 0.0016,
+  "min_response": 0.757,
+  "labels": "2:0.0-5.1"
+ },
+ {
+  "clip": "fallen/fallen_to_116",
+  "cam_shift_max": 0.3244,
+  "cam_shift_mean": 0.0118,
+  "min_response": -0.034,
+  "labels": "1:0.0-1.4 2:1.4-5.1"
+ },
+ {
+  "clip": "fallen/fallen_yo_029",
+  "cam_shift_max": 0.0009,
+  "cam_shift_mean": 0.0002,
+  "min_response": 0.515,
+  "labels": "1:0.0-1.1 2:1.1-5.1"
+ },
+ {
+  "clip": "lie_down/lie_down_ch_181",
+  "cam_shift_max": 0.0161,
+  "cam_shift_mean": 0.0034,
+  "min_response": 0.328,
+  "labels": "3:0.0-2.4 5:2.4-3.9 6:3.9-5.1"
+ },
+ {
+  "clip": "lie_down/lie_down_el_026",
+  "cam_shift_max": 0.0096,
+  "cam_shift_mean": 0.003,
+  "min_response": 0.605,
+  "labels": "5:0.0-5.1"
+ },
+ {
+  "clip": "lie_down/lie_down_mi_174",
+  "cam_shift_max": 0.0019,
+  "cam_shift_mean": 0.0004,
+  "min_response": 0.702,
+  "labels": "3:0.0-1.2 5:1.2-3.8 6:3.8-5.1"
+ },
+ {
+  "clip": "lie_down/lie_down_te_039",
+  "cam_shift_max": 0.0104,
+  "cam_shift_mean": 0.003,
+  "min_response": 0.458,
+  "labels": "5:0.0-4.9 6:4.9-5.1"
+ },
+ {
+  "clip": "lie_down/lie_down_to_188",
+  "cam_shift_max": 0.0006,
+  "cam_shift_mean": 0.0001,
+  "min_response": 0.828,
+  "labels": "4:0.0-0.8 5:0.8-1.7 6:1.7-5.1"
+ },
+ {
+  "clip": "lie_down/lie_down_yo_112",
+  "cam_shift_max": 0.0012,
+  "cam_shift_mean": 0.0004,
+  "min_response": 0.442,
+  "labels": "4:0.0-0.4 5:0.4-2.8 6:2.8-5.1"
+ },
+ {
+  "clip": "lying/lying_ch_137",
+  "cam_shift_max": 0.001,
+  "cam_shift_mean": 0.0001,
+  "min_response": 0.96,
+  "labels": "6:0.0-5.1"
+ },
+ {
+  "clip": "lying/lying_el_090",
+  "cam_shift_max": 0.0004,
+  "cam_shift_mean": 0.0001,
+  "min_response": 0.938,
+  "labels": "6:0.0-5.1"
+ },
+ {
+  "clip": "lying/lying_mi_190",
+  "cam_shift_max": 0.0003,
+  "cam_shift_mean": 0.0001,
+  "min_response": 0.992,
+  "labels": "6:0.0-5.1"
+ },
+ {
+  "clip": "lying/lying_te_038",
+  "cam_shift_max": 0.0005,
+  "cam_shift_mean": 0.0002,
+  "min_response": 0.985,
+  "labels": "6:0.0-5.1"
+ },
+ {
+  "clip": "lying/lying_to_073",
+  "cam_shift_max": 0.0,
+  "cam_shift_mean": 0.0,
+  "min_response": 0.998,
+  "labels": "6:0.0-5.1"
+ },
+ {
+  "clip": "lying/lying_yo_079",
+  "cam_shift_max": 0.0005,
+  "cam_shift_mean": 0.0002,
+  "min_response": 0.983,
+  "labels": "6:0.0-5.1"
+ },
+ {
+  "clip": "other/other_ch_104",
+  "cam_shift_max": 0.0009,
+  "cam_shift_mean": 0.0004,
+  "min_response": 0.829,
+  "labels": "9:0.0-5.1"
+ },
+ {
+  "clip": "other/other_el_012",
+  "cam_shift_max": 0.0031,
+  "cam_shift_mean": 0.0014,
+  "min_response": 0.774,
+  "labels": "11:0.0-5.1"
+ },
+ {
+  "clip": "other/other_mi_060",
+  "cam_shift_max": 0.0006,
+  "cam_shift_mean": 0.0003,
+  "min_response": 0.716,
+  "labels": "9:0.0-5.1"
+ },
+ {
+  "clip": "other/other_te_008",
+  "cam_shift_max": 0.0222,
+  "cam_shift_mean": 0.0067,
+  "min_response": 0.181,
+  "labels": "9:0.0-5.1"
+ },
+ {
+  "clip": "other/other_to_036",
+  "cam_shift_max": 0.0012,
+  "cam_shift_mean": 0.0007,
+  "min_response": 0.766,
+  "labels": "14:0.0-5.1"
+ },
+ {
+  "clip": "other/other_yo_003",
+  "cam_shift_max": 0.0008,
+  "cam_shift_mean": 0.0002,
+  "min_response": 0.685,
+  "labels": "15:0.0-0.4 8:0.4-0.7 15:0.7-1.5 8:1.5-1.9 15:1.9-2.6 8:2.6-3.0 15:3.0-3.7 8:3.7-4.3 15:4.3-5.0 8:5.0-5.1"
+ },
+ {
+  "clip": "sit_down/sit_down_ch_046",
+  "cam_shift_max": 0.0044,
+  "cam_shift_mean": 0.0011,
+  "min_response": 0.686,
+  "labels": "3:0.0-1.6 4:1.6-5.1"
+ },
+ {
+  "clip": "sit_down/sit_down_el_023",
+  "cam_shift_max": 0.0019,
+  "cam_shift_mean": 0.0005,
+  "min_response": 0.445,
+  "labels": "3:0.0-2.0 4:2.0-5.1"
+ },
+ {
+  "clip": "sit_down/sit_down_mi_038",
+  "cam_shift_max": 0.0044,
+  "cam_shift_mean": 0.0014,
+  "min_response": 0.801,
+  "labels": "3:0.0-2.6 4:2.6-5.1"
+ },
+ {
+  "clip": "sit_down/sit_down_te_025",
+  "cam_shift_max": 0.0034,
+  "cam_shift_mean": 0.0013,
+  "min_response": 0.702,
+  "labels": "8:0.0-1.3 3:1.3-2.6 4:2.6-5.1"
+ },
+ {
+  "clip": "sit_down/sit_down_to_086",
+  "cam_shift_max": 0.0013,
+  "cam_shift_mean": 0.0006,
+  "min_response": 0.495,
+  "labels": "3:0.0-3.1 4:3.1-5.1"
+ },
+ {
+  "clip": "sit_down/sit_down_yo_131",
+  "cam_shift_max": 0.0009,
+  "cam_shift_mean": 0.0002,
+  "min_response": 0.766,
+  "labels": "0:0.0-1.3 3:1.3-3.8 4:3.8-5.1"
+ },
+ {
+  "clip": "sitting/sitting_ch_142",
+  "cam_shift_max": 0.0002,
+  "cam_shift_mean": 0.0001,
+  "min_response": 0.993,
+  "labels": "4:0.0-5.1"
+ },
+ {
+  "clip": "sitting/sitting_el_096",
+  "cam_shift_max": 0.0008,
+  "cam_shift_mean": 0.0004,
+  "min_response": 0.953,
+  "labels": "4:0.0-5.1"
+ },
+ {
+  "clip": "sitting/sitting_mi_158",
+  "cam_shift_max": 0.0002,
+  "cam_shift_mean": 0.0001,
+  "min_response": 0.993,
+  "labels": "4:0.0-5.1"
+ },
+ {
+  "clip": "sitting/sitting_te_059",
+  "cam_shift_max": 0.0002,
+  "cam_shift_mean": 0.0,
+  "min_response": 0.99,
+  "labels": "4:0.0-5.1"
+ },
+ {
+  "clip": "sitting/sitting_to_189",
+  "cam_shift_max": 0.0006,
+  "cam_shift_mean": 0.0003,
+  "min_response": 0.681,
+  "labels": "4:0.0-5.1"
+ },
+ {
+  "clip": "sitting/sitting_yo_045",
+  "cam_shift_max": 0.0002,
+  "cam_shift_mean": 0.0,
+  "min_response": 0.994,
+  "labels": "4:0.0-5.1"
+ },
+ {
+  "clip": "stand_up/stand_up_ch_175",
+  "cam_shift_max": 0.0073,
+  "cam_shift_mean": 0.0024,
+  "min_response": 0.429,
+  "labels": "7:0.0-1.6 8:1.6-5.1"
+ },
+ {
+  "clip": "stand_up/stand_up_el_078",
+  "cam_shift_max": 0.003,
+  "cam_shift_mean": 0.0015,
+  "min_response": 0.73,
+  "labels": "7:0.0-3.7 8:3.7-5.1"
+ },
+ {
+  "clip": "stand_up/stand_up_mi_121",
+  "cam_shift_max": 0.0114,
+  "cam_shift_mean": 0.0011,
+  "min_response": 0.567,
+  "labels": "7:0.0-1.7 8:1.7-3.8 0:3.8-5.1"
+ },
+ {
+  "clip": "stand_up/stand_up_te_181",
+  "cam_shift_max": 0.0005,
+  "cam_shift_mean": 0.0001,
+  "min_response": 0.844,
+  "labels": "7:0.0-5.1"
+ },
+ {
+  "clip": "stand_up/stand_up_to_014",
+  "cam_shift_max": 0.0102,
+  "cam_shift_mean": 0.0034,
+  "min_response": 0.51,
+  "labels": "7:0.0-3.9 8:3.9-5.1"
+ },
+ {
+  "clip": "stand_up/stand_up_yo_108",
+  "cam_shift_max": 0.0005,
+  "cam_shift_mean": 0.0001,
+  "min_response": 0.828,
+  "labels": "7:0.0-2.6 8:2.6-5.1"
+ },
+ {
+  "clip": "standing/standing_ch_003",
+  "cam_shift_max": 0.0016,
+  "cam_shift_mean": 0.0004,
+  "min_response": 0.843,
+  "labels": "8:0.0-5.1"
+ },
+ {
+  "clip": "standing/standing_el_024",
+  "cam_shift_max": 0.0004,
+  "cam_shift_mean": 0.0001,
+  "min_response": 0.993,
+  "labels": "8:0.0-5.1"
+ },
+ {
+  "clip": "standing/standing_mi_009",
+  "cam_shift_max": 0.0011,
+  "cam_shift_mean": 0.0003,
+  "min_response": 0.89,
+  "labels": "8:0.0-5.1"
+ },
+ {
+  "clip": "standing/standing_te_188",
+  "cam_shift_max": 0.0004,
+  "cam_shift_mean": 0.0002,
+  "min_response": 0.993,
+  "labels": "8:0.0-5.1"
+ },
+ {
+  "clip": "standing/standing_to_105",
+  "cam_shift_max": 0.0071,
+  "cam_shift_mean": 0.0018,
+  "min_response": 0.612,
+  "labels": "8:0.0-5.1"
+ },
+ {
+  "clip": "standing/standing_yo_006",
+  "cam_shift_max": 0.0004,
+  "cam_shift_mean": 0.0001,
+  "min_response": 0.955,
+  "labels": "8:0.0-5.1"
+ },
+ {
+  "clip": "walking/walking_ch_161",
+  "cam_shift_max": 0.0008,
+  "cam_shift_mean": 0.0003,
+  "min_response": 0.749,
+  "labels": "0:0.0-5.1"
+ },
+ {
+  "clip": "walking/walking_el_157",
+  "cam_shift_max": 0.0023,
+  "cam_shift_mean": 0.001,
+  "min_response": 0.914,
+  "labels": "0:0.0-5.1"
+ },
+ {
+  "clip": "walking/walking_mi_189",
+  "cam_shift_max": 0.0034,
+  "cam_shift_mean": 0.002,
+  "min_response": 0.596,
+  "labels": "0:0.0-5.1"
+ },
+ {
+  "clip": "walking/walking_te_130",
+  "cam_shift_max": 0.0013,
+  "cam_shift_mean": 0.0002,
+  "min_response": 0.749,
+  "labels": "0:0.0-5.1"
+ },
+ {
+  "clip": "walking/walking_to_145",
+  "cam_shift_max": 0.0216,
+  "cam_shift_mean": 0.0062,
+  "min_response": 0.282,
+  "labels": "0:0.0-5.1"
+ },
+ {
+  "clip": "walking/walking_yo_173",
+  "cam_shift_max": 0.0014,
+  "cam_shift_mean": 0.0005,
+  "min_response": 0.95,
+  "labels": "0:0.0-5.1"
+ }
+]

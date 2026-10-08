@@ -1,0 +1,19 @@
+# D3 review evidence — 2026-10-04
+
+Replay command executed once in PowerShell (exit 0):
+```powershell
+$env:V3_THRESHOLD='0.65'; $env:PYTHONDONTWRITEBYTECODE='1'
+$ownerCaches=((Get-Content training/data/stage1/nightaug_s44_cache_lists.txt | Where-Object { $_ -match '^OWNER ' }) -split '\s+')[1..8]
+python training/measure/track_metric.py models @ownerCaches 2>&1 | Tee-Object -FilePath .ai_evidence/codex_d3_replay.txt
+```
+Dataset: 17 residential owner segments from 5 source clips, 8 distinct OWNER caches, phases 0–7, CPU-built 320px/8fps/ROI256 nightaug_s44 poses. This is cached classifier inference, not fresh pose extraction or live validation. Classifier SHA256 is in codex_d3_checks.txt. Results: any [10,9,11,10,12,12,10,11], correct [9,9,9,9,10,9,9,9], wrong [2,3,4,3,2,3,1,4]. Exact means 10.625, 9.125, 2.75; displayed rounding agrees with Claude.
+
+Checks executed via Python stdin: AST-extracted the unchanged classify/frames functions (no second model replay); called classify with (a) centroid [.5,.5], faller [.25,.5], other [.75,.5], both_fell=False => correct; (b) [NaN,.5] and real 9.mp4#17 mark => correct; (c) [0,0] and same mark => far; (d) [.6,.65] and real 1.mp4#10 mark => correct. The last is a hypothetical earlier nonfaller location, not an observed identity. Output: codex_d3_checks.txt. Also loaded all 136 NPZs: counts length equals t length, counts sum equals keypoint count, all keypoints finite; 645 frames per phase. Validated eight distinct paths and phase IDs 0–7; 17 marks, 5 source clips, three exclusions. No visual identity adjudication performed.
+
+Findings (static source inspection unless a reproduction is named):
+- P2: track_metric.py:44,48–51,55–61 loses timestamps/identity and matches every alert to t=95% marks. faller_marks_v1.json:35–39 explicitly lacks the earlier second person; :164–166/:251–253/:278–280 acknowledge overlapping helpers, but track_metric.py:79 excludes only wrong credit. Replay includes 9 correct segment-phase credits in overlapping 4#7 and 8#6. They are ambiguous, not proven false. Disagree with treating this as verified correct-person recall. Settle with alert-time identities/boxes (including absent-at-95% people), ambiguous abstention, and paired recount. The reported 1#15 C+W in every phase and 9#8 C+W in phase 1 also merit visual adjudication against Claude's wrong-person eye checks.
+- P2: track_metric.py:60 uses <= although :8 promises strictly nearer; the exact tie reproduction credits correct. Abstain on ties and mark uncertainty, then recount affected alerts.
+- P2: fail-closed is limited to missing segment files (:76–77). No finite-value checks (:55–60) allows NaN with both_fell to credit correct (reproduced); :33–40 does not validate cache layout, :72 accepts duplicate/partial phase lists, and denominators :86–88 stay /17 if marks shrink. Current supplied arrays and eight phase identities passed the checks above; malformed/duplicate inputs were not run through main. Validate frozen membership, phase provenance, arrays and coordinates before inference.
+- P3: :81–82 labels an excluded wrong-only segment as far; :84–90 provides no actual far alert count and hides far alerts accompanying C/W. Report unknown/excluded/far separately. :58 correctly applies the radius before both_fell, so the doc/mark claim 'any alert' is inaccurate: a finite distant alert stays far (reproduced).
+
+Units agree: cache_owner_segments.py:91–97 stores raw normalized keypoints from v3_fall_detection.py:740–743 (x/w,y/h); track_metric.py:48 averages normalized hips and v3_fall_detection.py:1355–1356 returns tracker centroid; JSON:3 specifies the same axes. R_MAX=.25 is distance in that normalized plane, not pixels or identity confidence. Body-cell marks versus hip centers and time mismatch remain unvalidated attribution approximations.

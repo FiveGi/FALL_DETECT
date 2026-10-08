@@ -2,15 +2,9 @@
   <div class="notification-settings">
     <h1 class="page-title">ตั้งค่าการแจ้งเตือน</h1>
 
-    <!-- แสดงเฉพาะสำหรับ Admin -->
-    <div v-if="!isAdmin" class="access-denied">
-      <div class="alert alert-warning">
-        <h3>ไม่มีสิทธิ์เข้าถึง</h3>
-        <p>หน้านี้สำหรับผู้ดูแลระบบเท่านั้น</p>
-      </div>
-    </div>
-
-    <div v-else class="settings-container">
+    <!-- Every signed-in user sets up THEIR OWN LINE here (owner, 8 Oct: one system bot; each user only enters their
+         own LINE id). The bot's token, the webhook setup and the list of groups stay admin-only. -->
+    <div class="settings-container">
       <!-- การตั้งค่าช่วงเวลา -->
       <!-- <div class="card">
         <h2 class="card-title">ช่วงเวลาการแจ้งเตือน</h2>
@@ -99,7 +93,11 @@
             </small>
           </div>
 
-          <div class="form-group">
+          <div v-if="!isAdmin" class="form-group">
+            <p class="form-help">ระบบใช้บอท LINE ของระบบอยู่แล้ว — คุณใส่แค่ <b>LINE ID ของคุณ</b> ด้านล่าง
+              (แอดบอทเป็นเพื่อนแล้วพิมพ์อะไรก็ได้หาบอท บอทจะตอบ LINE ID ของคุณกลับมาให้คัดลอก)</p>
+          </div>
+          <div v-if="isAdmin" class="form-group">
             <label for="line-token" class="form-label">
               Channel access token
               <span class="required">*</span>
@@ -112,7 +110,10 @@
               :placeholder="currentLineSettings && currentLineSettings.has_token ? 'บันทึกไว้แล้ว (เว้นว่างไว้ถ้าไม่ต้องการเปลี่ยน)' : 'กรอก Channel access token'"
               :disabled="isLineLoading"
             />
-
+          </div>
+          <!-- Everyone: where THEIR alerts go. (8 Oct: these used to share the token's block, so hiding the token
+               from ordinary users hid their own LINE id field too.) -->
+          <div class="form-group">
             <label for="line-user-id" class="form-label">
               LINE User ID
             </label>
@@ -141,7 +142,7 @@
               คนเดียวอาจหลับหรือไม่มีสัญญาณ การที่กลุ่มเห็นด้วยคือเหตุผลที่มีช่องนี้
             </small>
 
-            <div class="discovered" v-if="currentLineSettings && currentLineSettings.discovered_targets && currentLineSettings.discovered_targets.length">
+            <div class="discovered" v-if="isAdmin && currentLineSettings && currentLineSettings.discovered_targets && currentLineSettings.discovered_targets.length">
               <p class="discovered-title">กลุ่มที่บอทถูกเชิญเข้าไปแล้ว — กดเพื่อใช้</p>
               <button
                 v-for="t in currentLineSettings.discovered_targets"
@@ -233,7 +234,7 @@
              token, and without them LINE alerts still arrive while the button silently does
              nothing. Showing which piece is missing is the difference between a feature that
              looks broken and one that tells you how to finish setting it up. -->
-        <div v-if="currentLineSettings" class="settings-section">
+        <div v-if="isAdmin && currentLineSettings" class="settings-section">
           <h3 class="sub-title">ปุ่ม "รับทราบ" และคลิปย้อนหลัง 60 วินาที</h3>
 
           <div class="setting-item">
@@ -394,8 +395,9 @@ function formatDateTime(dateTimeString) {
 
 // โหลดการตั้งค่าจาก localStorage
 onMounted(() => {
-  // ตรวจสอบสิทธิ์ admin ก่อน
+  // LINE settings are per user and load for everyone; the time-range settings below remain admin-only.
   if (!isAdmin.value) {
+    loadLineSettings()
     return
   }
 

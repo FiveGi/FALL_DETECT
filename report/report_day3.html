@@ -1,0 +1,276 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>รายงานผลวันที่ 3</title><link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (~72ch) for text; figures, tables and videos may run wider inside their own scroll boxes. */
+:root {
+  --bg: #f6f7f9;
+  --paper: #ffffff;
+  --ink: #17202a;
+  --muted: #5a6472;
+  --rule: #dde2e8;
+  --accent: #0b6e6e;
+  --accent-soft: #e3f1f0;
+  --good: #1a7f37;  --good-bg: #e6f4ea;
+  --warn: #9a6400;  --warn-bg: #fdf3dc;
+  --bad: #b42318;   --bad-bg: #fde8e7;
+  --body: "IBM Plex Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12161b; --paper: #1a2027; --ink: #e6e9ed; --muted: #9aa4b1; --rule: #2c343d;
+    --accent: #4fb8b4; --accent-soft: #16302f;
+    --good: #5cc27a; --good-bg: #15301e; --warn: #e2b04a; --warn-bg: #33280f; --bad: #f08a80; --bad-bg: #3a1a18;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12161b; --paper: #1a2027; --ink: #e6e9ed; --muted: #9aa4b1; --rule: #2c343d;
+  --accent: #4fb8b4; --accent-soft: #16302f;
+  --good: #5cc27a; --good-bg: #15301e; --warn: #e2b04a; --warn-bg: #33280f; --bad: #f08a80; --bad-bg: #3a1a18;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.75; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 80px; }
+.col { max-width: 74ch; }
+header.doc { border-bottom: 2px solid var(--ink); padding-bottom: 18px; margin-bottom: 28px; }
+.eyebrow { font-size: 13px; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; }
+h1 { font-size: 2.1rem; line-height: 1.3; margin: 6px 0 10px; font-weight: 700; text-wrap: balance; }
+h2 { font-size: 1.45rem; margin: 56px 0 12px; padding-top: 14px; border-top: 1px solid var(--rule); text-wrap: balance; }
+h3 { font-size: 1.12rem; margin: 30px 0 8px; }
+p, li { margin: 0 0 10px; }
+.meta { color: var(--muted); font-size: 14px; display: flex; flex-wrap: wrap; gap: 6px 22px; }
+.summary { background: var(--paper); border: 1px solid var(--rule); border-left: 4px solid var(--accent); padding: 18px 22px; margin: 18px 0; }
+.summary ul { margin: 0; padding-left: 20px; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.tbl { overflow-x: auto; margin: 14px 0 20px; border: 1px solid var(--rule); background: var(--paper); }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; min-width: 640px; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--rule); }
+th { font-weight: 600; color: var(--muted); font-size: 13px; background: var(--bg); }
+td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.pill { display: inline-block; font-size: 12.5px; font-weight: 600; padding: 1px 9px; border-radius: 99px; white-space: nowrap; }
+.ok { color: var(--good); background: var(--good-bg); }
+.wip { color: var(--warn); background: var(--warn-bg); }
+.open { color: var(--bad); background: var(--bad-bg); }
+figure { margin: 18px 0 26px; }
+figure img, figure video { display: block; width: 100%; max-width: 100%; height: auto; border: 1px solid var(--rule); background: #000; }
+figure img.light { background: var(--paper); }
+figcaption { font-size: 14px; color: var(--muted); margin-top: 8px; max-width: 80ch; }
+figcaption b { color: var(--ink); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+.grid2 > * { min-width: 0; }
+.flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; margin: 14px 0 6px; }
+.flow .step { flex: 1 1 140px; background: var(--paper); border: 1px solid var(--rule); padding: 10px 12px; font-size: 14px; }
+.flow .step b { display: block; font-size: 13px; color: var(--accent); }
+.flow .arrow { align-self: center; color: var(--muted); }
+.note { font-size: 14px; color: var(--muted); }
+.ask { background: var(--paper); border: 1px solid var(--rule); padding: 14px 18px; margin: 10px 0; }
+.ask b { color: var(--accent); }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: .9em; background: var(--accent-soft); padding: 0 4px; }
+@media (max-width: 560px) { h1 { font-size: 1.6rem; } .flow .arrow { display: none; } }
+</style>
+<style>
+/* Day 3 content uses the first report's open sections and reading column. */
+:root:not([data-theme="dark"]) { color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark; } }
+.wrap, section, .choice-grid > * { min-width: 0; }
+header.doc > p { color: var(--muted); font-size: 14px; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 22px; }
+button { font: inherit; font-size: 14px; color: var(--accent); background: var(--paper); border: 1px solid var(--rule); padding: 6px 12px; min-height: 44px; cursor: pointer; }
+.prob > p, .prob > ul, .prob > ol, .prob > .plain, .prob > details { max-width: 74ch; }
+.prob:first-of-type > h2 { border-top: 0; margin-top: 0; padding-top: 0; }
+.plain, .choice-card { background: var(--paper); border: 1px solid var(--rule); padding: 14px 18px; margin: 10px 0; }
+.plain b, .choice-card b { color: var(--accent); }
+.plain p:last-child, .choice-card p:last-child { margin-bottom: 0; }
+.choice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 18px; }
+.choice-card h3 { margin-top: 0; }
+.summary h2 { margin-top: 0; padding-top: 0; border-top: 0; }
+.tbl { max-width: 100%; overscroll-behavior-x: contain; }
+caption { text-align: left; padding: 9px 12px; font-weight: 600; }
+figure img, figure video { box-sizing: border-box; }
+nav a { display: inline-block; padding: 5px 10px 5px 0; }
+p, li, dd, code, a { overflow-wrap: anywhere; }
+.glossary dt { font-weight: 600; }
+.glossary dd { margin: 0 0 14px; }
+details summary { cursor: pointer; color: var(--accent); font-weight: 600; margin: 6px 0 8px; min-height: 44px; }
+a:focus-visible, button:focus-visible, summary:focus-visible, .tbl:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+section { scroll-margin-top: 16px; }
+footer { margin-top: 40px; border-top: 1px solid var(--rule); padding-top: 15px; }
+@media print { button, nav { display: none; } .wrap { max-width: none; } body { background: white; color: black; } }
+</style>
+</head><body><main class="wrap">
+<header class="doc"><div class="toolbar"><span class="eyebrow">รายงานวันที่ 3 · ระบบตรวจจับการล้มของผู้สูงอายุ</span><button type="button" id="theme" aria-label="สลับธีมสว่างและมืด">สลับสว่าง / มืด</button></div>
+<h1>จับล้มได้มากขึ้น หรือเตือนผิดคนน้อยลง</h1><p class="col">ผลทดลอง 3 ตุลาคม 2026 เวลา 21:00 ถึงบ่าย 5 ตุลาคม 2026 · มีสองทางเลือกให้เจ้าของตัดสิน ก่อนทดสอบยืนยันครั้งสุดท้าย</p>
+<div class="meta"><span>สถานะ: เจ้าของเลือก A แล้ว · ทดสอบ Le2i พักไว้ (ยังไม่มีผล)</span><span>ยังไม่ใช่การอนุมัติเปลี่ยนระบบจริง</span></div></header>
+<nav class="summary" aria-label="สารบัญ"><a href="#s0"><strong>0 · อัปเดตล่าสุด</strong></a><a href="#s1">สรุป</a><a href="#s4b"><strong>4b · เลือก A / B</strong></a><a href="#terms">คำศัพท์และวิธีอ่าน</a><a href="#s2">T1</a><a href="#s3">T2</a><a href="#s4">T3</a><a href="#s5">เตือนถูกคน</a><a href="#s6">ความเร็ว</a><a href="#s7">เหตุขัดข้อง</a><a href="#s8">ทีม</a><a href="#s9">งานต่อไป</a></nav>
+<p class="note">รายงานนี้เรียบเรียงจากโครงเนื้อหาสุดท้ายและผลตรวจเดิม ไม่ได้รันวัดตัวเลขใหม่ ภาพและคลิปเป็นตัวอย่างประกอบ ไม่ใช่หลักฐานว่าผลดีขึ้นกับทุกกล้อง</p>
+<section class="prob" id="s0"><h2>0. อัปเดตล่าสุด (บ่าย 5 ต.ค.)</h2>
+<p><strong>เจ้าของตัดสินแล้ว 2 เรื่อง:</strong> (1) เลือก <strong>A</strong> = ตัวหาท่าทาง nightaug_s44 + ตัวตัดสิน T2-full รอบสุ่ม 45 ที่เกณฑ์ 0.70.
+(2) คนที่<strong>ตั้งใจคุกเข่าหรือนอนลงบนพื้นเอง ไม่นับเป็นการเตือนผิด</strong> (ระบบเตือนได้ ไม่ถือว่าผิด).</p>
+<p><strong>ทดสอบยืนยันกับ Le2i ครึ่งแรก (63 คลิป: ล้ม 47, ไม่ล้ม 16) — วางกติกาไว้ก่อนรัน ทีมทั้ง 3 ตรวจแล้ว:</strong></p>
+<ul>
+<li>เทียบ A กับระบบที่ใช้จริงตอนนี้ (ตัวหาท่าทางเดิม + ตัวตัดสินเดิม ที่ 0.65) ทั้งระบบเต็ม บน CPU แบบเดียวกับเครื่องจริง ครบ 8 จังหวะการตัดภาพ (รวม 16 รอบ)</li>
+<li>A <strong>ผ่าน</strong> ก็ต่อเมื่อ (ค่าเฉลี่ยทั้ง 8 รอบ) จับล้มได้ ≥ ระบบเดิม <strong>และ</strong> เตือนผิด (หลังใช้กติกาเรื่องพื้นของเจ้าของ) ≤ ระบบเดิม — ไม่เผื่อแม้แต่คลิปเดียว (Gemini ขอให้เข้มขึ้นจากเดิมที่เผื่อ 2)</li>
+<li>คลิปที่ไม่ล้มแต่ระบบเตือน จะตัดเป็นวิดีโอสั้นรอบจังหวะที่เตือน ให้ Claude กับ Gemini ตัดสินแยกกันโดยไม่รู้ว่าเป็นของระบบไหน ว่าเป็น "ตั้งใจลงพื้น" หรือไม่ (รายงานทั้งตัวเลขเตือนผิดดิบและหลังใช้กติกา; ถ้าคลิปใดนับเป็นเตือนผิด นับให้ทุกระบบที่เตือนในคลิปนั้น; วิดีโอครอบตั้งแต่เตือนครั้งแรก −3 วินาที ถึงครั้งสุดท้าย +3 วินาที รวมทุกระบบทุกรอบ; ถ้ามีเตือนที่ไม่ใช่การลงพื้นแม้ครั้งเดียว นับเป็นเตือนผิด); ถ้าเห็นต่างกัน ถามเจ้าของ</li>
+<li>Codex ตรวจโค้ดพบจุดเสี่ยง 4 จุด (ตั้งค่าหลุดจากที่ล็อกไว้, วิดีโอเสีย/อ่านไม่ครบแล้วนับเป็นผ่าน, ไฟล์ผลเก่าปนผลใหม่, ผลไม่ครบ 8 รอบแต่ยังให้คะแนน) แก้โค้ดครบแล้ว ทดสอบให้เห็นว่าระบบ<strong>ปฏิเสธ</strong>จริง 2 กรณี (ผลไม่ครบ 8 รอบ, มีไฟล์ผลเก่าค้าง) อีก 2 กรณีตรวจจากโค้ด ยังไม่ได้ลองรันจริง</li>
+</ul>
+<p><strong>สถานะ:</strong> เริ่มรัน 13:38 แล้ว<strong>พักไว้ตามที่เจ้าของสั่ง</strong>ตอน 13:42 — ยังไม่มีไฟล์ผลออกมา และ Claude แจ้งว่าไม่ได้เปิดดูผล (ดูแค่จำนวนบรรทัดความคืบหน้า แล้วลบบันทึกนั้นทิ้งโดยไม่เปิดอ่าน) จึงถือว่าครึ่งแรกยังไม่ถูกใช้ตัดสินอะไร และรันใหม่ได้ครั้งเดียวตามกติกาเดิม; ครึ่งหลังยังสงวนไว้ (ห้องกาแฟเคยใช้แล้ว จึงไม่นับเป็นชุดทดสอบ). เวลาเป็นประมาณการ: รันราว 1 ชม. + ตัดสินคลิปราว 20 นาที.</p>
+<p class="plain">ไฟล์: training/measure/le2i_eval.py, training/le2i_final.sh, training/data/le2i_holdout_manifest.json, AI_HANDOFF.md (pre-registration 5 ต.ค.)</p>
+</section>
+<section class="prob" id="s1"><h2>1. สรุปสั้น (5 บรรทัด)</h2>
+<div class="note"><strong>อัปเดต 02:45 น. (ตัวเลขผ่านการตรวจของทีมแล้ว; ข้อความส่วนนี้ตรวจทีหลังตอนบ่าย; ดูการลองแก้ต่อในหัวข้อ 8c): ฝึกสูตร T2-full เพิ่มอีก 3 รอบสุ่ม (รอบสุ่มที่ 48, 49, 50)</strong> เพื่อดูว่าการผ่านเกณฑ์ของรอบที่ 45 เป็นเรื่องบังเอิญไหม.
+ผล: ผ่านเกณฑ์ที่ล็อกไว้ครบ 5 ข้อแค่ <strong>1 ใน 3 รอบใหม่</strong> (รอบ 49) — เกณฑ์ที่ตั้งไว้ก่อนดูผลคือต้องผ่าน 3 ใน 3 จึงถือว่า <strong>ไม่ผ่าน</strong>. รวมทั้งหมด ผ่าน 2 ใน 6 รอบ (45 และ 49).
+เกณฑ์ที่ตกบ่อยคือ "คลิป URFD ที่ไม่มีคนล้ม ต้องไม่เตือน" (ตก 3 ใน 6 รอบ เท่ากับเกณฑ์เตือนผิดกลางคืนจำลอง) และเกณฑ์ตัดสินที่ระบบเลือกเองแกว่งตั้งแต่ 0.45 ถึง 0.70 ในแต่ละรอบ.
+รอบ 49 ผ่านเกณฑ์แต่จับล้มคลิปเจ้าของได้แค่ 28.6/75 ต่ำกว่าระบบปัจจุบัน (33.75) → การผ่านเกณฑ์อย่างเดียวยังไม่พอจะเลื่อนขั้น.
+<br><strong>ความหมาย:</strong> ในผลที่วัดได้ (ตัวหาท่าทางใหม่ + ตัวตัดสิน T2-full รวมกัน) จับล้มในคลิปเจ้าของและฉากหลายคนได้มากขึ้นในเกือบทุกรอบ แต่ยังพิสูจน์ไม่ได้ว่ามาจาก T2-full แต่ผลการผ่านเกณฑ์ต่างกันมากระหว่างรอบสุ่ม (ผ่าน 2 ใน 6). ตัวเลือกสุดท้าย (รอบ 45) ถูกเลือกหลังเห็นผลแล้ว จึงยังพิสูจน์ไม่ได้ว่าเสถียร
+ส่วนที่ดีกว่าระบบปัจจุบันมาจากทั้งตัวหาท่าทางใหม่และตัวตัดสินใหม่รวมกัน ไม่ได้มาจาก T2-full อย่างเดียว.
+ทีมยังแนะนำ A แต่<strong>มีเงื่อนไข</strong>: ต้องผ่านการทดสอบ Le2i ครึ่งแรก (ยังไม่ได้ใช้ตัดสินอะไร) 1 ครั้งก่อน และยังไม่ใช่การอนุมัติใช้งานจริง. (บ่าย 5 ต.ค. เจ้าของเลือก A แล้ว — ดูหัวข้อ 0)
+ไฟล์: training/data/stage1/results_pinned.jsonl (T2_truncfull_s48..s50_*), training/t2f_more_seeds.sh</div>
+
+<p>ได้ตัวเลือกสุดท้ายหนึ่งตัวที่ผ่านเกณฑ์ที่ล็อกไว้ทุกข้อ (แต่ดูอัปเดต 02:45 ด้านบน — ผลต่างกันมากระหว่างรอบสุ่ม): ตัวหาท่าทาง POSE-IR (nightaug_s44) + ตัวตัดสิน สูตร T2-full (รอบสุ่มที่ 45) ที่เกณฑ์ 0.70 เทียบกับระบบที่ใช้จริงตอนนี้: จับล้มคลิปเจ้าของ 37.1 vs 33.75 /75, คลิปหลายคน 15.25 vs 10.9 /25, เตือนผิดไม่เพิ่ม (ยังต้องผ่านชุดทดสอบ Le2i ที่ไม่เคยแตะ 1 ครั้ง ก่อนจะเรียกว่าดีขึ้นจริง)</p>
+<p>สร้างตัววัดใหม่ &quot;เตือนถูกคนไหม&quot; ในฉากหลายคน (ทั้ง 3 ตัวตรวจผ่าน)</p>
+<p>T3 (สอนไม่ให้เห็นสิ่งของเป็นคน) ลดลงครึ่งหนึ่งแต่ไม่ผ่านเกณฑ์ทุกรอบ → วิธีไม่ผ่าน; รอบ s44 ทดสอบเต็มแล้ว = ทางเลือกที่สอง</p>
+<p><strong>ขอเจ้าของเลือก 1 ใน 2</strong> (ทั้งคู่ผ่านเกณฑ์ที่ล็อกไว้ 5 ข้อ): A = จับล้มได้มากกว่า, B = เตือนผิดคน/เห็นของเป็นคนน้อยกว่า (ดูหัวข้อ 4b)</p>
+<p>เหตุขัดข้อง: สคริปต์ค้างจากตอนพักทำให้เทรนซ้อนกัน 2 ตัว → เทรนใหม่, พบว่าการเทรนให้ผลซ้ำได้เป๊ะ</p>
+
+<div class="plain"><p>คำว่า “หนึ่งตัว” หมายถึงตัวตัดสิน T2-full s45 ที่เลือกไว้ ส่วนตัวหาท่าทางยังมีสองทางเลือก A และ B; “เตือนผิดไม่เพิ่ม” ในสรุปหมายถึงคลิปเจ้าของ สำหรับกลางคืนดูค่าจริงแยกในตาราง 4b</p></div>
+<p class="note source">ที่มาเนื้อหา: <a href="report_day3_outline.md#L6">โครงเนื้อหาสุดท้าย บรรทัด 6</a> · <a href="#evidence">ไฟล์หลักฐานและคำสั่งเดิม</a></p></section>
+<section class="prob choice" id="s4b"><h2>4b. ทางเลือกให้เจ้าของตัดสิน (ทั้งคู่ใช้ตัวตัดสิน T2-full s45 ที่ 0.70; ทีมทั้ง 3 เห็นตรงกันว่าควรให้เจ้าของเลือก)</h2>
+<div class="choice-grid"><div class="choice-card"><h3>A · จับล้มได้มากกว่า</h3><p>ทีมแนะนำตามความสำคัญที่เจ้าของให้กับการล้มกลางวันและฉากหลายคน แต่เห็นสิ่งของเป็นคนมากกว่าเกณฑ์ที่ยังรอตัดสิน</p></div><div class="choice-card"><h3>B · เตือนผิดคนน้อยกว่า</h3><p>เห็นสิ่งของเป็นคนน้อยกว่า แต่จับล้มคลิปเจ้าของได้น้อยกว่า A และต่ำกว่าระบบเดิมเล็กน้อย</p></div></div>
+<div class="tbl" role="region" aria-label="ตารางเปรียบเทียบ เลื่อนซ้ายขวาได้" tabindex="0"><table><caption>ผลเฉลี่ยของระบบเดิมและสองทางเลือก</caption>
+<tr><th></th><th>ระบบที่ใช้ตอนนี้</th><th>A: ท่าทาง nightaug_s44 (แนะนำ)</th><th>B: ท่าทาง posneg_s44</th></tr>
+<tr><td>จับล้มคลิปเจ้าของ /75</td><td>33.75</td><td>37.1</td><td>33.6</td></tr>
+<tr><td>ฉากหลายคน /25</td><td>10.9</td><td>15.25</td><td>12.5</td></tr>
+<tr><td>ล้มกลางคืนจำลอง /60</td><td>17.7</td><td>37.7</td><td>32.3</td></tr>
+<tr><td>URFD ล้ม /28</td><td>21.8</td><td>23.4</td><td>24.4</td></tr>
+<tr><td>URFD ไม่ล้ม ไม่เตือน /20</td><td>17.1</td><td>16.5</td><td>16.6</td></tr>
+<tr><td>คลิปชุดตรวจ (val) ไม่เตือนผิด /16</td><td>7.1</td><td>10.9</td><td>10.6</td></tr>
+<tr><td>เตือนผิดกลางคืน /40</td><td>3.33</td><td>3.67</td><td>3.33</td></tr>
+<tr><td>คลิปเจ้าของเตือนผิด /13</td><td>1.75</td><td>0.50</td><td>0.38</td></tr>
+<tr><td>เตือนผิดคน (ฉากหลายคน) /14</td><td>—</td><td>2.75</td><td>0.38</td></tr>
+<tr><td>เห็นสิ่งของเป็นคน /1000 ภาพ</td><td>72</td><td>141</td><td>60</td></tr>
+</table></div>
+<p>ข้อยกเว้นที่ต้องรู้ (Codex): B จับล้มคลิปเจ้าของต่ำกว่าระบบปัจจุบันเล็กน้อย (33.6 vs 33.75); A เห็นสิ่งของเป็นคนเกินเพดาน (ยังรอเจ้าของตัดสินเรื่อง COCO floor)</p>
+<p>คำแนะนำทีม: A เพราะเจ้าของให้ความสำคัญกับจับล้มกลางวันและหลายคนก่อน; เลือก B ถ้าการเตือนผิดคน/เห็นของเป็นคนสำคัญกว่า</p>
+<p>หลังเจ้าของเลือก: ทดสอบยืนยันด้วยชุดคลิปที่ไม่เคยแตะ (Le2i half 1) ครั้งเดียวกับตัวที่เลือก (เลือก seed s45 จาก 3 ตัว โดยดูเกณฑ์ที่มี URFD = มีอคติการเลือก ต้องยืนยันด้วยชุดที่ไม่เคยแตะ)</p>
+<p>ไฟล์: training/data/stage1/results_pinned.jsonl (T2_truncfull_s45_rule, P2_posneg44_t2fs45_070, parity_deployed_v2), .ai_evidence/verify_pose_choice_codex.txt</p>
+<p>บันทึกความผิดพลาด: Claude เขียน &quot;ผ่านที่ 40%&quot; เอง Gemini จับได้ → ถอน</p>
+
+<div class="plain"><p>สถานะ: รอเจ้าของเลือก ทั้งคู่ผ่านเกณฑ์ตัวเลขห้าข้อ ไม่ได้แปลว่าผ่านทุกเงื่อนไขให้นำขึ้นใช้จริง ผลกลางคืนจำลองของ A จับได้ 36–40/60 และเตือนผิด 2–7/40; B จับได้ 30–35/60 และเตือนผิด 2–4/40 จากการสุ่มสามแบบ</p></div>
+<p class="note source">ที่มาเนื้อหา: <a href="report_day3_outline.md#L40">โครงเนื้อหาสุดท้าย บรรทัด 40</a> · <a href="#evidence">ไฟล์หลักฐานและคำสั่งเดิม</a></p></section>
+<section id="terms" class="summary"><h2>คำศัพท์และวิธีอ่านตัวเลข</h2>
+<p><b>ระบบมีสองส่วน:</b> ตัวหาท่าทางหาตำแหน่งร่างกายในภาพ แล้วตัวตัดสินดูท่าทางต่อเนื่องว่าคล้ายการล้มหรือไม่ การเห็นคนจึงยังไม่เท่ากับจับการล้มได้</p>
+<dl class="glossary">
+<dt>T1 / T2 / T3 และ D3 / D5 / D6</dt><dd>ชื่อเรียกการทดลองและงานตรวจแต่ละเรื่อง ไม่ใช่คะแนน: T1 เพิ่มคลิปสร้างด้วยคอมพิวเตอร์; T2 ฝึกกับร่างกายที่เห็นไม่ครบ; T3 เพิ่มภาพไม่มีคน; D3 ตรวจว่าเตือนถูกคน; D5 วิเคราะห์การล้มที่พลาด; D6 สกัดท่าทางใหม่ทั้งชุด</dd>
+<dt>POSE-IR, nightaug_s44, posneg_s44</dt><dd>ชื่อรุ่นตัวหาท่าทาง: nightaug ฝึกเพิ่มด้วยภาพกลางคืนจำลอง; posneg ฝึกเพิ่มให้รู้จักภาพไม่มีคนด้วย ส่วน IR คืออินฟราเรดที่กล้องใช้มองกลางคืน ขณะนี้ตัวเลขกลางคืนมาจากภาพจำลอง ยังไม่ใช่กล้องกลางคืนจริง</dd>
+<dt>seed หรือ s45 / s46 / s47</dt><dd>หมายเลขกำหนดการสุ่มตอนฝึก เพื่อทดลองว่าวิธีเดียวกันยังช่วยเมื่อเปลี่ยนการสุ่มหรือไม่ ตัวควบคุมคือรุ่นที่ฝึกด้วยสูตรเดียวกันแต่ไม่เพิ่มวิธีที่กำลังทดสอบ การเทียบคู่คือเทียบด้วยหมายเลขสุ่มเดียวกัน</dd>
+<dt>เกณฑ์ 0.65 / 0.70, TRUNC-full, ensemble</dt><dd>เกณฑ์คือคะแนนที่ใช้ประกอบการตัดสินเตือน ไม่ใช่เปอร์เซ็นต์ความแม่นยำ TRUNC-full หรือ T2-full คือชุดฝึกให้รู้จักคนที่เห็นร่างกายไม่ครบแบบเต็ม ส่วน ensemble คือใช้ตัวตัดสินหลายตัวร่วมกัน</dd>
+<dt>URFD, val, Le2i, OF-Syn, COCO และ coco-pose</dt><dd>ชื่อชุดข้อมูล: URFD ใช้วัดการล้มและกิจกรรมไม่ล้ม; val คือชุดตรวจระหว่างพัฒนา (ที่นี่คือ GMDCSA 16 คลิปไม่ล้ม); Le2i half 1 คือครึ่งชุดที่กันไว้ยืนยันหลังเลือก; OF-Syn คือคลิปสร้างด้วยคอมพิวเตอร์; COCO คือชุดภาพทั่วไป และ coco-pose คือส่วนข้อมูลท่าทางคน</dd>
+<dt>ตัวเลขมีทศนิยม และ /75 /25 /14</dt><dd>อ่านเป็นจำนวนที่จับได้เฉลี่ยจากจำนวนทั้งหมด ไม่ใช่เปอร์เซ็นต์ คลิปเจ้าของมี 75 ช่วงล้มและ 13 ช่วงไม่ล้ม; ฉากหลายคน 25 ช่วง; ระยะใกล้ 25 ช่วง แต่ละค่าเฉลี่ยจาก 8 รอบที่เลื่อนจังหวะเริ่มเก็บภาพ ไม่ใช่คลิปใหม่เพิ่ม 8 เท่า งานเตือนถูกคนให้คะแนน 14 จาก 17 ช่วง (ตัดออก 3 ช่วง)</dd>
+<dt>จับล้ม / ไม่ล้มไม่เตือน / เตือนผิด / เตือนผิดคน / เห็นของเป็นคน</dt><dd>สองค่าแรกยิ่งมากยิ่งดี ส่วนสามค่าหลังยิ่งน้อยยิ่งดี และวัดคนละเรื่อง: เห็นของเป็นคนยังไม่จำเป็นต้องเกิดการแจ้งเตือนล้ม เครื่องหมาย — คือไม่มีค่าที่นำมาเทียบในตารางนี้</dd>
+<dt>CPU, เฟรม, ms, p95, crop 320 และ COCO floor</dt><dd>CPU คือหน่วยประมวลผลหลัก; เฟรมคือภาพหนึ่งใบในวิดีโอ; ms คือมิลลิวินาที (หนึ่งในพันวินาที); p95 คือเวลาที่ 95% ของภาพใช้ไม่เกินค่านั้น; crop 320 คือตัดบริเวณคนแล้วป้อนภาพขนาด 320 ให้ระบบ; COCO floor ในงานนี้หมายถึงเกณฑ์จำกัดการเห็นของเป็นคน ซึ่งยังรอเจ้าของตัดสิน</dd>
+<dt>process, deterministic, recipe.env, SYN_ / TRUNC_ และ scorecard</dt><dd>process คือโปรแกรมที่กำลังทำงาน; deterministic คือทำซ้ำด้วยเงื่อนไขเดิมแล้วได้ผลเดิม; recipe.env คือไฟล์บันทึกค่าฝึก และ SYN_ / TRUNC_ คือชื่อกลุ่มค่าที่เกี่ยวกับคลิปสังเคราะห์และร่างกายไม่ครบ; scorecard คือตารางสรุปผลเทียบเกณฑ์</dd>
+</dl><p class="note">URFD ในตารางใช้ครึ่ง B: 28 คลิปล้ม / 20 คลิปไม่ล้ม; กลางคืนจำลอง 60 คลิปล้ม / 40 คลิปไม่ล้ม × การสุ่มสัญญาณรบกวน 3 แบบ ค่ากลางคืนเป็นค่าเฉลี่ย ไม่ใช่การวัดกล้องจริง</p></section>
+<section class="prob" id="s2"><h2>2. ทดลอง T1 — เพิ่มคลิปสังเคราะห์ (OF-Syn) ให้ตัวตัดสิน</h2>
+<p>ปัญหา: ตัวตัดสินแยก &quot;นอนลง&quot; กับ &quot;ล้ม&quot; ไม่ดี  สาเหตุ: ข้อมูลฝึกมีท่านอนลงน้อย</p>
+<p>ทำ: Claude + Gemini ตรวจคลิปสังเคราะห์แยกกัน เก็บเฉพาะที่ทั้งคู่ผ่าน 582 คลิป (นอนลง 307, ล้ม 275); ฝึก 3 seed</p>
+<p>ผล: เตือนผิดลดลง แต่จับล้มคลิปเจ้าของลดลงทั้ง 3 seed (−7.5, −2.5, −6.25 /75) → ไม่ใช้</p>
+<p>ไฟล์: training/data/stage1/results_pinned.jsonl (T1_syn_*, T1_ctrl_*), .ai_evidence/ofsyn_audit_all/</p>
+
+<div class="plain"><p>สถานะ: ไม่ใช้ T1 ตามผลทั้งสามรอบ ตัวเลขที่ลดลงเป็นจำนวนคลิปล้มที่จับได้ลดลงจากทั้งหมด 75 ช่วง</p></div>
+<p class="note source">ที่มาเนื้อหา: <a href="report_day3_outline.md#L15">โครงเนื้อหาสุดท้าย บรรทัด 15</a> · <a href="#evidence">ไฟล์หลักฐานและคำสั่งเดิม</a></p></section>
+<section class="prob" id="s3"><h2>3. ทดลอง T2 — สอนตัวตัดสินให้รู้จักคนที่ตัวโผล่ไม่ครบ (โดนขอบภาพตัด / ถูกบัง)</h2>
+<p>ปัญหา: ล้มใกล้กล้องจับได้น้อยสุด (D5: 18 ใน 28 ที่พลาด มีท่าทางให้เห็นแต่ตัวตัดสินไม่เชื่อ)</p>
+<p>แบบ &quot;ตัดขอบอย่างเดียว&quot; 3 seed: ไม่ช่วยระยะใกล้ (10.5/15.1/11.2 vs 10.8/14.9/14.0 /25) → ไม่ใช้</p>
+<p>แบบ &quot;เต็ม&quot; (TRUNC-full) 3 seed เทียบคู่กับตัวควบคุมสูตรเดียวกัน: จับล้มคลิปเจ้าของ +6.0/+7.5/+3.9, หลายคน +2.7/+4.5/+2.0, ระยะใกล้ +3.1/+2.0/+1.0, เตือนถูกคน +2.1/+4.6/+0.6 → ดีขึ้นซ้ำได้ทั้ง 3 seed</p>
+<p>แต่เกณฑ์ที่ล็อกไว้ (URFD ล้ม ≥21.8, URFD ไม่ล้มไม่เตือน ≥16.1, val ≥6.1, เตือนผิดกลางคืน ≤4.33, คลิปเจ้าของเตือนผิด ≤5) ผ่านแค่ s45 ที่เกณฑ์ 0.70 → ตัวเลือกสุดท้าย; รวม 3 ตัว (ensemble) ตกเกณฑ์ URFD 16.0 และกิน CPU +52%</p>
+<p>ข้อควรระวัง: เลือก 1 ใน 3 โดยดูเกณฑ์ที่มีชุดทดสอบ URFD → ต้องยืนยันด้วย Le2i half 1 ครั้งเดียว</p>
+
+<div class="plain"><p>สถานะ: เลือกตัวตัดสิน s45 ที่ 0.70 เป็นตัวเลือกสุดท้าย แต่ยังรอเลือกตัวหาท่าทางและทดสอบชุดที่กันไว้ กราฟเทียบคู่ด้านล่างใช้ 0.65 ทั้งสองฝั่ง ไม่ใช่ตาราง A/B ที่ 0.70</p></div>
+<figure><img src="img/day3_t2_paired_deltas.png" alt="กราฟผลเพิ่มจาก T2-full เทียบตัวควบคุมเป็นคู่ 3 หมายเลขสุ่ม ที่เกณฑ์ 0.65" loading="lazy"><figcaption>จับล้มเจ้าของ / หลายคน / ระยะใกล้ / เตือนถูกคน ดีขึ้นทั้งสามคู่ แต่ไม่ได้ผ่านเกณฑ์ทุกข้อทุกคู่</figcaption></figure>
+<figure><video controls playsinline preload="metadata" aria-label="เปรียบเทียบฉากใกล้กล้อง"><source src="videos/day3_compare_near.mp4" type="video/mp4"><a href="videos/day3_compare_near.mp4">เปิดคลิปฉากใกล้กล้อง</a></video><figcaption>ฉากใกล้กล้อง: Test/7.mp4 ช่วงที่ 2 เวลา 5.97–9.93 วินาที ระบบเดิมที่ 0.65 เทียบ A ที่ 0.70 · 32 ภาพ ที่ 8 ภาพต่อวินาที เลือกจังหวะเริ่มรอบแรก เป็นตัวอย่าง ไม่ใช่ผลรวม</figcaption></figure>
+<figure><video controls playsinline preload="metadata" aria-label="เปรียบเทียบฉากหลายคน"><source src="videos/day3_compare_multi.mp4" type="video/mp4"><a href="videos/day3_compare_multi.mp4">เปิดคลิปฉากหลายคน</a></video><figcaption>ฉากหลายคน: Test/1.mp4 ช่วงที่ 15 เวลา 51.77–57.23 วินาที ระบบเดิมที่ 0.65 เทียบ A ที่ 0.70 · 44 ภาพ ที่ 8 ภาพต่อวินาที รอบแรกเช่นกัน</figcaption></figure>
+<p class="note source">ที่มาเนื้อหา: <a href="report_day3_outline.md#L21">โครงเนื้อหาสุดท้าย บรรทัด 21</a> · <a href="#evidence">ไฟล์หลักฐานและคำสั่งเดิม</a></p></section>
+<section class="prob" id="s4"><h2>4. ทดลอง T3 — สอนตัวหาท่าทางว่า &quot;ภาพที่ไม่มีคน&quot; หน้าตาเป็นอย่างไร</h2>
+<p>ปัญหา: ตัวหาท่าทางที่ฝึกเพิ่ม (nightaug) เห็นสิ่งของเป็นคนเพิ่มเป็นเท่าตัว (141 vs 72 /1000 ภาพ)</p>
+<p>สาเหตุที่พบ: ชุดข้อมูล coco-pose ที่ใช้ฝึก ไม่มีภาพที่ไม่มีคนเลยแม้แต่ภาพเดียว</p>
+<p>ทำ: ใส่ภาพไม่มีคน 5,000 ภาพ (10% ของการสุ่ม) ฝึก 3 seed</p>
+<p>ผล: 120→63, 119→68, 141→60 (ลด 47.5/42.9/57.2%); เกณฑ์ที่ตกลง ≥50% ทุก seed → ผ่าน 1/3 = วิธีไม่ผ่าน การเห็นคนที่นอนพื้นหลังล้ม: 0.424→0.315, 0.405→0.389, 0.462→0.473 (s42 แย่ลง)</p>
+<p>s44 ทดสอบเต็ม (19 ชุดข้อมูลทดสอบ): กับตัวตัดสินเดิม จับล้มคลิปเจ้าของลดลงมาก (34.0 vs 42.1 /75) และตกเกณฑ์ URFD ล้ม + เตือนผิดกลางคืน แต่กับตัวตัดสิน T2-full s45 @0.70 ผ่านทุกเกณฑ์ → เป็นทางเลือก B ในหัวข้อ 4b</p>
+
+<div class="plain"><p>สถานะ: วิธี T3 ไม่ผ่านเงื่อนไขว่าต้องลดการเห็นของเป็นคนอย่างน้อยครึ่งหนึ่งทุกรอบ แต่รุ่น s44 เมื่อนำมาจับคู่กับ T2-full ยังเป็นทางเลือก B ได้ ค่าการเห็นคนนอนพื้นเป็นสัดส่วน ยิ่งมากยิ่งดี</p></div>
+<figure><img src="img/day3_coco_false_person_grid.jpg" alt="ตัวอย่าง COCO หกภาพไม่มีป้ายกำกับคน ที่ nightaug ตรวจเป็นคนแต่ posneg ไม่ตรวจเป็นคน" loading="lazy"><figcaption>เลือกตัวอย่าง 6 ภาพจาก 66 ภาพที่ไล่ดู ในกลุ่มที่เข้าเงื่อนไข 1,176 ภาพ ภาพเหล่านี้อธิบายอาการเท่านั้น ไม่ใช่การวัดซ้ำผลรวม 1,000 ภาพในตาราง และกรอบคนไม่ได้แปลว่ามีการเตือนล้มแล้ว</figcaption></figure>
+<p class="note source">ที่มาเนื้อหา: <a href="report_day3_outline.md#L31">โครงเนื้อหาสุดท้าย บรรทัด 31</a> · <a href="#evidence">ไฟล์หลักฐานและคำสั่งเดิม</a></p></section>
+<section class="prob" id="s5"><h2>5. ตัววัดใหม่ &quot;เตือนถูกคนไหม&quot; (D3)</h2>
+<p>ปัญหา: ตัววัดเดิมนับว่าจับได้ ถ้ามีเตือนใดๆ ในคลิปที่มีคนล้ม แม้จะเตือนผิดคน</p>
+<p>ทำ: Claude กับ Gemini มาร์กคนล้มแยกกันโดยไม่เห็นของกัน 17 คลิป (ตรงกัน 13, คุยตกลงอีก 4), Codex ตรวจโค้ด 3 รอบ แล้วพิสูจน์ด้วยภาพจริงตอนเตือน 10/10 ตรง</p>
+<p>ผล: ระบบปัจจุบัน (ท่าทาง s44) เตือนถูกคน 8.0/14, ผิดคน 2.75; T1 ตัวควบคุม 4.75–6.4; T2-full s45 8.5</p>
+<p>พบสาเหตุเตือนผิดคน 2 แบบ: กฎ &quot;คนหายไปทันที&quot; (ทดลองปิด → จับได้ลดลง จึงคงไว้) และคนใกล้กล้องที่โดนขอบล่างตัด</p>
+
+<div class="plain"><p>คำว่า “ระบบปัจจุบัน (ท่าทาง s44)” ในบันทึกส่วนนี้คือระบบทดลองที่ใช้ตัวตัดสินเดิมกับท่าทาง s44 ไม่ใช่ระบบที่ใช้งานจริงในตาราง 4b ค่า T2-full s45 ที่ 8.5 เป็นผลที่ 0.65; ตัวเลือก A ที่ 0.70 เตือนถูกคน 7.375/14 และ B 6.875/14 จึงไม่ควรนำ 8.5 ไปแทนค่าของตัวเลือก A</p></div>
+<figure><img src="img/day3_audit_sheet1.jpg" alt="แผ่นภาพตรวจว่ากรอบคนที่ระบบเตือนตรงกับคนล้มจริงหรือไม่" loading="lazy"><figcaption>ภาพตรวจคนที่ถูกเตือน ใช้อ่านควบคู่กับผลตรวจ 10/10 ในบันทึก ไม่ใช่ผลทดสอบใหม่จากรายงานนี้</figcaption></figure>
+<figure><img src="img/day3_audit_9_17_zoom.jpg" alt="ภาพขยายการตรวจคนที่ถูกเตือนในตัวอย่าง 9_17" loading="lazy"><figcaption>ภาพขยายตัวอย่าง 9_17 เพื่อให้แยกคนที่ระบบเลือกได้ง่ายขึ้น</figcaption></figure>
+<p class="note source">ที่มาเนื้อหา: <a href="report_day3_outline.md#L59">โครงเนื้อหาสุดท้าย บรรทัด 59</a> · <a href="#evidence">ไฟล์หลักฐานและคำสั่งเดิม</a></p></section>
+<section class="prob" id="s6"><h2>6. ความเร็วบน CPU (step 2)</h2>
+<p>ระบบเดิม 57 ms/เฟรม, ท่าทาง s44 เท่ากัน, ใช้ตัวตัดสิน 3 ตัวพร้อมกัน (ensemble) ช้าลง 52% และเฟรมที่ช้าที่สุด 5% (p95) ช้าลง 124% → ensemble ไม่ผ่านเกณฑ์ CPU</p>
+<p>การซูมตัดเฉพาะบริเวณคนให้ใหญ่ขึ้น (crop 320 เพื่อช่วยคนที่อยู่ไกล): ช้าลง 13–16% เกินเกณฑ์ 5% → ไม่ใช้ เว้นแต่จะแม่นขึ้นมาก (multi_diag_v2/pipeline_timing_crop320.txt)</p>
+<p>ทดลองปิดกฎ &quot;คนหายไปทันที&quot; (V3_COLLAPSE_ENABLED=0): จับได้ลดลง 0.75/75 → คงกฎไว้</p>
+
+<div class="plain"><p>สถานะ: ไม่ใช้การรวมสามตัว และไม่ใช้การตัดภาพ 320 ในตอนนี้ ค่า 57 ms คือเวลาประมวลผลต่อภาพที่เคยวัด ไม่ใช่คำรับรองความเร็วทุกเครื่อง กฎคนหายไปทันทีคงไว้</p></div>
+<p class="note source">ที่มาเนื้อหา: <a href="report_day3_outline.md#L67">โครงเนื้อหาสุดท้าย บรรทัด 67</a> · <a href="#evidence">ไฟล์หลักฐานและคำสั่งเดิม</a></p></section>
+<section class="prob" id="s7"><h2>7. ปัญหาการทำงาน / เหตุขัดข้อง</h2>
+<p>สคริปต์ 4 ตัวหลุดจากการสั่งพัก 13:02 → 21:35 เทรนตัวควบคุมซ้อน 2 ชุด → เจ้าของอนุญาตหยุด, เทรนใหม่ชื่อใหม่ (ctrlA_s45c/s46c) ผลฝึกใหม่ตรงกับของเดิมเป๊ะ = ฝึกซ้ำกี่ครั้งก็ได้ผลเดิม (deterministic)</p>
+<p>บั๊กเล็กที่พบ: บันทึกสูตรการเทรน (recipe.env) ไม่เก็บค่า SYN_/TRUNC_ (แก้ในสคริปต์ใหม่), สคริปต์จับเวลาเขียน &quot;เสร็จ&quot; แม้ล้ม</p>
+<p>กฎใหม่: ตอนสั่งพัก ต้องเช็กรายการ process ว่าหยุดครบจริง</p>
+
+<div class="plain"><p>สถานะ: ฝึกใหม่และได้ผลซ้ำเดิมแล้ว ข้อกำหนดตรวจโปรแกรมตอนพักเป็นกติกางานต่อไป รายงานนี้ไม่ได้เริ่มหรือหยุดงานทดลองใด</p></div>
+<p class="note source">ที่มาเนื้อหา: <a href="report_day3_outline.md#L72">โครงเนื้อหาสุดท้าย บรรทัด 72</a> · <a href="#evidence">ไฟล์หลักฐานและคำสั่งเดิม</a></p></section>
+<section class="prob" id="s8"><h2>8. ทีมทำงานร่วมกันอย่างไร</h2>
+<p>ทุกการตัดสินใจผ่าน Codex + Gemini; ตัวอย่างที่ทีมแก้ Claude: เกณฑ์ T3 40%→50%, ลืมเกณฑ์ที่ล็อก (ensemble), สคริปต์เทรนใหม่ 4 จุด, ตัววัด D3 6 จุด</p>
+
+<div class="plain"><p>สถานะ: ทีมตกลงให้นำ A และ B มาให้เจ้าของเลือก การตรวจอ่านรายงาน HTML ฉบับนี้โดย Claude และ Gemini ยังเป็นขั้นตอนถัดไป</p></div>
+<p class="note source">ที่มาเนื้อหา: <a href="report_day3_outline.md#L78">โครงเนื้อหาสุดท้าย บรรทัด 78</a> · <a href="#evidence">ไฟล์หลักฐานและคำสั่งเดิม</a></p></section>
+<section class="prob" id="s8c"><h2>8c. ลองแก้ "ผลแกว่งตามรอบสุ่ม" ด้วยการเฉลี่ยน้ำหนักโมเดลระหว่างฝึก (EMA) — 03:00–06:05 น.</h2>
+<p><strong>ปัญหา:</strong> สูตร T2-full ผ่านเกณฑ์ครบแค่ 2 ใน 6 รอบสุ่ม และเกณฑ์ตัดสินที่ระบบเลือกแกว่ง 0.45–0.70.</p>
+<p><strong>สาเหตุที่สงสัย:</strong> ตอนฝึก ระบบเก็บโมเดลจาก "รอบฝึกเดียวที่คะแนนดีที่สุด" ซึ่งสุ่มแกว่งได้มาก.</p>
+<p><strong>แก้อย่างไร:</strong> เก็บค่าเฉลี่ยเคลื่อนที่ของน้ำหนักโมเดล (EMA) แทน — ยังเป็นโมเดลเดียว ตอนใช้งานไม่มีขั้นตอนเพิ่ม (ยังไม่ได้วัดเวลา CPU จริงของตัวนี้).
+Gemini ทักว่าวิธีแรกที่ Claude เขียนคำนวณค่าสถิติภายในโมเดลผิด และเสนอวิธีทดสอบ → ทดสอบแล้ว Gemini ถูก (คะแนนตรวจ 0.02 vs 0.51) จึงแก้ให้คำนวณค่าใหม่ทุกรอบ แล้วจึงเริ่มฝึก.
+ฝึก 2 แบบ (เฉลี่ยช่วงสั้น 0.999 และช่วงยาว 0.9999) แบบละ 6 รอบสุ่ม เกณฑ์ความสำเร็จตั้งไว้ก่อนดูผล: ผ่านเกณฑ์ครบ ≥ 4 ใน 6 รอบ, ช่วงต่ำสุด–สูงสุดของการจับล้มคลิปเจ้าของ < 21.6, ค่าเฉลี่ย ≥ 39.6. (คนละคำถามกับรอบสุ่ม 48–50 ที่ต้องผ่าน 3 ใน 3: อันนั้นถามว่ารอบใหม่ผ่านซ้ำได้ไหม ส่วนอันนี้ถามว่า EMA ดีกว่าแบบเดิมที่ผ่าน 2 ใน 6 หรือไม่)</p>
+<div class="tbl" role="region" aria-label="ตารางผล EMA เลื่อนซ้ายขวาได้" tabindex="0"><table><caption>ผลที่เกณฑ์ตัดสินซึ่งระบบเลือกเอง (6 รอบสุ่มต่อแบบ)</caption>
+<thead><tr><th>แบบ</th><th>ผ่านเกณฑ์ครบ</th><th>จับล้มคลิปเจ้าของ เฉลี่ย /75</th><th>แกว่ง (ต่ำสุด–สูงสุด)</th><th>เกณฑ์ตัดสินที่เลือก</th><th>ผล</th></tr></thead>
+<tbody><tr><td>เดิม (T2-full)</td><td class="num">2/6</td><td class="num">41.6</td><td class="num">28.6–50.3</td><td class="num">0.45–0.70</td><td>—</td></tr>
+<tr><td>EMA ช่วงสั้น (0.999)</td><td class="num">3/6</td><td class="num">45.0</td><td class="num">38.3–54.0</td><td class="num">0.55–0.75</td><td>ไม่ผ่าน (ต้อง 4/6)</td></tr>
+<tr><td>EMA ช่วงยาว (0.9999)</td><td class="num">2/6</td><td class="num">41.4</td><td class="num">32.4–53.9</td><td class="num">0.60–0.80</td><td>ไม่ผ่าน</td></tr></tbody></table></div>
+<p><strong>ความหมาย:</strong> EMA ช่วงสั้นทำให้ภาพรวมดีขึ้นโดยเฉลี่ย (ผ่านเกณฑ์มากขึ้น แกว่งน้อยลง จับล้มเฉลี่ยมากขึ้น +3.4) แต่ไม่ทุกรอบ — 2 รอบจับล้มคลิปเจ้าของลดลงเล็กน้อย
+และ<strong>ไม่ถึงเกณฑ์ที่ตั้งไว้ล่วงหน้า (4 ใน 6)</strong> จึงยังไม่นับว่าพิสูจน์แล้ว. รอบสุ่มที่ 45 ของ EMA ผ่านเกณฑ์ครบและจับล้มคลิปเจ้าของได้ 42.0 (ตัวเลือกปัจจุบัน 37.1)
+แต่ตัววัดเตือนถูกคนต่ำลงเล็กน้อย (7.12 vs 7.38) และการเลือกมันตอนนี้คือการเลือกหลังเห็นผลอีกครั้ง → <strong>ทีมทั้ง 3 ตกลงคงตัวเลือกเดิม</strong>.
+<strong>สถานะ:</strong> ทั้งสองแบบไม่ผ่านเกณฑ์ที่ตั้งไว้. Claude เสนอฝึกรอบสุ่มเพิ่ม (51–56) แต่ Gemini ค้านว่าเป็นการลองซ้ำหลังผลไม่ผ่าน ทีมจึงยกเลิก — ไม่มีงานนี้ในคิว.</p>
+<p class="plain">ไฟล์: training/train.py (EMA=1, ปิดเป็นค่าเริ่มต้น), training/t2fema_seeds.sh, t2fema4_seeds.sh, results_pinned.jsonl (T2FEMA_*, T2FEMA4_*), .ai_evidence/verify_ema_codex.txt</p>
+</section>
+<section class="prob" id="s8b"><h2>8b. ทำไมเกณฑ์ "URFD ไม่ล้ม ต้องไม่เตือน" ตกบ่อย (วิเคราะห์เมื่อคืน 4–5 ต.ค.; คลิป URFD เป็นภาพกลางวัน)</h2>
+<p><strong>ปัญหา:</strong> ครึ่งหนึ่ง (3 ใน 6) ของรอบสุ่ม T2-full ตกเกณฑ์ข้อนี้ (เท่ากับเกณฑ์เตือนผิดกลางคืนจำลอง) (ต้องไม่เตือนในคลิปที่ไม่มีคนล้มอย่างน้อย 16.1 จาก 20 คลิป).</p>
+<p><strong>พบว่า (จากภาพนิ่งที่ Claude และ Gemini ดูแยกกัน ยังไม่ได้ดูจังหวะที่เตือนจริง):</strong> คลิปที่ทำให้เตือนผิดส่วนใหญ่คือ <strong>คนคุกเข่า/ก้มลงที่พื้น</strong> (จากภาพนิ่งยืนยันไม่ได้ว่าตั้งใจหรือไม่) (adl-31, 32, 35, 39, 40) หรือ <strong>นั่งแล้วเอนนอนบนเตียง/โซฟา</strong> (adl-11, 36).
+คลิป adl-35 และ adl-39 ทำให้เตือนในทุกตัวที่ทดสอบ รวมถึงตัวตัดสินเดิมด้วย. อีก 2 คลิป (adl-23 นั่งในห้องมืด, adl-28) เตือนในบางรุ่น. ตัวตัดสินเดิมบนตัวหาท่าทางเดียวกันห่างจากเส้นเกณฑ์เพียง 0.8 คลิป; รอบที่ตก (46, 48, 50) เตือนผิดเพิ่มเฉลี่ยราว 3 คลิปต่อรอบทดสอบ.</p>
+<figure><img src="img/day3_urfd_adl_fa_clips.jpg" alt="ภาพจากคลิป URFD ที่ทำให้เตือนผิด: คนคุกเข่าหรือก้มลงที่พื้น และนั่งแล้วเอนนอน" loading="lazy"><figcaption>ภาพนิ่งประกอบจากคลิป URFD ที่ทำให้เตือนผิด ที่ 30/60/90% ของคลิป (ภาพคู่: ซ้ายภาพความลึก ขวาภาพสี; ไม่ใช่จังหวะที่เตือน; ยืนยันเจตนาไม่ได้)</figcaption></figure>
+<p><strong>เจ้าของตอบแล้ว (5 ต.ค.):</strong> ถ้าตั้งใจลงพื้นแล้วระบบเตือน ไม่นับเป็นการเตือนผิด → ใช้กติกานี้กับการทดสอบ Le2i (หัวข้อ 0). ตัวเลขเกณฑ์ URFD ในรายงานนี้ยังคิดแบบเดิม ไม่ได้แก้ย้อนหลัง.</p>
+<p class="plain">ไฟล์: training/data/multi_diag_v2/urfd_adl_fa_by_clip.txt · report/img/day3_urfd_adl_fa_clips.jpg</p>
+</section>
+<section class="prob" id="s9"><h2>9. งานต่อไป + ขอเจ้าของ</h2>
+<p>Day 3: เลือกตัวหาท่าทาง (nightaug_s44 vs posneg_s44) → scorecard สุดท้าย → Le2i half 1 ครั้งเดียว → รายงาน+คลิป</p>
+<p>D6 (สกัดท่าทางใหม่ทั้งชุดด้วยตัวหาท่าทางที่เลือก) ยังไม่เริ่ม</p>
+<p>ขอเจ้าของ: อีเมลขอ MUVIM (ภาพ IR จริง), ตัดสินเรื่องใช้เชิงพาณิชย์, เกณฑ์ COCO floor, เข้าเครื่อง server</p>
+
+<div class="plain"><p>สถานะ: รอการตัดสินของเจ้าของ MUVIM คือชื่อชุดข้อมูลภาพอินฟราเรดจริงที่ต้องขอสิทธิ์เข้าถึง ส่วน server คือเครื่องที่จะนำระบบไปใช้งานจริง</p></div>
+<p class="note source">ที่มาเนื้อหา: <a href="report_day3_outline.md#L81">โครงเนื้อหาสุดท้าย บรรทัด 81</a> · <a href="#evidence">ไฟล์หลักฐานและคำสั่งเดิม</a></p></section>
+<section id="evidence" class="summary"><h2>หลักฐานและขอบเขตของรายงาน</h2>
+<p>ตัวเลขยกมาจากผลเดิมที่ตรวจแล้วตามคำสั่งเจ้าของ รอบนี้สร้างหน้าเว็บและคัดลอกรูปเท่านั้น ไม่ได้ตรวจตัวเลขซ้ำ ไม่ได้ทดสอบ Le2i และไม่ได้วัดความเร็วใหม่</p>
+<ul><li>ตาราง A/B: <a href="../.ai_evidence/verify_pose_choice_codex.txt">ผลตรวจเดิมพร้อมจำนวนคลิปและบรรทัดต้นทาง</a>; คำสั่งเดิม <code>&amp; ([scriptblock]::Create((Get-Content -Raw .ai_evidence/verify_pose_choice_codex.ps1)))</code>; แถวระบบจริง / A / B อยู่ใน <code>training/data/stage1/results_pinned.jsonl:10,36,55</code></li>
+<li>เกณฑ์ T2: <a href="../.ai_evidence/verify_t2full_revised_codex.txt">ผลตรวจเดิม</a>; คำสั่งเดิม <code>&amp; ([scriptblock]::Create((Get-Content -Raw .ai_evidence/verify_t2full_revised_codex.ps1)))</code>; จำนวนคลิปใช้ตามคำอธิบายวิธีอ่านด้านบน</li>
+<li>ภาพและคลิป: <a href="../.ai_evidence/day3_media/README.md">คำสั่งสร้าง สถานที่มา และจำนวนภาพ</a>; คำสั่งเดิม <code>python tools/day3_media.py chart</code>, <code>grid</code>, <code>clips</code>, <code>verify</code> (สั่งแยก); <a href="../.ai_evidence/day3_media/chart.json">กราฟและแถวต้นทาง</a>, <a href="../.ai_evidence/day3_media/grid.json">ภาพ COCO</a>, <a href="../.ai_evidence/day3_media/clips.json">คลิป</a>, <a href="../.ai_evidence/day3_media/verification.json">ผลตรวจไฟล์จากรอบก่อน</a></li>
+<li>เหตุขัดข้องและมติทีม: <a href="../AI_HANDOFF.md#L3021">บันทึกทีมตั้งแต่บรรทัด 3021</a>; เรื่องที่ไม่ได้มีคำสั่งวัดในโครงเนื้อหาเป็นคำอธิบายตามบันทึก Claude ไม่ใช่การรับรองผลทดลองใหม่จากผู้จัดหน้า</li>
+<li>รูปตรวจคนที่เตือน: คัดลอกจาก <code>../.ai_evidence/track_audit/sheet1.jpg</code> และ <code>9_17_zoom.jpg</code> เข้ามาในโฟลเดอร์ภาพของรายงาน โดยไม่ปรับรูป</li></ul></section>
+<footer class="note">เนื้อหา: Claude · จัดหน้าและสื่อประกอบ: Codex · ขั้นถัดไป: Claude ตรวจรายงาน และ Gemini ตรวจความอ่านง่าย · <a href="report_day3_outline.md">อ่านโครงเนื้อหาต้นฉบับ</a></footer></main>
+<script>document.getElementById('theme').addEventListener('click',function(){const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;r.dataset.theme=dark?'light':'dark';this.textContent=dark?'เปลี่ยนเป็นธีมมืด':'เปลี่ยนเป็นธีมสว่าง';});</script></body></html>

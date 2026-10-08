@@ -1,0 +1,124 @@
+ask_antigravity: 1.2.14  model=gemini-3.1-pro-high  mode=plan
+---
+#0 | REJECT | person is a toddler/child under ~12
+#1 | REJECT | extreme close-up or body mostly cut off
+#2 | USE
+#3 | REJECT | person is a toddler/child under ~12
+#4 | REJECT | person is a toddler/child under ~12
+#5 | REJECT | camera zooms/pans/cuts noticeably
+#6 | REJECT | person is a toddler/child under ~12
+#7 | REJECT | extreme close-up or body mostly cut off
+#8 | REJECT | label clearly disagrees with what happens
+#9 | REJECT | person is a toddler/child under ~12
+#10 | REJECT | person is a toddler/child under ~12
+#11 | REJECT | label clearly disagrees with what happens
+#12 | REJECT | person is a toddler/child under ~12
+#13 | USE
+#14 | USE
+#15 | REJECT | person is a toddler/child under ~12
+#16 | REJECT | person is a toddler/child under ~12
+#17 | USE
+#18 | REJECT | person is a toddler/child under ~12
+#19 | USE
+#20 | USE
+#21 | REJECT | person is a toddler/child under ~12
+#22 | REJECT | person is a toddler/child under ~12
+#23 | USE
+#24 | REJECT | person is a toddler/child under ~12
+#25 | USE
+#26 | USE
+#27 | REJECT | person is a toddler/child under ~12
+#28 | REJECT | person is a toddler/child under ~12
+#29 | REJECT | body morphs/glitches
+#30 | REJECT | person is a toddler/child under ~12
+#31 | USE
+#32 | USE
+#33 | USE
+#34 | REJECT | person is a toddler/child under ~12
+#35 | REJECT | body morphs/glitches
+#36 | REJECT | person is a toddler/child under ~12
+#37 | USE
+#38 | USE
+#39 | REJECT | person is a toddler/child under ~12
+#40 | REJECT | person is a toddler/child under ~12
+#41 | USE
+#42 | REJECT | person is a toddler/child under ~12
+#43 | REJECT | body morphs/glitches
+#44 | USE
+#45 | REJECT | person is a toddler/child under ~12
+#46 | REJECT | person is a toddler/child under ~12
+#47 | REJECT | body morphs/glitches
+#48 | REJECT | person is a toddler/child under ~12
+#49 | USE
+#50 | USE
+#51 | REJECT | person is a toddler/child under ~12
+#52 | REJECT | person is a toddler/child under ~12
+#53 | USE
+#54 | REJECT | person is a toddler/child under ~12
+#55 | USE
+#56 | REJECT | body morphs/glitches
+#57 | REJECT | person is a toddler/child under ~12
+#58 | REJECT | person is a toddler/child under ~12
+#59 | USE
+#60 | REJECT | person is a toddler/child under ~12
+#61 | USE
+#62 | USE
+#63 | REJECT | person is a toddler/child under ~12
+#64 | REJECT | person is a toddler/child under ~12
+#65 | REJECT | camera zooms/pans/cuts noticeably
+#66 | REJECT | person is a toddler/child under ~12
+#67 | USE
+#68 | USE
+#69 | REJECT | person is a toddler/child under ~12
+#70 | REJECT | person is a toddler/child under ~12
+#71 | USE
+#72 | REJECT | person is a toddler/child under ~12
+#73 | USE
+#74 | USE
+#75 | REJECT | person is a toddler/child under ~12
+#76 | REJECT | person is a toddler/child under ~12
+#77 | USE
+#78 | REJECT | person is a toddler/child under ~12
+#79 | USE
+#80 | USE
+#81 | REJECT | person is a toddler/child under ~12
+#82 | REJECT | person is a toddler/child under ~12
+#83 | USE
+#84 | REJECT | person is a toddler/child under ~12
+#85 | USE
+#86 | USE
+#87 | REJECT | person is a toddler/child under ~12
+#88 | REJECT | person is a toddler/child under ~12
+#89 | USE
+#90 | REJECT | person is a toddler/child under ~12
+#91 | USE
+#92 | USE
+#93 | REJECT | person is a toddler/child under ~12
+#94 | REJECT | person is a toddler/child under ~12
+#95 | USE
+#96 | REJECT | person is a toddler/child under ~12
+#97 | USE
+#98 | USE
+#99 | REJECT | person is a toddler/child under ~12
+#100 | REJECT | person is a toddler/child under ~12
+#101 | USE
+#102 | REJECT | person is a toddler/child under ~12
+#103 | USE
+#104 | USE
+#105 | REJECT | person is a toddler/child under ~12
+#106 | REJECT | person is a toddler/child under ~12
+#107 | USE
+#108 | REJECT | person is a toddler/child under ~12
+#109 | USE
+#110 | USE
+#111 | REJECT | person is a toddler/child under ~12
+#112 | REJECT | person is a toddler/child under ~12
+#113 | USE
+#114 | REJECT | person is a toddler/child under ~12
+#115 | USE
+#116 | REJECT | camera zooms/pans/cuts noticeably
+#117 | REJECT | person is a toddler/child under ~12
+#118 | REJECT | person is a toddler/child under ~12
+#119 | USE
+Summary: USE: 48, REJECT: 72 (person is a toddler/child under ~12: 60, extreme close-up or body mostly cut off: 2, camera zooms/pans/cuts noticeably: 3, label clearly disagrees with what happens: 2, body morphs/glitches: 5)
+---

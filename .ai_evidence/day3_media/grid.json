@@ -1,0 +1,112 @@
+{
+  "command": "python tools/day3_media.py grid",
+  "logic": "training/measure/object_false_person.py:26-36,48",
+  "dataset_count": 1176,
+  "examined": 66,
+  "selection": "first 6 qualifying in sorted COCO image ID order",
+  "models": {
+    "training\\data\\pose_ir\\nightaug_s44_p2\\weights\\best.pt": "32aec8eb035faa8d12d844af360fb1f4c32843266aadc3c85ccb93bef3b9598d",
+    "training\\data\\pose_ir\\posneg_s44_p2\\weights\\best.pt": "56b73acc5625aae678661f9de1f19b19c05915637a1f8113b8279c61e9a1608e"
+  },
+  "examples": [
+    {
+      "path": "D:/project/PROJECT/datasets/coco-pose/images/val2017\\000000009914.jpg",
+      "nightaug_boxes": [
+        [
+          439.343505859375,
+          5.295036315917969,
+          640.0,
+          203.63052368164062
+        ]
+      ],
+      "nightaug_conf": [
+        0.3498211205005646
+      ],
+      "posneg_count": 0
+    },
+    {
+      "path": "D:/project/PROJECT/datasets/coco-pose/images/val2017\\000000018833.jpg",
+      "nightaug_boxes": [
+        [
+          393.8749084472656,
+          36.27056884765625,
+          639.3092041015625,
+          418.3316650390625
+        ],
+        [
+          14.4952392578125,
+          13.89239501953125,
+          640.0,
+          426.0
+        ]
+      ],
+      "nightaug_conf": [
+        0.3987669348716736,
+        0.32941654324531555
+      ],
+      "posneg_count": 0
+    },
+    {
+      "path": "D:/project/PROJECT/datasets/coco-pose/images/val2017\\000000022892.jpg",
+      "nightaug_boxes": [
+        [
+          82.56316375732422,
+          15.680420875549316,
+          500.0,
+          330.7425537109375
+        ]
+      ],
+      "nightaug_conf": [
+        0.5934946537017822
+      ],
+      "posneg_count": 0
+    },
+    {
+      "path": "D:/project/PROJECT/datasets/coco-pose/images/val2017\\000000027982.jpg",
+      "nightaug_boxes": [
+        [
+          433.54827880859375,
+          209.06105041503906,
+          488.9299621582031,
+          299.5338134765625
+        ]
+      ],
+      "nightaug_conf": [
+        0.33354535698890686
+      ],
+      "posneg_count": 0
+    },
+    {
+      "path": "D:/project/PROJECT/datasets/coco-pose/images/val2017\\000000029675.jpg",
+      "nightaug_boxes": [
+        [
+          0.0,
+          0.0,
+          478.0,
+          631.6217041015625
+        ]
+      ],
+      "nightaug_conf": [
+        0.6071758270263672
+      ],
+      "posneg_count": 0
+    },
+    {
+      "path": "D:/project/PROJECT/datasets/coco-pose/images/val2017\\000000032285.jpg",
+      "nightaug_boxes": [
+        [
+          74.46131134033203,
+          28.857772827148438,
+          124.47610473632812,
+          107.37472534179688
+        ]
+      ],
+      "nightaug_conf": [
+        0.3427552580833435
+      ],
+      "posneg_count": 0
+    }
+  ],
+  "torch_threads": 1,
+  "device": "cpu"
+}

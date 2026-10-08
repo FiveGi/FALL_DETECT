@@ -15,6 +15,7 @@ from app.services.line_service import acknowledge_ready
 from app.models.line_settings import LineSettings
 from app.models.line_target import LineDiscoveredTarget
 from app.models.notification_history import NotificationHistory
+from app.models.user import User
 
 bp = Blueprint('line', __name__, url_prefix='/api/line')
 
@@ -38,10 +39,14 @@ def get_line_settings():
         # A group id appears nowhere a caregiver can read it -- it arrives only in a webhook
         # event when the bot is invited. The settings page offers what the webhook has seen
         # instead of asking someone to read raw logs.
+        # Admin-only, enforced HERE (Codex P1, 8 Oct): the page hid the list, but the API still returned every group's
+        # id to any signed-in user. An ordinary user gets an empty list.
+        user = db.session.get(User, user_id)
+        is_admin = bool(user and user.is_admin())
         data['discovered_targets'] = [
             t.to_dict() for t in LineDiscoveredTarget.query.order_by(
                 LineDiscoveredTarget.last_seen.desc()).limit(20).all()
-        ]
+        ] if is_admin else []
         return jsonify({'success': True, 'data': data}), 200
     except Exception as e:
         return jsonify({'success': False, 'error': f'Failed to get LINE settings: {str(e)}'}), 500
@@ -68,6 +73,13 @@ def update_line_settings():
         # after only flipping the toggle.
         if token is not None and token.strip() == '':
             token = None
+        # One system bot (owner, 8 Oct): its token is set by an administrator; an ordinary user only chooses where
+        # THEIR alerts go (their LINE id / a group), so a token from a non-admin is refused, not silently stored.
+        if token:
+            user = db.session.get(User, user_id)
+            if not (user and user.is_admin()):
+                return jsonify({'success': False,
+                                'error': 'Only an administrator can change the LINE bot token'}), 403
         settings = LineSettings.get_settings(user_id)
         # An empty string here means "stop sending to this one", which is how a user drops the
         # individual target and keeps the group, or the other way round. It is only rejected
@@ -168,8 +180,11 @@ def _reply(reply_token, messages):
 
 
 def _token():
-    # The webhook is not authenticated as any particular app user, so it uses whichever
-    # enabled LINE configuration exists -- in practice this deployment has one.
+    # The SYSTEM bot's token (one bot, owner 8 Oct) -- independent of anyone's on/off switch, so the bot can answer
+    # (e.g. a new user asking for their LINE id) even when every user has alerts switched off (Codex P2). Falls back
+    # to an enabled user's stored token for deployments that never set it in .env.
+    if Config.LINE_CHANNEL_ACCESS_TOKEN:
+        return Config.LINE_CHANNEL_ACCESS_TOKEN
     row = LineSettings.query.filter(LineSettings.enabled.is_(True)).first()
     return row.channel_access_token if row else ''
 
@@ -214,6 +229,16 @@ def line_webhook():
                 LineDiscoveredTarget.departed(target_id)
             else:
                 LineDiscoveredTarget.seen(source_type, target_id)
+
+        # A person who adds the bot or writes to it 1:1 gets THEIR OWN LINE id back, privately, so they can paste it
+        # into the web page (owner, 8 Oct: every user enters their own LINE; nobody can read their id anywhere else).
+        # Only the sender sees it; nothing is stored or sent anywhere until they save it in the settings page.
+        if source_type == 'user' and event.get('type') in ('follow', 'message') and event.get('replyToken'):
+            uid = source.get('userId')
+            if uid:
+                _reply(event['replyToken'], [{'type': 'text', 'text':
+                       'LINE ID ของคุณ:\n%s\n\nคัดลอกไปวางในหน้าเว็บ เมนู "ตั้งค่าการแจ้งเตือน" ช่อง LINE User ID '
+                       'แล้วเปิดสวิตช์ เพื่อรับการแจ้งเตือนของคุณ' % uid}])
 
         if event.get('type') != 'postback':
             continue

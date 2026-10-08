@@ -1,0 +1,291 @@
+<title>รายงานความคืบหน้าระบบตรวจจับการล้ม</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (~72ch) for text; figures, tables and videos may run wider inside their own scroll boxes. */
+:root {
+  --bg: #f6f7f9;
+  --paper: #ffffff;
+  --ink: #17202a;
+  --muted: #5a6472;
+  --rule: #dde2e8;
+  --accent: #0b6e6e;
+  --accent-soft: #e3f1f0;
+  --good: #1a7f37;  --good-bg: #e6f4ea;
+  --warn: #9a6400;  --warn-bg: #fdf3dc;
+  --bad: #b42318;   --bad-bg: #fde8e7;
+  --body: "IBM Plex Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12161b; --paper: #1a2027; --ink: #e6e9ed; --muted: #9aa4b1; --rule: #2c343d;
+    --accent: #4fb8b4; --accent-soft: #16302f;
+    --good: #5cc27a; --good-bg: #15301e; --warn: #e2b04a; --warn-bg: #33280f; --bad: #f08a80; --bad-bg: #3a1a18;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12161b; --paper: #1a2027; --ink: #e6e9ed; --muted: #9aa4b1; --rule: #2c343d;
+  --accent: #4fb8b4; --accent-soft: #16302f;
+  --good: #5cc27a; --good-bg: #15301e; --warn: #e2b04a; --warn-bg: #33280f; --bad: #f08a80; --bad-bg: #3a1a18;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.75; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 80px; }
+.col { max-width: 74ch; }
+header.doc { border-bottom: 2px solid var(--ink); padding-bottom: 18px; margin-bottom: 28px; }
+.eyebrow { font-size: 13px; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; }
+h1 { font-size: 2.1rem; line-height: 1.3; margin: 6px 0 10px; font-weight: 700; text-wrap: balance; }
+h2 { font-size: 1.45rem; margin: 56px 0 12px; padding-top: 14px; border-top: 1px solid var(--rule); text-wrap: balance; }
+h3 { font-size: 1.12rem; margin: 30px 0 8px; }
+p, li { margin: 0 0 10px; }
+.meta { color: var(--muted); font-size: 14px; display: flex; flex-wrap: wrap; gap: 6px 22px; }
+.summary { background: var(--paper); border: 1px solid var(--rule); border-left: 4px solid var(--accent); padding: 18px 22px; margin: 18px 0; }
+.summary ul { margin: 0; padding-left: 20px; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.tbl { overflow-x: auto; margin: 14px 0 20px; border: 1px solid var(--rule); background: var(--paper); }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; min-width: 640px; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--rule); }
+th { font-weight: 600; color: var(--muted); font-size: 13px; background: var(--bg); }
+td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.pill { display: inline-block; font-size: 12.5px; font-weight: 600; padding: 1px 9px; border-radius: 99px; white-space: nowrap; }
+.ok { color: var(--good); background: var(--good-bg); }
+.wip { color: var(--warn); background: var(--warn-bg); }
+.open { color: var(--bad); background: var(--bad-bg); }
+figure { margin: 18px 0 26px; }
+figure img, figure video { display: block; width: 100%; max-width: 100%; height: auto; border: 1px solid var(--rule); background: #000; }
+figure img.light { background: var(--paper); }
+figcaption { font-size: 14px; color: var(--muted); margin-top: 8px; max-width: 80ch; }
+figcaption b { color: var(--ink); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+.grid2 > * { min-width: 0; }
+.flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; margin: 14px 0 6px; }
+.flow .step { flex: 1 1 140px; background: var(--paper); border: 1px solid var(--rule); padding: 10px 12px; font-size: 14px; }
+.flow .step b { display: block; font-size: 13px; color: var(--accent); }
+.flow .arrow { align-self: center; color: var(--muted); }
+.note { font-size: 14px; color: var(--muted); }
+.ask { background: var(--paper); border: 1px solid var(--rule); padding: 14px 18px; margin: 10px 0; }
+.ask b { color: var(--accent); }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: .9em; background: var(--accent-soft); padding: 0 4px; }
+@media (max-width: 560px) { h1 { font-size: 1.6rem; } .flow .arrow { display: none; } }
+</style>
+
+<div class="wrap">
+<header class="doc">
+  <div class="eyebrow">Backend-Elderly-Surveillance · รายงานความคืบหน้า</div>
+  <h1>รายงานความคืบหน้าระบบตรวจจับการล้มของผู้สูงอายุจากกล้องวงจรปิด</h1>
+  <div class="meta"><span>ข้อมูล ณ วันที่ 1 ตุลาคม 2569 (2026) อัปเดต 18:00</span><span>ระบบทำงานบนเครื่องที่มีแต่ CPU (ไม่มีการ์ดจอ)</span><span>สถานะ: ระบบที่ใช้งานจริงยังไม่ได้เปลี่ยนค่า</span></div>
+</header>
+
+<section class="col">
+<h2 style="border-top:0;margin-top:0;padding-top:0">สรุปสำหรับผู้บริหาร</h2>
+<div class="summary"><ul>
+  <li><b>ระบบทำอะไร:</b> ดูภาพจากกล้อง หาทุกคนในภาพพร้อมกัน แล้วตัดสินทีละคนว่าล้มหรือไม่ ถ้าล้มจะแจ้งเตือนเจ้าหน้าที่ ทำงานบนเซิร์ฟเวอร์ที่มีแต่ CPU ที่ <span class="num">8</span> ภาพต่อวินาที</li>
+  <li><b>เทียบกับระบบเดิม:</b> ระบบใหม่ดีกว่ามากบนชุดทดสอบมาตรฐานในห้อง (URFD) จับได้ <span class="num">46</span> จาก <span class="num">60</span> เทียบกับ <span class="num">25</span> และแจ้งผิดน้อยกว่า แต่บนคลิปจริงจากกล้องหน้าบ้านยังจับได้น้อยกว่าระบบเดิม (<span class="num">33.8</span> เทียบกับ <span class="num">44</span> จาก <span class="num">75</span> ครั้ง)</li>
+  <li><b>สิ่งที่พบ:</b> ปัญหาในข้อมูลที่ใช้สอนโมเดล <span class="num">7</span> ข้อ และปัญหาในวิธีวัดผล <span class="num">4</span> ข้อ เช่น ป้ายกำกับเลื่อนตำแหน่ง ความเร็ววิดีโอไม่ตรง และคลิปทดสอบหลุดเข้าไปในชุดสอน แก้ครบทุกข้อแล้ว</li>
+  <li><b>สอนโมเดลใหม่ (อัปเดต 18:00):</b> สอนครบ <span class="num">15</span> รอบ (สูตรหลัก 9 รอบ และรอบหาสาเหตุ 6 รอบ) พบว่า<b>การสอนที่ 8 ภาพต่อวินาทีทำให้โมเดลแยกล้มกับไม่ล้มได้แย่ลง</b> สูตรที่สอนที่ประมาณ 15 ภาพต่อวินาทีพร้อมการแก้ข้อมูลทั้งหมด ทำได้ดีกว่าตัวปัจจุบันเมื่อคุมการแจ้งผิดให้เท่ากัน (กลางวัน <span class="num">35</span> เทียบ <span class="num">25</span> ครั้ง กลางคืน <span class="num">26.3</span> เทียบ <span class="num">20.3</span> จาก 60) แต่ผลแต่ละรอบเทรนยังแกว่งมาก จึง<b>ยังไม่มีโมเดลไหนพร้อมใช้งานจริง</b></li>
+  <li><b>เพิ่มข้อมูลแล้ว:</b> วิดีโอสังเคราะห์ผู้ใหญ่และผู้สูงอายุ <span class="num">6,000</span> คลิป และชุด Le2i (กล้องวงจรปิดในบ้านและออฟฟิศ <span class="num">190</span> วิดีโอ) แปลงพร้อมสอนแล้ว และเริ่มสอนตัวหาคนด้วยภาพขาวดำ ภาพแบบอินฟราเรด และภาพเบลอ <span class="num">56,599</span> ภาพ เพื่อแก้ปัญหากลางคืน</li>
+  <li><b>จุดอ่อนใหญ่ที่สุด:</b> กล้องกลางคืน (อินฟราเรด) และคนหลายคนยืนซ้อนกัน</li>
+  <li><b>ต้องการการตัดสินใจ:</b> ขอสิทธิ์ใช้ข้อมูลภาพอินฟราเรดจริง เรื่องลิขสิทธิ์ข้อมูลที่ใช้ได้เฉพาะงานไม่แสวงกำไร สิทธิ์เข้าเซิร์ฟเวอร์จริงเพื่อวัดความเร็ว และคนช่วยตรวจป้ายกำกับคลิปทดสอบ (รายละเอียดในหัวข้อสุดท้าย)</li>
+</ul></div>
+
+<h2>1. ระบบทำงานอย่างไร</h2>
+<p>ภาพจากกล้องผ่าน <span class="num">5</span> ขั้นตอน ทุกขั้นทำบน CPU:</p>
+</section>
+<div class="flow">
+  <div class="step"><b>1 กล้อง</b>ดึงภาพ <span class="num">8</span> ภาพต่อวินาที ขนาด 640×360</div><span class="arrow">→</span>
+  <div class="step"><b>2 หาคนและท่าทาง</b>YOLO26s-pose หาทุกคน และจุดข้อต่อ <span class="num">17</span> จุดต่อคน</div><span class="arrow">→</span>
+  <div class="step"><b>3 ติดตามคน</b>จับคู่คนเดิมข้ามภาพ แยกประวัติท่าทางรายคน</div><span class="arrow">→</span>
+  <div class="step"><b>4 ตัดสินว่าล้ม</b>ตัวจำแนก 1D-CNN ดูท่าทาง <span class="num">15</span> ภาพล่าสุด (≈ <span class="num">1.9</span> วินาที) ให้คะแนน 0–1</div><span class="arrow">→</span>
+  <div class="step"><b>5 แจ้งเตือน</b>คะแนนเกินเกณฑ์จึงแจ้ง และติดตามต่อว่ายังนอนอยู่หรือลุกได้</div>
+</div>
+<section class="col">
+<p class="note">เพื่อให้ทันบน CPU ระบบจะดูเต็มภาพทุก <span class="num">8</span> ภาพ ภาพที่เหลือดูเฉพาะบริเวณรอบตัวคน (ครอบภาพขนาด <span class="num">256</span> พิกเซล) วิธีนี้เร็วขึ้นจาก <span class="num">9.1</span> เป็น <span class="num">11.1</span> ภาพต่อวินาทีบนเครื่องทดสอบ (จำกัด CPU <span class="num">3.5</span> คอร์ เท่าเซิร์ฟเวอร์) ส่วนระบบเดิมใช้ MediaPipe ซึ่งเบากว่า ได้ <span class="num">14</span> ภาพต่อวินาที แต่ตรวจได้ทีละคน</p>
+
+<h2>2. ข้อมูลที่ใช้</h2>
+<h3>2.1 ข้อมูลที่ใช้สอนโมเดล (training)</h3>
+<p>ทุกชุดแปลงเป็นข้อมูลท่าทาง (จุดข้อต่อ) ก่อนสอน ไม่ได้สอนจากภาพโดยตรง</p>
+</section>
+<div class="tbl"><table>
+<tr><th>ชุดข้อมูล</th><th>ที่มา</th><th>ลักษณะ</th><th class="n">จำนวน</th><th>สิทธิ์การใช้</th></tr>
+<tr><td>FallVision</td><td>Harvard Dataverse<br><span class="note">doi:10.7910/DVN/75QPKK</span></td><td>อาสาสมัครถ่ายด้วยมือถือ ล้มจากท่ายืน เตียง เก้าอี้</td><td class="n">5,845<br><span class="note">ใช้ 5,350</span></td><td>CC0 ใช้ได้อิสระ</td></tr>
+<tr><td>OmniFall OF-ItW (OOPS)</td><td>Hugging Face <code>simplexsigil2/omnifall</code></td><td>คลิปอุบัติเหตุจริงจากอินเทอร์เน็ต ตัดเป็นช่วง ๆ</td><td class="n">3,997</td><td>ป้ายกำกับ CC BY-NC-SA 4.0 วิดีโอเป็นของเจ้าของเดิม</td></tr>
+<tr><td>GMDCSA24</td><td>ชุดข้อมูลวิชาการ</td><td>ห้องในบ้าน <span class="num">4</span> คน แสดงท่าล้มและกิจวัตร</td><td class="n">160<br><span class="note">กัน 16 คลิปไว้ทดสอบ</span></td><td>ตามผู้เผยแพร่</td></tr>
+<tr><td>CAUCAFall</td><td>Universidad del Cauca</td><td>ห้องจำลอง <span class="num">10</span> คน มีป้ายกำกับทุกภาพ</td><td class="n">100</td><td>ตามผู้เผยแพร่</td></tr>
+<tr><td><b>OF-Syn (ใหม่)</b></td><td>Hugging Face <code>simplexsigil2/omnifall</code></td><td>วิดีโอสังเคราะห์ด้วย AI <span class="num">12,000</span> คลิป <span class="num">6</span> ช่วงอายุ ในบ้าน/นอกบ้าน</td><td class="n">6,000<br><span class="note">เฉพาะผู้ใหญ่+ผู้สูงอายุ</span></td><td>CC BY-NC-SA 4.0 ห้ามใช้เชิงพาณิชย์</td></tr>
+<tr><td><b>Le2i / ImViA (ใหม่)</b></td><td>UBFC <span class="note">doi:10.25666/DATAUBFC-2024-04-09</span></td><td>กล้องวงจรปิดตัวเดียวติดตั้งคงที่ ในบ้าน ห้องกาแฟ ออฟฟิศ ห้องเรียน ป้ายกำกับจาก OmniFall</td><td class="n">190<br><span class="note">แปลงแล้ว ยังไม่ได้สอน</span></td><td>CC BY-NC-SA 3.0 ห้ามใช้เชิงพาณิชย์</td></tr>
+<tr><td><b>COCO-2017 ท่าทางคน (ใหม่)</b></td><td>cocodataset.org</td><td>ภาพคนพร้อมจุดข้อต่อ ใช้สอนตัวหาคน (ไม่ใช่ตัวตัดสินว่าล้ม) โดยแปลงบางส่วนเป็นภาพขาวดำ อินฟราเรด และเบลอ</td><td class="n">56,599 ภาพ</td><td>CC BY 4.0 (ป้ายกำกับ) ภาพเป็นของเจ้าของ Flickr</td></tr>
+</table></div>
+<section class="col">
+<h3>2.2 ข้อมูลที่ใช้ทดสอบ (ไม่เคยใช้สอน)</h3>
+</section>
+<div class="tbl"><table>
+<tr><th>ชุดทดสอบ</th><th>เนื้อหา</th><th>ใช้วัดอะไร</th></tr>
+<tr><td>URFD</td><td>ล้ม <span class="num">60</span> คลิป และกิจวัตร <span class="num">40</span> คลิป ในห้อง กล้องติดตั้งคงที่</td><td>ชุดมาตรฐาน แบ่งครึ่ง: ครึ่ง A ใช้เลือกเกณฑ์ ครึ่ง B ใช้รายงานผล</td></tr>
+<tr><td>GMDCSA24-val</td><td>กิจวัตร <span class="num">16</span> คลิป</td><td>การแจ้งผิด</td></tr>
+<tr><td>คลิปกล้องหน้าบ้านจริง</td><td>รวบรวมจาก TikTok <span class="num">12</span> วิดีโอ ตัดเป็น <span class="num">126</span> ช่วง: ล้ม <span class="num">75</span> ไม่ล้ม <span class="num">13</span> นอกขอบเขต <span class="num">38</span> (เช่น เด็กเล็ก) ในนี้มีล้มในฉากหลายคน <span class="num">25</span> ช่วง</td><td>สถานการณ์จริงที่ใกล้การใช้งานที่สุด</td></tr>
+<tr><td>กลางคืน (จำลอง)</td><td>แปลง URFD เป็นภาพอินฟราเรดจำลอง <span class="num">3</span> ชุดสัญญาณรบกวน</td><td>การจับและการแจ้งผิดตอนกลางคืน</td></tr>
+<tr><td>กลางคืน (จริง)</td><td>ช่วงอินฟราเรดจริง <span class="num">7</span> ช่วงในคลิปหน้าบ้าน</td><td>ดูด้วยตา ยังน้อยเกินกว่าจะสรุปเป็นตัวเลข</td></tr>
+</table></div>
+<section class="col">
+<p class="note">ป้ายกำกับคลิปหน้าบ้าน: Gemini เสนอครบ <span class="num">126</span> ช่วง คนตรวจแล้ว <span class="num">13</span> ช่วง ตรงกันทั้ง <span class="num">13</span> ช่วง ที่เหลือยังถือเป็นผลเบื้องต้นจนกว่าจะมีคนตรวจครบ</p>
+
+<h2>3. สิ่งที่ทำไปแล้ว</h2>
+<h3>3.1 เทียบระบบเดิมกับระบบใหม่บนเครื่อง CPU</h3>
+<p>นำโมเดลเดิมตามที่ commit ไว้ครั้งแรกมาวัดบนชุดทดสอบเดียวกัน (ตรวจรหัส sha256 ของไฟล์แล้วว่าเป็นตัวเดิมจริง) ที่ความเร็วที่แต่ละตัวทำได้จริงบน CPU (ตัวเดิม <span class="num">14</span> ภาพ/วินาที ตัวใหม่ <span class="num">8</span>) ผลคือตัวใหม่ดีกว่าบนชุดในห้องและแจ้งผิดน้อยกว่า แต่แพ้บนคลิปหน้าบ้าน จึงเริ่มหาสาเหตุ</p>
+<h3>3.2 ทดสอบกล้องกลางคืน</h3>
+<p>ไม่มีคลิปกลางคืนจริงพอให้วัด จึงจำลองภาพอินฟราเรดจากชุด URFD (ภาพขาวดำ ขอบมืด มีสัญญาณรบกวน) พบว่ากลางวันจับได้ <span class="num">45</span> จาก <span class="num">60</span> แต่กลางคืนเหลือ <span class="num">15–20</span> จาก <span class="num">60</span> ลองแก้ด้วยการปรับภาพและสอนด้วยภาพจำลองแล้ว ผลไม่ดีขึ้นอย่างชัดเจน จึงปิดแนวทางนั้น และกำลังหาข้อมูลอินฟราเรดจริง</p>
+<h3>3.3 คนหลายคนซ้อนกัน และลองโมเดลอื่น</h3>
+<p>ดูภาพทีละเฟรมพบว่าเมื่อสองคนซ้อนกัน ตัวหาท่าทางรวมเป็นโครงเดียว ลองโมเดลอื่น 2 แบบ (RTMO และ RTMDet+RTMPose) บนภาพชุดเดียวกัน พบว่าแยกคนได้ไม่ดีกว่า แต่ช้ากว่า <span class="num">3–5</span> เท่า ซึ่งจะทำให้เหลือ <span class="num">2–4</span> ภาพต่อวินาทีบน CPU จึงคง YOLO26 ไว้</p>
+<h3>3.4 ปรับค่าด้วยเกณฑ์ที่ล็อกไว้ก่อนดูผล</h3>
+<p>ก่อนดูผล ได้เขียนเกณฑ์ผ่านไว้ล่วงหน้าเพื่อกันการเลือกผลที่ดูดี: ต้องจับในห้องไม่น้อยลง แจ้งผิดกลางวันเพิ่มได้ไม่เกิน <span class="num">1</span> คลิป แจ้งผิดกลางคืนเพิ่มได้ไม่เกิน <span class="num">1</span> ต่อ <span class="num">40</span> และคลิปหน้าบ้านแจ้งผิดไม่เกิน <span class="num">5</span> ทุกค่าวัด <span class="num">8</span> รอบแล้วเฉลี่ย เพราะผลแกว่งตามจังหวะการครอบภาพ (ต่างกันได้ถึง <span class="num">6</span> ครั้ง)</p>
+<p>ทางเลือก A (ลดความมั่นใจขั้นต่ำในการหาคนเป็น 0.15) จับคลิปหน้าบ้านได้เกือบเท่าตัวเดิม แต่<b>ไม่ผ่าน</b>เกณฑ์กลางคืน เพราะเห็น "คนผี" มากขึ้น ทางเลือก B ผ่านทุกข้อแต่ดีขึ้นน้อย ทีมจึงตัดสินใจรอผลการสอนโมเดลใหม่ก่อน</p>
+<h3>3.5 ปรับปรุงข้อมูลสอนและสอนโมเดลใหม่</h3>
+<p>ตรวจข้อมูลสอนละเอียดแล้วพบปัญหาหลายข้อ (หัวข้อ 4) แก้ครบแล้ว เพิ่มวิดีโอสังเคราะห์โดยตรวจตัวอย่าง <span class="num">120</span> คลิปด้วยตาและให้ Gemini ตรวจแยกกัน (ความเห็นตรงกัน <span class="num">28</span> จาก <span class="num">30</span> คลิปที่ตรวจซ้ำ) จึงเลือกใช้เฉพาะผู้ใหญ่และผู้สูงอายุ</p>
+<p>สอนครบ <span class="num">9</span> รอบตามแผน (ไม่มีข้อมูลสังเคราะห์ / มี 10% / มี 25% อย่างละ <span class="num">3</span> รอบ ทั้งหมดสอนที่ 8 ภาพต่อวินาที) ทุกสูตรจับได้มากขึ้นแต่แจ้งผิดมากขึ้นด้วย เมื่อเทียบที่ระดับแจ้งผิดเท่ากันกลับแยกล้มกับไม่ล้มได้แย่กว่าตัวปัจจุบัน จึงทดลองหาสาเหตุ <span class="num">6</span> รอบ โดยเปลี่ยนทีละอย่างตามที่ Codex ออกแบบ</p>
+<p><b>สาเหตุหลักคือการสอนที่ 8 ภาพต่อวินาที</b> เมื่อกลับไปสอนที่ประมาณ 15 ภาพต่อวินาทีโดยคงการแก้ข้อมูลอื่นไว้ทั้งหมด โมเดลแยกได้ดีกว่าตัวปัจจุบันทั้ง 3 รอบเทรนที่ระดับแจ้งผิดเข้มงวด และ 2 ใน 3 รอบตอนกลางคืน (กราฟในหัวข้อ 5) ข้อที่ยังต้องแก้คือการเลือกเกณฑ์ (threshold) อัตโนมัติยังให้ค่าต่างกันมากในแต่ละรอบเทรน (0.40–0.80) จึงผ่านเกณฑ์ที่ล็อกไว้ครบเพียงรอบเดียว และตามกติกาต้องผ่านทุกรอบ จึงยังไม่นำไปใช้</p>
+<h3>3.6 สอนตัวหาคนให้เก่งตอนกลางคืน (กำลังทำ)</h3>
+<p>ภาพกลางคืนทำให้ตัวหาคน (YOLO26) หาคนไม่เจอหรือหาท่าผิด เพียงทำภาพเป็นขาวดำก็ลดการจับได้จาก 75% เหลือ 58% แล้ว จึงสอนตัวหาคนต่อด้วยภาพคน <span class="num">56,599</span> ภาพจาก COCO โดยแปลง 15% เป็นภาพขาวดำ 15% เป็นภาพแบบอินฟราเรด (ขาวดำ ขอบมืด มีสัญญาณรบกวน) และครึ่งหนึ่งของภาพเหล่านั้นทำให้เบลอ ส่วนที่เหลือคงเป็นภาพสีเพื่อไม่ให้ลืมภาพกลางวัน สอนที่ขนาด 320 พิกเซลตามที่ใช้บน CPU และสอนคู่กับโมเดลควบคุมที่ใช้ภาพสีล้วน (3 คู่) เพื่อแยกผลของการแปลงภาพออกมาให้ชัด</p>
+<p>รอบแรกเสร็จแล้ว ความแม่นบนภาพสีลดลงจาก <span class="num">0.5065</span> เป็น <span class="num">0.4952</span> ต่ำกว่าเกณฑ์ที่ยอมรับ (0.4965) อยู่เล็กน้อย โมเดลควบคุมจะบอกว่าส่วนที่ลดลงมาจากการแปลงภาพหรือจากการสอนต่อเอง ผลกลางคืนจะวัดด้วยภาพกลางคืนจำลองอีกแบบที่เขียนแยกจากที่ใช้สอน (ขาวดำ มืดลง ความละเอียดลด สัญญาณรบกวนแบบเซนเซอร์ บีบอัดแบบกล้องวงจรปิด) เพื่อไม่ให้เป็นการวัดตัวจำลองด้วยตัวมันเอง</p>
+<h3>3.7 ความปลอดภัยของระบบเว็บ</h3>
+<p>ลิงก์ดูวิดีโอสดเคยแนบรหัสเข้าระบบไว้ใน URL จึงเปลี่ยนเป็นรหัสดูชั่วคราวเฉพาะกล้อง (เริ่มดูภายใน 60 วินาที ดูได้ครั้งละไม่เกิน 10 นาที) รวมการตรวจสิทธิ์ผู้ดูแลไว้ที่เดียว และถ้าระบบตรวจรหัสที่ถูกยกเลิกขัดข้อง จะปฏิเสธการเข้าถึงไว้ก่อน ผ่านการทดสอบอัตโนมัติ <span class="num">15</span> จาก <span class="num">15</span> ข้อ</p>
+
+<h2>4. ปัญหาที่พบและวิธีแก้</h2>
+</section>
+<div class="tbl"><table>
+<tr><th>ปัญหา</th><th>ผลกระทบ</th><th>วิธีแก้</th><th>สถานะ</th></tr>
+<tr><td colspan="4"><b>ข้อมูลที่ใช้สอนโมเดล</b></td></tr>
+<tr><td>ป้ายกำกับ "ล้ม" เลื่อนตำแหน่งเมื่อลดความถี่ภาพ</td><td>ประมาณ 18% ของช่วงใน CAUCAFall และ GMDCSA24 ติดป้ายผิด มี 15 คลิปล้มที่ไม่มีช่วง "ล้ม" เลย</td><td>ลดความถี่ป้ายกำกับให้ตรงกับภาพ</td><td><span class="pill ok">แก้แล้ว</span></td></tr>
+<tr><td>FallVision ไม่ได้ถ่ายที่ 30 ภาพ/วินาทีทั้งหมด</td><td>28% เป็น 24, 60 หรือ 120 ภาพ/วินาที แต่ถูกสอนเหมือน 30 การเคลื่อนไหวจึงเร็วหรือช้าผิดจริง</td><td>ดาวน์โหลดวิดีโอต้นฉบับ 32.4 GB มาอ่านความเร็วจริงทีละไฟล์ แล้วปรับทุกคลิปเป็น 8 ภาพ/วินาทีตามเวลาจริง</td><td><span class="pill ok">แก้แล้ว</span></td></tr>
+<tr><td>FallVision บางไฟล์มีภาพหายระหว่างคลิป</td><td>495 ไฟล์มีภาพหายเกิน 5% ทำให้เวลาในคลิปบีบสั้นลง</td><td>ตัดออกจากการสอน</td><td><span class="pill ok">แก้แล้ว</span></td></tr>
+<tr><td>คลิป "ทดสอบ" หลุดเข้าไปในชุดสอน</td><td>13 จาก 16 คลิปที่ใช้วัดการแจ้งผิดเคยถูกใช้สอนโมเดลปัจจุบัน ผลส่วนนั้นจึงดีเกินจริง</td><td>ล็อกรายชื่อคลิปทดสอบไม่ให้เข้าชุดสอน และบล็อกชุด URFD กับคลิปหน้าบ้านทั้งชุด</td><td><span class="pill ok">แก้แล้ว</span></td></tr>
+<tr><td>การแบ่งชุดสอน/ตรวจรั่ว</td><td>ช่วงจากวิดีโอเดียวกันอยู่ทั้งสองฝั่ง และเพิ่มข้อมูลใหม่ทีไรการแบ่งก็เปลี่ยนทั้งหมด</td><td>แบ่งตามคนหรือวิดีโอต้นทาง ด้วยวิธีที่ผลไม่เปลี่ยนเมื่อเพิ่มข้อมูล</td><td><span class="pill ok">แก้แล้ว</span></td></tr>
+<tr><td>ตอนกล้องมองไม่เห็นคน การสอนใส่ค่าศูนย์ แต่ระบบจริงใช้ท่าล่าสุด</td><td>โมเดลเรียนจากรูปแบบที่ระบบจริงไม่เคยส่งให้</td><td>จำลองพฤติกรรมของระบบจริงตอนสอน (ใช้ท่าล่าสุดได้ 5 ภาพ แล้วหยุดรอ)</td><td><span class="pill ok">แก้แล้ว</span></td></tr>
+<tr><td>วิดีโอสังเคราะห์มีปัญหาคุณภาพ</td><td>เด็กเล็กเป็นครึ่งหนึ่ง มีภาพซูมหรือตัดต่อ และป้ายมุมกล้องไม่ตรงกับภาพจริง</td><td>ใช้เฉพาะผู้ใหญ่ ตรวจตัวอย่างด้วยตาและ Gemini และรายงานจำนวนที่คัดออก</td><td><span class="pill ok">แก้แล้ว</span></td></tr>
+<tr><td colspan="4"><b>วิธีวัดผล</b></td></tr>
+<tr><td>สถานะการครอบภาพติดค้างข้ามคลิปตอนวัด</td><td>ผลแต่ละคลิปขึ้นกับคลิปก่อนหน้า ตัวเลขแกว่งได้ถึง 6 ครั้ง</td><td>รีเซ็ตทุกคลิป และวัด 8 จังหวะแล้วรายงานเป็นช่วง ใส่การรีเซ็ตในระบบจริงด้วย (เริ่มกล้อง วนคลิป ต่อกล้องใหม่)</td><td><span class="pill ok">แก้แล้ว</span></td></tr>
+<tr><td>เครื่องมือทำภาพประกอบรันตัวหาท่าทางซ้ำ</td><td>ภาพที่ใช้ตรวจด้วยตาไม่ตรงกับผลที่วัด</td><td>วาดจากผลจริงของตัวตรวจจับ</td><td><span class="pill ok">แก้แล้ว</span></td></tr>
+<tr><td>นับเคสหลายคนผิดในตารางเทียบ</td><td>เคยรายงาน 14 เทียบ 8 ค่าจริงคือ 16 เทียบ 10</td><td>ใช้สคริปต์ให้คะแนนตัวเดียวสำหรับทุกตาราง</td><td><span class="pill ok">แก้แล้ว</span></td></tr>
+<tr><td>ใช้งานเครื่องพร้อมกันมากเกินไป</td><td>เครื่องค้างเพราะหน่วยความจำเต็ม งานหายทั้งชุด</td><td>จำกัดงานพร้อมกันไม่เกิน 6 งาน และใช้คิวงาน</td><td><span class="pill ok">แก้แล้ว</span></td></tr>
+<tr><td colspan="4"><b>ความแม่นยำของระบบ</b></td></tr>
+<tr><td>กลางคืน (อินฟราเรด) จับได้น้อยและแจ้งผิด</td><td>กลางวันจับได้ราว 75% กลางคืนเหลือ 25–33% (จำลอง)</td><td>ต้องได้ข้อมูลอินฟราเรดจริง (NTU RGB+D, MUVIM)</td><td><span class="pill open">ยังเปิด</span></td></tr>
+<tr><td>คนซ้อนกันถูกรวมเป็นคนเดียว</td><td>พลาดการล้มในฉากหลายคน</td><td>ลองโมเดลอื่นแล้วไม่ดีกว่า ขั้นต่อไปคือจูนตัวหาท่าทางด้วยข้อมูลคนเบียดกัน</td><td><span class="pill open">ยังเปิด</span></td></tr>
+<tr><td>จับคลิปหน้าบ้านได้น้อยกว่าระบบเดิม</td><td>33.8 เทียบกับ 44 จาก 75</td><td>สอนโมเดลใหม่ สูตร 15 ภาพ/วินาทีแยกได้ดีขึ้น แต่ยังไม่ผ่านเกณฑ์ทุกรอบเทรน</td><td><span class="pill wip">กำลังทำ</span></td></tr>
+<tr><td colspan="4"><b>การสอนโมเดล (พบวันนี้)</b></td></tr>
+<tr><td>สอนที่ 8 ภาพ/วินาทีทำให้แยกล้มได้แย่ลง</td><td>ทุกสูตรที่สอนที่ 8 ภาพ/วินาที แจ้งผิดมากขึ้นและแยกได้แย่กว่าตัวปัจจุบัน แม้ระบบจริงจะรันที่ 8 ภาพ/วินาที</td><td>ทดลองเปลี่ยนทีละอย่าง 6 รอบจนพบสาเหตุ กลับไปสอนที่ ~15 ภาพ/วินาที</td><td><span class="pill ok">พบสาเหตุแล้ว</span></td></tr>
+<tr><td>เกณฑ์ที่เลือกอัตโนมัติแกว่งตามรอบเทรน</td><td>โมเดลสูตรเดียวกันได้เกณฑ์ 0.40–0.80 ผลผ่าน/ไม่ผ่านจึงขึ้นกับรอบ</td><td>เพิ่มช่วงเกณฑ์ถึง 0.99 (ล็อกไว้ก่อน) และเทียบที่ระดับแจ้งผิดเท่ากัน ต่อไปจะหาวิธีทำให้ผลนิ่งขึ้น</td><td><span class="pill open">ยังเปิด</span></td></tr>
+<tr><td>สอนตัวหาคนต่อแล้วภาพสีแม่นลดลงเล็กน้อย</td><td>0.5065 เหลือ 0.4952 (เกณฑ์ ≥ 0.4965)</td><td>รอเทียบกับโมเดลควบคุมภาพสีล้วน</td><td><span class="pill wip">กำลังทำ</span></td></tr>
+</table></div>
+
+<section class="col">
+<h2>5. ผลการทดสอบ</h2>
+<p>ตัวเลขทั้งหมดวัดบน CPU ที่ <span class="num">8</span> ภาพต่อวินาที และเป็นค่าเฉลี่ยของ <span class="num">8</span> รอบวัด ส่วนตัวเก่าไม่มีการครอบภาพจึงวัดรอบเดียว</p>
+</section>
+<section class="col"><h3>5.1 ปรับค่าของโมเดลปัจจุบัน (ไม่สอนใหม่)</h3></section>
+<figure><img class="light" src="img/chart_owner_clips.png" alt="กราฟเทียบตัวเก่า ตัวปัจจุบัน ทางเลือก A และ B บนคลิปหน้าบ้าน">
+<figcaption><b>คลิปกล้องหน้าบ้านจริง:</b> ทางเลือก A (เขียว) จับได้ใกล้ตัวเก่าและแจ้งผิดน้อยกว่า แต่ไม่ผ่านเกณฑ์กลางคืน ทางเลือก B (เหลือง) ผ่านทุกเกณฑ์แต่ดีขึ้นจากตัวปัจจุบันเพียงเล็กน้อย</figcaption></figure>
+<div class="tbl"><table>
+<tr><th>คลิปหน้าบ้าน</th><th class="n">จับได้ /75</th><th class="n">แจ้งผิด /13</th><th class="n">หลายคน /25</th></tr>
+<tr><td>ตัวเก่า (MediaPipe, 14 ภาพ/วินาที)</td><td class="n">44</td><td class="n">5</td><td class="n">16</td></tr>
+<tr><td>ตัวปัจจุบัน (conf 0.30, เกณฑ์ 0.65)</td><td class="n">33.8 (30–36)</td><td class="n">1.8</td><td class="n">10.9</td></tr>
+<tr><td>ทางเลือก A (conf 0.15, เกณฑ์ 0.60)</td><td class="n">43.4 (40–45)</td><td class="n">2.8</td><td class="n">17.1</td></tr>
+<tr><td>ทางเลือก B (conf 0.30, เกณฑ์ 0.60)</td><td class="n">35.9 (33–38)</td><td class="n">2.2</td><td class="n">12.6</td></tr>
+</table></div>
+<figure><img class="light" src="img/chart_gates.png" alt="กราฟเกณฑ์ผ่าน: URFD และกลางคืน">
+<figcaption><b>เกณฑ์ที่ล็อกไว้:</b> ทุกตัวผ่านเกณฑ์กลางวัน ส่วนกลางคืน ทางเลือก A แจ้งผิดเกินเส้นที่กำหนด (≤ 4.3 จาก 40)</figcaption></figure>
+<div class="tbl"><table>
+<tr><th>เกณฑ์</th><th class="n">ตัวปัจจุบัน</th><th class="n">A</th><th class="n">B</th></tr>
+<tr><td>URFD ครึ่ง B จับได้ /28 (ต้องไม่น้อยลง)</td><td class="n">21.8</td><td class="n">23.4 ✓</td><td class="n">23.1 ✓</td></tr>
+<tr><td>URFD ครึ่ง B กิจวัตรไม่แจ้งผิด /20 (ลดได้ไม่เกิน 1)</td><td class="n">17.1</td><td class="n">17.0 ✓</td><td class="n">16.5 ✓</td></tr>
+<tr><td>GMDCSA24 กิจวัตรไม่แจ้งผิด /16 (ลดได้ไม่เกิน 1)</td><td class="n">7.1</td><td class="n">7.0 ✓</td><td class="n">7.0 ✓</td></tr>
+<tr><td>กลางคืน แจ้งผิด /40 (เพิ่มได้ไม่เกิน 1)</td><td class="n">3.3</td><td class="n">5.0 ✗</td><td class="n">4.0 ✓</td></tr>
+<tr><td>คลิปหน้าบ้าน แจ้งผิดไม่เกิน 5</td><td class="n">1.8</td><td class="n">2.8 ✓</td><td class="n">2.2 ✓</td></tr>
+</table></div>
+<section class="col">
+<h3>5.2 สอนโมเดลใหม่ (15 รอบ)</h3>
+<p>การดูแค่ "จับได้กี่ครั้ง" ทำให้เข้าใจผิดได้ เพราะโมเดลที่เตือนง่ายจะจับได้มาก แต่ก็เตือนผิดมากด้วย จึงเทียบแบบนี้: ชุดทดสอบ URFD มีคลิปคนล้ม 60 คลิป และคลิปปกติที่ไม่มีใครล้ม 40 คลิป เราปรับทุกโมเดลให้เตือนผิดในคลิปปกติได้ไม่เกินจำนวนเดียวกัน เช่น ไม่เกิน 3 จาก 40 แล้วนับว่าแต่ละตัวจับคนล้มได้กี่คลิปจาก 60 <b>แท่งยิ่งยาวยิ่งเก่ง</b> จำนวนที่ใช้เทียบกำหนดไว้ก่อนดูผล แต่ละสูตรสอน 3 รอบ</p>
+</section>
+<figure><img class="light" src="img/chart_matched.png" alt="กราฟเทียบความสามารถแยกล้มที่ระดับแจ้งผิดเท่ากันของ 5 สูตร">
+<figcaption><b>ที่ระดับแจ้งผิดเท่ากัน:</b> สูตรใหม่ที่สอนที่ 15 ภาพ/วินาที (ม่วง) จับได้มากกว่าตัวปัจจุบันเมื่อคุมการแจ้งผิดเข้มงวด (35 เทียบ 25) และตอนกลางคืน (26.3 เทียบ 20.3) แต่ที่ระดับแจ้งผิดหลวมกว่า ตัวปัจจุบันยังดีกว่า (51 เทียบ 44.7) สูตรที่สอนที่ 8 ภาพ/วินาที แย่ที่สุด ตัวเลขด้านข้างแต่ละแท่งคือผลแต่ละรอบเทรน ซึ่งยังแกว่งมาก</figcaption></figure>
+<div class="tbl"><table>
+<tr><th>สูตร (3 รอบเทรนต่อสูตร)</th><th class="n">ผ่านเกณฑ์ที่ล็อกไว้</th><th class="n">กลางวัน เตือนผิดได้ไม่เกิน 3 จาก 40: จับได้ /60</th><th class="n">กลางวัน ไม่เกิน 6 จาก 40</th><th class="n">กลางคืน ไม่เกิน 4 จาก 40</th><th class="n">คลิปหน้าบ้าน จับได้ /75 · แจ้งผิด /13</th></tr>
+<tr><td>ตัวปัจจุบัน</td><td class="n">—</td><td class="n">25</td><td class="n">51</td><td class="n">20.3</td><td class="n">33.8 · 1.8</td></tr>
+<tr><td>สูตรใหม่ 15 ภาพ/วินาที</td><td class="n">1 / 3</td><td class="n">35 (31–38)</td><td class="n">44.7 (37–49)</td><td class="n">26.3 (22–31)</td><td class="n">43.1 · 3.0</td></tr>
+<tr><td>สูตรใหม่ 8 ภาพ/วินาที</td><td class="n">0 / 3</td><td class="n">21.3 (8–31)</td><td class="n">31.7 (17–40)</td><td class="n">13.8*</td><td class="n">45.2 · 2.4</td></tr>
+<tr><td>8 ภาพ/วินาที + สังเคราะห์ 10%</td><td class="n">1 / 3</td><td class="n">19 (16–25)</td><td class="n">42.7 (42–44)</td><td class="n">21.5 (18–26)</td><td class="n">49.3 · 5.0</td></tr>
+<tr><td>8 ภาพ/วินาที + สังเคราะห์ 25%</td><td class="n">2 / 3</td><td class="n">25.3 (10–40)</td><td class="n">46.7 (46–48)</td><td class="n">20.9*</td><td class="n">39.2 · 0.9</td></tr>
+</table></div>
+<section class="col">
+<p class="note">* มี 1 รอบที่ไม่มีเกณฑ์ไหนทำให้แจ้งผิดกลางคืนต่ำถึงเป้า ค่าเฉลี่ยคิดจากรอบที่ทำได้ · คอลัมน์คลิปหน้าบ้านใช้เกณฑ์ที่แต่ละรอบเลือกเอง จึงสะท้อนจุดทำงาน ไม่ใช่ความสามารถแยก · ตามกติกา ต้องผ่านเกณฑ์ทุกรอบเทรนจึงจะนำไปใช้ ยังไม่มีสูตรไหนผ่าน</p>
+
+<h2>6. ภาพจากการทดสอบ</h2>
+<p>โครงสีเหลืองคือคนที่ระบบเห็นและกำลังเฝ้าดู สีแดงคือคนที่ระบบแจ้งเตือนว่าล้ม แถบด้านบนแสดงเวลาและสถานะ ใช้ค่าที่ใช้งานอยู่จริง (CPU 8 ภาพ/วินาที)</p>
+<h3>6.1 วิดีโอสาธิต</h3>
+</section>
+<div class="grid2">
+  <figure><video controls preload="metadata" src="videos/01_ตรวจพบ_ทางเดินโรงพยาบาล_2คน.mp4"></video><figcaption><b>ตรวจพบ:</b> ทางเดินโรงพยาบาล มี 2 คน เฉพาะคนที่ล้มถูกแจ้งเตือน ส่วนคนที่ยืนไม่ถูกแจ้ง</figcaption></figure>
+  <figure><video controls preload="metadata" src="videos/02_ตรวจพบ_ลื่นล้มบนน้ำแข็ง.mp4"></video><figcaption><b>ตรวจพบ:</b> ลื่นล้มบนน้ำแข็ง กล้องหน้าบ้าน</figcaption></figure>
+  <figure><video controls preload="metadata" src="videos/03_ตรวจพบ_สะดุดล้มที่ระเบียง.mp4"></video><figcaption><b>ตรวจพบ:</b> วิ่งขึ้นระเบียงแล้วสะดุดล้ม</figcaption></figure>
+  <figure><video controls preload="metadata" src="videos/04_จุดอ่อน_คนซ้อนกันจึงพลาด.mp4"></video><figcaption><b>จุดอ่อน:</b> สองคนซ้อนกัน ระบบรวมเป็นโครงเดียว จึงพลาดการล้ม</figcaption></figure>
+  <figure><video controls preload="metadata" src="videos/05_จุดอ่อน_กลางคืนล้มแต่ไม่แจ้ง.mp4"></video><figcaption><b>จุดอ่อน:</b> กล้องอินฟราเรดกลางคืน คนล้มจริงแต่ระบบไม่แจ้ง</figcaption></figure>
+  <figure><video controls preload="metadata" src="videos/06_จุดอ่อน_กลางคืนแจ้งผิด.mp4"></video><figcaption><b>จุดอ่อน:</b> กลางคืน คนยืนเฉย ๆ แต่ระบบแจ้งผิด</figcaption></figure>
+</div>
+<section class="col"><h3>6.2 ภาพนิ่ง: ตรวจพบถูกต้อง</h3></section>
+<figure><img src="img/fall_test15.jpg" alt="ทางเดินโรงพยาบาล คนล้มถูกแจ้งเตือน คนยืนไม่ถูกแจ้ง"><figcaption><b>ภาพที่ 1</b> ทางเดินโรงพยาบาล (Test/15) ระบบแยกคนยืน (เหลือง) กับคนล้ม (แดง) ได้ แจ้งเตือนที่วินาที 6.2</figcaption></figure>
+<div class="grid2">
+  <figure><img src="img/fall_1_06.jpg" alt="ลื่นล้มบนน้ำแข็ง"><figcaption><b>ภาพที่ 2</b> ลื่นล้มบนน้ำแข็ง คะแนน 0.92 ตรวจพบทุก 8 รอบวัด</figcaption></figure>
+  <figure><img src="img/fall_5_15.jpg" alt="สะดุดล้มคว่ำหน้า"><figcaption><b>ภาพที่ 3</b> ถือของแล้วสะดุดล้มคว่ำหน้าบนระเบียง</figcaption></figure>
+  <figure><img src="img/fall_4_02.jpg" alt="สะดุดล้มบนระเบียง"><figcaption><b>ภาพที่ 4</b> วิ่งขึ้นระเบียงแล้วสะดุดล้ม</figcaption></figure>
+  <figure><img src="img/fall_12_13.jpg" alt="ตกจากขอบระเบียง"><figcaption><b>ภาพที่ 5</b> ตกจากขอบระเบียงลงพื้น</figcaption></figure>
+</div>
+<section class="col"><h3>6.3 ภาพนิ่ง: จุดอ่อนและกรณีศึกษา</h3></section>
+<div class="grid2">
+  <figure><img src="img/night_ghost_8_03.jpg" alt="คนผีตอนกลางคืน"><figcaption><b>ภาพที่ 6</b> กลางคืน เมื่อลดความมั่นใจขั้นต่ำเป็น 0.15 ระบบสร้างโครงคนเดียวคร่อมทั้งชาย ถุงสีขาว และอีกคน แล้วแจ้งผิด เหตุผลที่ไม่ใช้ทางเลือก A</figcaption></figure>
+  <figure><img src="img/night_fa_4_03.jpg" alt="แจ้งผิดตอนกลางคืน"><figcaption><b>ภาพที่ 7</b> กลางคืน หญิงยืนตรง คะแนนพอดีเกณฑ์ 0.60 จึงแจ้งผิด ตัวเก่าก็แจ้งผิดคลิปนี้</figcaption></figure>
+  <figure><img src="img/aftermath_4_05.jpg" alt="ช่วงหลังล้มที่ป้ายว่าไม่ล้ม"><figcaption><b>ภาพที่ 8</b> ช่วงนี้ป้ายกำกับว่า "ไม่ล้ม" แต่ในภาพมีคนนอนอยู่จากการล้มในช่วงก่อนหน้า น่าจะเป็นป้ายผิด ต้องให้คนตรวจ</figcaption></figure>
+  <figure><img src="img/child_9_18.jpg" alt="เด็กถูกชนที่ประตู"><figcaption><b>ภาพที่ 9</b> เด็กถูกชนจนก้มต่ำที่ประตูรั้ว ทั้งตัวเก่าและตัวใหม่แจ้ง</figcaption></figure>
+</div>
+<figure><img class="light" src="img/overlap_frontends.jpg" alt="เทียบโมเดลหาท่าทาง 4 แบบบนภาพคนซ้อนกัน"><figcaption><b>ภาพที่ 10</b> เทียบตัวหาท่าทาง 4 แบบบนเฟรมเดียวกันที่สองคนซ้อนกัน (แถวบนลงล่าง: YOLO26 conf 0.30, YOLO26 conf 0.15, RTMO, RTMDet+RTMPose) ไม่มีแบบไหนแยกได้ดีกว่าชัดเจน แต่สองแบบหลังช้ากว่า 3–5 เท่า</figcaption></figure>
+<div class="grid2">
+  <figure><img src="img/real_ir_segments.jpg" alt="ภาพอินฟราเรดจริงจากคลิปหน้าบ้าน"><figcaption><b>ภาพที่ 11</b> ภาพอินฟราเรดจริงในคลิปหน้าบ้าน 7 ช่วง ภาพขาวดำ ความคมต่ำ คนกลืนกับพื้นหลัง</figcaption></figure>
+  <figure><img src="img/sim_ir_demo.jpg" alt="ภาพกลางวันเทียบภาพกลางคืนจำลอง"><figcaption><b>ภาพที่ 12</b> วิธีจำลองกลางคืน: ภาพสีกลางวัน (ซ้าย) แปลงเป็นภาพแบบกล้องอินฟราเรด (กลาง) และลองปรับแสง (ขวา)</figcaption></figure>
+</div>
+<section class="col"><h3>6.4 ข้อมูลสังเคราะห์ที่เพิ่มเข้ามา</h3></section>
+<div class="grid2">
+  <figure><img class="light" src="img/syn_elderly_liedown.jpg" alt="วิดีโอสังเคราะห์ผู้สูงอายุนอนลง"><figcaption><b>ภาพที่ 13</b> วิดีโอสังเคราะห์: ผู้สูงอายุ "นอนลงเอง" ไม่ใช่ล้ม ใช้สอนให้แยกการนอนกับการล้ม ซึ่งเป็นสาเหตุแจ้งผิดที่พบบ่อย</figcaption></figure>
+  <figure><img class="light" src="img/syn_pose_check.jpg" alt="ตรวจจุดข้อต่อบนวิดีโอสังเคราะห์"><figcaption><b>ภาพที่ 14</b> ตรวจว่าจุดข้อต่อตรงตัวคนและป้าย "ล้ม" ตรงจังหวะ ป้ายแดง = ช่วงล้ม (ภาพนี้เป็นเด็ก ซึ่งภายหลังคัดออก)</figcaption></figure>
+</div>
+<figure><img class="light" src="img/syn_audit_sheet00.jpg" alt="แผ่นตรวจคุณภาพวิดีโอสังเคราะห์ 10 คลิป"><figcaption><b>ภาพที่ 15</b> แผ่นตรวจคุณภาพ 10 คลิปจาก 120 คลิป แต่ละแถวคือคลิป 6 ภาพตลอด 5 วินาที แถวนี้ใช้ได้ 2 คลิป ที่เหลือเป็นเด็ก ภาพใกล้เกินไป หรือกล้องซูม</figcaption></figure>
+
+<section class="col">
+<h2>7. ข้อจำกัดที่ควรทราบ</h2>
+<ul>
+  <li>ความเร็วที่วัดเป็นของเครื่องทดสอบที่จำกัด CPU เท่าเซิร์ฟเวอร์ ยังไม่ได้วัดบนเซิร์ฟเวอร์จริง (4 vCPU แบบเครื่องเสมือน ซึ่งอาจช้ากว่า)</li>
+  <li>คลิปหน้าบ้านส่วนใหญ่เป็นคลิปตัดต่อจาก TikTok และป้ายกำกับยังไม่ได้ตรวจโดยคนครบทุกช่วง</li>
+  <li>ผลกลางคืนส่วนใหญ่มาจากภาพจำลอง ยังไม่มีข้อมูลอินฟราเรดจริงพอให้วัดเป็นตัวเลข</li>
+  <li>ชุดทดสอบเล็ก (เช่น ไม่ล้มในคลิปหน้าบ้านมีแค่ 13 ช่วง) ความต่าง 1–2 ครั้งอาจเป็นความบังเอิญ</li>
+  <li>วิดีโอสังเคราะห์และป้าย OmniFall ห้ามใช้เชิงพาณิชย์ (CC BY-NC-SA 4.0)</li>
+</ul>
+
+<h2>8. แผนต่อไปและสิ่งที่ต้องการ</h2>
+<ol>
+  <li>ใช้สูตร 15 ภาพ/วินาทีเป็นฐาน แล้วแก้ปัญหาผลแกว่งตามรอบเทรน (เช่น เฉลี่ยหลายโมเดล หรือเลือกเกณฑ์ให้นิ่งขึ้น) ร่วมกับ Codex</li>
+  <li>เพิ่มข้อมูลสังเคราะห์และ Le2i (แปลงพร้อมแล้ว) บนสูตร 15 ภาพ/วินาที ทีละชุด 3 รอบเทรน วัดด้วยเกณฑ์เดิม</li>
+  <li>วัดตัวหาคนที่สอนด้วยภาพขาวดำ อินฟราเรด และเบลอ บนภาพกลางคืนจำลองแบบแยก และคลิปอินฟราเรดจริง เทียบกับโมเดลควบคุม และวัดความเร็วบน CPU ต้องไม่ช้าลงเกิน 5%</li>
+  <li>ถ้าผ่านทุกข้อ จะให้ Codex และ Gemini ตรวจซ้ำ แล้วเสนอเปลี่ยนในระบบจริงโดยขออนุมัติก่อน</li>
+  <li>เพิ่มข้อมูลจริงชุดต่อไป: UP-Fall, CMDFall (ต้องขอสิทธิ์) และข้อมูลอินฟราเรดจริงเพื่อแก้ปัญหากลางคืน</li>
+  <li>จูนตัวหาท่าทางสำหรับคนซ้อนกัน (ข้อมูล CrowdPose, OCHuman) แล้ววัดความเร็วบน CPU ด้วย</li>
+</ol>
+<div class="ask"><b>ขอสิทธิ์ข้อมูลอินฟราเรดจริง</b>: NTU RGB+D 120 (มีท่าล้ม และภาพอินฟราเรดแบบเดียวกับกล้องวงจรปิดกลางคืน) ต้องกรอกฟอร์มที่ Rose Lab, NTU ส่วน MUVIM ต้องส่งอีเมลถึงผู้วิจัยพร้อมเอกสารความเป็นส่วนตัว ทั้งสองชุดต้องขอในนามผู้รับผิดชอบโครงการ</div>
+<div class="ask"><b>ลิขสิทธิ์</b>: ถ้าโครงการนี้จะใช้เชิงพาณิชย์ ต้องตัดข้อมูลสังเคราะห์และข้อมูล OmniFall ออก หรือขออนุญาตแยก</div>
+<div class="ask"><b>สิทธิ์เข้าเซิร์ฟเวอร์จริง (SSH)</b>: เพื่อวัดความเร็วจริง และตัดสินว่าจะเพิ่มจาก 8 เป็น 10–11 ภาพต่อวินาทีได้หรือไม่</div>
+<div class="ask"><b>คนช่วยตรวจป้ายกำกับ</b>: คลิปหน้าบ้าน 126 ช่วง (ประมาณ 1–2 ชั่วโมง) เพื่อให้ผลทดสอบเชื่อถือได้เต็มที่</div>
+
+<h2>9. วิธีการทำงาน</h2>
+<p>งานนี้ใช้ผู้ช่วย AI 3 ตัวทำงานร่วมกัน แบ่งหน้าที่ตามที่เจ้าของโครงการกำหนด: <b>Gemini</b> หาข้อมูลและช่วยตรวจภาพ <b>Codex</b> ออกแบบการทดลองและตรวจโค้ด <b>Claude</b> ลงมือทำ วัดผล และตรวจด้วยตา ทุกการตัดสินใจสำคัญผ่านการตรวจของอีกสองตัวก่อน และบันทึกข้อโต้แย้งพร้อมผลไว้ในไฟล์กลาง (<code>AI_HANDOFF.md</code>) ตัวอย่างที่ระบบตรวจกันเองช่วยจริง: Gemini ค้านทางเลือก A เรื่องกลางคืนก่อนมีผลวัด และผลออกมาตามนั้น Codex พบปัญหาข้อมูลตอนกล้องมองไม่เห็นคนก่อนเริ่มสอน</p>
+<p class="note">ไฟล์ประกอบในโฟลเดอร์นี้: <code>img/</code> ภาพและกราฟ (ใช้ใส่เอกสารได้) · <code>videos/</code> วิดีโอสาธิต 6 คลิป · <code>make_report_charts.py</code> สคริปต์สร้างกราฟ</p>
+</section>
+</div>

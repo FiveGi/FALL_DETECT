@@ -1,0 +1,4406 @@
+{
+  "command": "python tools/day3_media.py clips",
+  "env": {
+    "V3_DEVICE": "cpu",
+    "V3_IMGSZ": "320",
+    "V3_ROI_IMGSZ": "256",
+    "V3_ROI_FULL_EVERY": "8",
+    "V3_POSE_CONF": "0.3",
+    "V3_PREPROCESS": "auto",
+    "V3_PREPROCESS_DARK_BELOW": "70",
+    "V3_PARTIAL_MIN": "4",
+    "V3_TARGET_FPS": "8"
+  },
+  "device": "cpu",
+  "phases": [
+    0
+  ],
+  "selection": "selected phase-0 gains for illustration; not representative sampling",
+  "pipeline_sha256": "419d3ec82718214fbb113f59ff55ed1e662fd6c2efd3e8c07581a2b391db06eb",
+  "models": [
+    {
+      "name": "production",
+      "threshold": 0.65,
+      "pose": "models\\yolo26s-pose.pt",
+      "pose_sha256": "a083adb42303728ae14c4bd6bd56d80da46f82fb2564dbd6f31dcc92ea321646",
+      "classifier": "models",
+      "classifier_sha256": "0cdf7c5dac45712cff27b94cb1ed9fa8dd219ceb8895b6dda1167449a46d2028"
+    },
+    {
+      "name": "candidate",
+      "threshold": 0.7,
+      "pose": "training\\data\\pose_ir\\nightaug_s44_p2\\weights\\best.pt",
+      "pose_sha256": "32aec8eb035faa8d12d844af360fb1f4c32843266aadc3c85ccb93bef3b9598d",
+      "classifier": "training\\data\\stage1\\t2_truncfull_s45",
+      "classifier_sha256": "572fcce1a6d599e8e0f1804eaedbedebec347a7d856b2132bcf4e235e461b939"
+    }
+  ],
+  "clips": [
+    {
+      "key": "7.mp4#2",
+      "start_s": 5.97,
+      "end_s": 9.93,
+      "frames": 32,
+      "source_sha256": "000e08bc898fa8b3a144d6abf04aa987af9af451f10d222d8f44d78d50053eb1",
+      "output": "report\\videos\\day3_compare_near.mp4",
+      "comparison": {
+        "production": {
+          "source": "training/data/stage1/parity_deployed_pinned_owner0.json",
+          "expected": [],
+          "observed": [],
+          "exact_match": true
+        },
+        "candidate": {
+          "source": "training/data/stage1/T2_truncfull_s45_rule_pinned_owner0.json",
+          "expected": [
+            2.83,
+            2.96,
+            3.06,
+            3.2,
+            3.33,
+            3.46,
+            3.56,
+            3.7,
+            3.83
+          ],
+          "observed": [
+            2.83,
+            2.96,
+            3.06,
+            3.2,
+            3.33,
+            3.46,
+            3.56,
+            3.7,
+            3.83
+          ],
+          "exact_match": true
+        }
+      },
+      "timeline": [
+        {
+          "t": 0.03,
+          "source_frame": 179,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.5059811472892761,
+                    0.7248899936676025
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.5036187171936035,
+                    0.7304012775421143
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 0.06,
+          "source_frame": 180,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.5155678987503052,
+                    0.7216124534606934
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.5151228904724121,
+                    0.7285187244415283
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 0.2,
+          "source_frame": 184,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.5404320359230042,
+                    0.6908818483352661
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.5447375774383545,
+                    0.6931376457214355
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 0.33,
+          "source_frame": 188,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.2475234717130661,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.5556266903877258,
+                    0.6747148036956787
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3790137469768524,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.5542259812355042,
+                    0.6750948429107666
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 0.46,
+          "source_frame": 192,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.2475234717130661,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.5709967017173767,
+                    0.629990816116333
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3790137469768524,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.5672512650489807,
+                    0.6311105489730835
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 0.56,
+          "source_frame": 195,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.2475234717130661,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.5757719278335571,
+                    0.6080992221832275
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3790137469768524,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.5786932110786438,
+                    0.6104398965835571
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 0.7,
+          "source_frame": 199,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.2475234717130661,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.5917856693267822,
+                    0.5810666084289551
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3790137469768524,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.5935941338539124,
+                    0.5888638496398926
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 0.83,
+          "source_frame": 203,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.2475234717130661,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6102185249328613,
+                    0.5746989250183105
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3790137469768524,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6126747131347656,
+                    0.5796003341674805
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 0.96,
+          "source_frame": 207,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.2475234717130661,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6278233528137207,
+                    0.5657618045806885
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3790137469768524,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.629940927028656,
+                    0.5666868686676025
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 1.06,
+          "source_frame": 210,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.2475234717130661,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6494485139846802,
+                    0.5611706972122192
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 2,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3790137469768524,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6474736928939819,
+                    0.5605977177619934
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.6467766761779785,
+                    0.5556622743606567
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 1.2,
+          "source_frame": 214,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.2475234717130661,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6638909578323364,
+                    0.5443871021270752
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3790137469768524,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6611459255218506,
+                    0.5473169088363647
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.6467766761779785,
+                    0.5556622743606567
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 1.33,
+          "source_frame": 218,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.2475234717130661,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6791242957115173,
+                    0.5356458425521851
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3790137469768524,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6753268241882324,
+                    0.5377883315086365
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.6467766761779785,
+                    0.5556622743606567
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 1.46,
+          "source_frame": 222,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.2475234717130661,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6868079304695129,
+                    0.5335572957992554
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3790137469768524,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6815539598464966,
+                    0.5361148118972778
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.3243371844291687,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6467766761779785,
+                    0.5556622743606567
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 1.56,
+          "source_frame": 225,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.24819836020469666,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6851998567581177,
+                    0.52057945728302
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.28419962525367737,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6825344562530518,
+                    0.5204163789749146
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.3243371844291687,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6467766761779785,
+                    0.5556622743606567
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 1.7,
+          "source_frame": 229,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.24819836020469666,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6843487024307251,
+                    0.5076144933700562
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.28419962525367737,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6797735095024109,
+                    0.5094046592712402
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.3243371844291687,
+                  "label": "no_person",
+                  "centroid": [
+                    0.6467766761779785,
+                    0.5556622743606567
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 1.83,
+          "source_frame": 233,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.24819836020469666,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6845495700836182,
+                    0.504635751247406
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.28419962525367737,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6847439408302307,
+                    0.5089877843856812
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.3243371844291687,
+                  "label": "no_person",
+                  "centroid": [
+                    0.6467766761779785,
+                    0.5556622743606567
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 1.96,
+          "source_frame": 237,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.24819836020469666,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.691903829574585,
+                    0.48769116401672363
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.28419962525367737,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6902300119400024,
+                    0.49051913619041443
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.3243371844291687,
+                  "label": "no_person",
+                  "centroid": [
+                    0.6467766761779785,
+                    0.5556622743606567
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 2.06,
+          "source_frame": 240,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.24819836020469666,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.7142246961593628,
+                    0.48776572942733765
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.28419962525367737,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.7170681953430176,
+                    0.4921523630619049
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.3243371844291687,
+                  "label": "no_person",
+                  "centroid": [
+                    0.6467766761779785,
+                    0.5556622743606567
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 2.2,
+          "source_frame": 244,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.24819836020469666,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6962078809738159,
+                    0.49431419372558594
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.28419962525367737,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6775461435317993,
+                    0.4918733239173889
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.3243371844291687,
+                  "label": "no_person",
+                  "centroid": [
+                    0.6467766761779785,
+                    0.5556622743606567
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 2.33,
+          "source_frame": 248,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.24819836020469666,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6884303092956543,
+                    0.48239874839782715
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.28419962525367737,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6860737800598145,
+                    0.4895131587982178
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.3243371844291687,
+                  "label": "no_person",
+                  "centroid": [
+                    0.6467766761779785,
+                    0.5556622743606567
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 2.46,
+          "source_frame": 252,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.24819836020469666,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6884303092956543,
+                    0.48239874839782715
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.28419962525367737,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.657092809677124,
+                    0.5052839517593384
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.3243371844291687,
+                  "label": "no_person",
+                  "centroid": [
+                    0.6467766761779785,
+                    0.5556622743606567
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 2.56,
+          "source_frame": 255,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.24819836020469666,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6445558071136475,
+                    0.49221718311309814
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.28419962525367737,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6532304286956787,
+                    0.5301523208618164
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.3243371844291687,
+                  "label": "no_person",
+                  "centroid": [
+                    0.6467766761779785,
+                    0.5556622743606567
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 2.7,
+          "source_frame": 259,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.24819836020469666,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6445558071136475,
+                    0.49221718311309814
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.28419962525367737,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6181997060775757,
+                    0.5075237154960632
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.3243371844291687,
+                  "label": "no_person",
+                  "centroid": [
+                    0.6467766761779785,
+                    0.5556622743606567
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 2.83,
+          "source_frame": 263,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.26471540331840515,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6445558071136475,
+                    0.49221718311309814
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": true,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": true,
+                  "score": 0.791390061378479,
+                  "label": "fall",
+                  "centroid": [
+                    0.6181997060775757,
+                    0.5075237154960632
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.3243371844291687,
+                  "label": "no_person",
+                  "centroid": [
+                    0.6467766761779785,
+                    0.5556622743606567
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 2.96,
+          "source_frame": 267,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.26471540331840515,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.7100226879119873,
+                    0.5856432914733887
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": true,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": true,
+                  "score": 0.791390061378479,
+                  "label": "fall",
+                  "centroid": [
+                    0.7079629898071289,
+                    0.5807409286499023
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "no_person",
+                  "centroid": [
+                    0.6467766761779785,
+                    0.5556622743606567
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 3.06,
+          "source_frame": 270,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.26471540331840515,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.7272969484329224,
+                    0.5555771589279175
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": true,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": true,
+                  "score": 0.791390061378479,
+                  "label": "fall",
+                  "centroid": [
+                    0.7354187965393066,
+                    0.5548983216285706
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 3.2,
+          "source_frame": 274,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.26471540331840515,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.8076697587966919,
+                    0.5845241546630859
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": true,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": true,
+                  "score": 0.791390061378479,
+                  "label": "fall",
+                  "centroid": [
+                    0.7609914541244507,
+                    0.5752124786376953
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 3.33,
+          "source_frame": 278,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.26471540331840515,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.75284743309021,
+                    0.5962989330291748
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": true,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": true,
+                  "score": 0.791390061378479,
+                  "label": "fall",
+                  "centroid": [
+                    0.7232455015182495,
+                    0.5810697078704834
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 3.46,
+          "source_frame": 282,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.26471540331840515,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.75284743309021,
+                    0.5962989330291748
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": true,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": true,
+                  "score": 0.791390061378479,
+                  "label": "fall",
+                  "centroid": [
+                    0.7182623147964478,
+                    0.5739850401878357
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 3.56,
+          "source_frame": 285,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.26471540331840515,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.7113120555877686,
+                    0.5930758714675903
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": true,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": true,
+                  "score": 0.791390061378479,
+                  "label": "fall",
+                  "centroid": [
+                    0.7055847644805908,
+                    0.5676541924476624
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 3.7,
+          "source_frame": 289,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.26471540331840515,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.7345435619354248,
+                    0.5768561363220215
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": true,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": true,
+                  "score": 0.791390061378479,
+                  "label": "fall",
+                  "centroid": [
+                    0.7152756452560425,
+                    0.5793388485908508
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 3.83,
+          "source_frame": 293,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.26471540331840515,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.7031377553939819,
+                    0.5933153629302979
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": true,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": true,
+                  "score": 0.791390061378479,
+                  "label": "fall",
+                  "centroid": [
+                    0.6936517953872681,
+                    0.5848920345306396
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "key": "1.mp4#15",
+      "start_s": 51.77,
+      "end_s": 57.23,
+      "frames": 44,
+      "source_sha256": "cdae9d9f79d90c030504c8c1a6438a41b303cb2c2a3752b26597a598c79afab3",
+      "output": "report\\videos\\day3_compare_multi.mp4",
+      "comparison": {
+        "production": {
+          "source": "training/data/stage1/parity_deployed_pinned_owner0.json",
+          "expected": [],
+          "observed": [],
+          "exact_match": true
+        },
+        "candidate": {
+          "source": "training/data/stage1/T2_truncfull_s45_rule_pinned_owner0.json",
+          "expected": [
+            4.4,
+            4.53,
+            4.66,
+            4.76,
+            4.9,
+            5.03,
+            5.16,
+            5.26,
+            5.4
+          ],
+          "observed": [
+            4.4,
+            4.53,
+            4.66,
+            4.76,
+            4.9,
+            5.03,
+            5.16,
+            5.26,
+            5.4
+          ],
+          "exact_match": true
+        }
+      },
+      "timeline": [
+        {
+          "t": 0.03,
+          "source_frame": 1553,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.1948031783103943,
+                    0.66493821144104
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.20028246939182281,
+                    0.6676812171936035
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 0.16,
+          "source_frame": 1557,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.19435282051563263,
+                    0.6614329218864441
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 2,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.1987040936946869,
+                    0.6666672229766846
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.204615980386734,
+                    0.6701725721359253
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 0.26,
+          "source_frame": 1560,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.21098819375038147,
+                    0.6604889631271362
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.20549535751342773,
+                    0.6694670915603638
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.204615980386734,
+                    0.6701725721359253
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 0.4,
+          "source_frame": 1564,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.27813470363616943,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.21710193157196045,
+                    0.662029504776001
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3757305145263672,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.20927758514881134,
+                    0.6649801731109619
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.204615980386734,
+                    0.6701725721359253
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 0.53,
+          "source_frame": 1568,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.27813470363616943,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.2249419391155243,
+                    0.664036750793457
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 2,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3757305145263672,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.22090308368206024,
+                    0.6667303442955017
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.35534998774528503,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.25567638874053955,
+                    0.5837222933769226
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 0.66,
+          "source_frame": 1572,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.27813470363616943,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.2282649576663971,
+                    0.6627452969551086
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3757305145263672,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.22674085199832916,
+                    0.665221095085144
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.35534998774528503,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.25567638874053955,
+                    0.5837222933769226
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 0.76,
+          "source_frame": 1575,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.27813470363616943,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.22585827112197876,
+                    0.6617913842201233
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3757305145263672,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.22775062918663025,
+                    0.6627720594406128
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.35534998774528503,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.25567638874053955,
+                    0.5837222933769226
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 0.9,
+          "source_frame": 1579,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 2,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.27813470363616943,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.21663545072078705,
+                    0.656855583190918
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.36871930956840515,
+                    0.616144061088562
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 2,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3757305145263672,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.2195117473602295,
+                    0.6587651968002319
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.35534998774528503,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.3605397641658783,
+                    0.618249773979187
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 1.03,
+          "source_frame": 1583,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.27813470363616943,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.20784324407577515,
+                    0.6580393314361572
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.36871930956840515,
+                    0.616144061088562
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3757305145263672,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.20947778224945068,
+                    0.6589573621749878
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.35534998774528503,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.3605397641658783,
+                    0.618249773979187
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 1.16,
+          "source_frame": 1587,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.27813470363616943,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.20070800185203552,
+                    0.652068018913269
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.36871930956840515,
+                    0.616144061088562
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3757305145263672,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.20411157608032227,
+                    0.6539713144302368
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.35534998774528503,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.3605397641658783,
+                    0.618249773979187
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 1.26,
+          "source_frame": 1590,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.27813470363616943,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.19598305225372314,
+                    0.6365007758140564
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.25335493683815,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.36871930956840515,
+                    0.616144061088562
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3757305145263672,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.20772454142570496,
+                    0.6364587545394897
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.35534998774528503,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.3605397641658783,
+                    0.618249773979187
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 1.4,
+          "source_frame": 1594,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.27813470363616943,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.21792572736740112,
+                    0.627379298210144
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.25335493683815,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.36871930956840515,
+                    0.616144061088562
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3757305145263672,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.2128850519657135,
+                    0.6260766983032227
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.35534998774528503,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.3605397641658783,
+                    0.618249773979187
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 1.53,
+          "source_frame": 1598,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.27813470363616943,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.25490230321884155,
+                    0.624015212059021
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.25335493683815,
+                  "label": "no_person",
+                  "centroid": [
+                    0.36871930956840515,
+                    0.616144061088562
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 2,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3757305145263672,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.2517785131931305,
+                    0.625200092792511
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.35534998774528503,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.3605397641658783,
+                    0.618249773979187
+                  ]
+                },
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.5022078156471252,
+                    0.6727637648582458
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 1.66,
+          "source_frame": 1602,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.25896570086479187,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.28495413064956665,
+                    0.6227745413780212
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.25335493683815,
+                  "label": "no_person",
+                  "centroid": [
+                    0.36871930956840515,
+                    0.616144061088562
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3538975715637207,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.28723281621932983,
+                    0.6240416765213013
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.35534998774528503,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.3605397641658783,
+                    0.618249773979187
+                  ]
+                },
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.5022078156471252,
+                    0.6727637648582458
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 1.76,
+          "source_frame": 1605,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.25896570086479187,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.30776551365852356,
+                    0.6151395440101624
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.25335493683815,
+                  "label": "no_person",
+                  "centroid": [
+                    0.36871930956840515,
+                    0.616144061088562
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3538975715637207,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.31016668677330017,
+                    0.613390326499939
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.35732558369636536,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.3605397641658783,
+                    0.618249773979187
+                  ]
+                },
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.5022078156471252,
+                    0.6727637648582458
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 1.9,
+          "source_frame": 1609,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.25896570086479187,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.32747167348861694,
+                    0.603615939617157
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.25335493683815,
+                  "label": "no_person",
+                  "centroid": [
+                    0.36871930956840515,
+                    0.616144061088562
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3538975715637207,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.32979437708854675,
+                    0.6019071936607361
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.35732558369636536,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.3605397641658783,
+                    0.618249773979187
+                  ]
+                },
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.4176809787750244,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.5022078156471252,
+                    0.6727637648582458
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 2.03,
+          "source_frame": 1613,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.25896570086479187,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.34346359968185425,
+                    0.5961709022521973
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.25335493683815,
+                  "label": "no_person",
+                  "centroid": [
+                    0.36871930956840515,
+                    0.616144061088562
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3538975715637207,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.34737539291381836,
+                    0.5974114537239075
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.35732558369636536,
+                  "label": "no_person",
+                  "centroid": [
+                    0.3605397641658783,
+                    0.618249773979187
+                  ]
+                },
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.4176809787750244,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.5022078156471252,
+                    0.6727637648582458
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 2.16,
+          "source_frame": 1617,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.25896570086479187,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.3488633334636688,
+                    0.5788191556930542
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.25335493683815,
+                  "label": "no_person",
+                  "centroid": [
+                    0.36871930956840515,
+                    0.616144061088562
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3538975715637207,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.3503532111644745,
+                    0.5811992287635803
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.35732558369636536,
+                  "label": "no_person",
+                  "centroid": [
+                    0.3605397641658783,
+                    0.618249773979187
+                  ]
+                },
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.4176809787750244,
+                  "label": "no_person",
+                  "centroid": [
+                    0.5022078156471252,
+                    0.6727637648582458
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 2.26,
+          "source_frame": 1620,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.25896570086479187,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.3773159682750702,
+                    0.5727505683898926
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.25335493683815,
+                  "label": "no_person",
+                  "centroid": [
+                    0.36871930956840515,
+                    0.616144061088562
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3538975715637207,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.3784884214401245,
+                    0.5720935463905334
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.35732558369636536,
+                  "label": "no_person",
+                  "centroid": [
+                    0.3605397641658783,
+                    0.618249773979187
+                  ]
+                },
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.4176809787750244,
+                  "label": "no_person",
+                  "centroid": [
+                    0.5022078156471252,
+                    0.6727637648582458
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 2.4,
+          "source_frame": 1624,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.25896570086479187,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.400394082069397,
+                    0.5713821649551392
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.25335493683815,
+                  "label": "no_person",
+                  "centroid": [
+                    0.36871930956840515,
+                    0.616144061088562
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3538975715637207,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.40198206901550293,
+                    0.5753244757652283
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.35732558369636536,
+                  "label": "no_person",
+                  "centroid": [
+                    0.3605397641658783,
+                    0.618249773979187
+                  ]
+                },
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.4176809787750244,
+                  "label": "no_person",
+                  "centroid": [
+                    0.5022078156471252,
+                    0.6727637648582458
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 2.53,
+          "source_frame": 1628,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.25896570086479187,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.4027225375175476,
+                    0.5694612264633179
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.25335493683815,
+                  "label": "no_person",
+                  "centroid": [
+                    0.36871930956840515,
+                    0.616144061088562
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3538975715637207,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.4112170934677124,
+                    0.5761826634407043
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.35732558369636536,
+                  "label": "no_person",
+                  "centroid": [
+                    0.3605397641658783,
+                    0.618249773979187
+                  ]
+                },
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.4176809787750244,
+                  "label": "no_person",
+                  "centroid": [
+                    0.5022078156471252,
+                    0.6727637648582458
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 2.66,
+          "source_frame": 1632,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.25896570086479187,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.4027225375175476,
+                    0.5694612264633179
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.25335493683815,
+                  "label": "no_person",
+                  "centroid": [
+                    0.36871930956840515,
+                    0.616144061088562
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3538975715637207,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.4112170934677124,
+                    0.5761826634407043
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.35732558369636536,
+                  "label": "no_person",
+                  "centroid": [
+                    0.3605397641658783,
+                    0.618249773979187
+                  ]
+                },
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.4176809787750244,
+                  "label": "no_person",
+                  "centroid": [
+                    0.5022078156471252,
+                    0.6727637648582458
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 2.76,
+          "source_frame": 1635,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.25896570086479187,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.4027225375175476,
+                    0.5694612264633179
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "no_person",
+                  "centroid": [
+                    0.36871930956840515,
+                    0.616144061088562
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.3538975715637207,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.466714084148407,
+                    0.5446100234985352
+                  ]
+                },
+                {
+                  "id": 1,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "no_person",
+                  "centroid": [
+                    0.3605397641658783,
+                    0.618249773979187
+                  ]
+                },
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.4176809787750244,
+                  "label": "no_person",
+                  "centroid": [
+                    0.5022078156471252,
+                    0.6727637648582458
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 2.9,
+          "source_frame": 1639,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.39251068234443665,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.4027225375175476,
+                    0.5694612264633179
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.354492723941803,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.466714084148407,
+                    0.5446100234985352
+                  ]
+                },
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.4176809787750244,
+                  "label": "no_person",
+                  "centroid": [
+                    0.5022078156471252,
+                    0.6727637648582458
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 3.03,
+          "source_frame": 1643,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.39251068234443665,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.4027225375175476,
+                    0.5694612264633179
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.354492723941803,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.466714084148407,
+                    0.5446100234985352
+                  ]
+                },
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.4176809787750244,
+                  "label": "no_person",
+                  "centroid": [
+                    0.5022078156471252,
+                    0.6727637648582458
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 3.16,
+          "source_frame": 1647,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.39251068234443665,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.4027225375175476,
+                    0.5694612264633179
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.354492723941803,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.466714084148407,
+                    0.5446100234985352
+                  ]
+                },
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.4176809787750244,
+                  "label": "no_person",
+                  "centroid": [
+                    0.5022078156471252,
+                    0.6727637648582458
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 3.26,
+          "source_frame": 1650,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.39251068234443665,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.4027225375175476,
+                    0.5694612264633179
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.354492723941803,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.466714084148407,
+                    0.5446100234985352
+                  ]
+                },
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.4176809787750244,
+                  "label": "no_person",
+                  "centroid": [
+                    0.5022078156471252,
+                    0.6727637648582458
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 3.4,
+          "source_frame": 1654,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.39251068234443665,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.4027225375175476,
+                    0.5694612264633179
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.354492723941803,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.466714084148407,
+                    0.5446100234985352
+                  ]
+                },
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "no_person",
+                  "centroid": [
+                    0.5022078156471252,
+                    0.6727637648582458
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 3.53,
+          "source_frame": 1658,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.39251068234443665,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.4027225375175476,
+                    0.5694612264633179
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.354492723941803,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.466714084148407,
+                    0.5446100234985352
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 3.66,
+          "source_frame": 1662,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.39251068234443665,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.4027225375175476,
+                    0.5694612264633179
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.354492723941803,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.466714084148407,
+                    0.5446100234985352
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 3.76,
+          "source_frame": 1665,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.39251068234443665,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.4027225375175476,
+                    0.5694612264633179
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.354492723941803,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.466714084148407,
+                    0.5446100234985352
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 3.9,
+          "source_frame": 1669,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.39251068234443665,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.4027225375175476,
+                    0.5694612264633179
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.354492723941803,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.466714084148407,
+                    0.5446100234985352
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 4.03,
+          "source_frame": 1673,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.39251068234443665,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.4027225375175476,
+                    0.5694612264633179
+                  ]
+                },
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.7646044492721558,
+                    0.6767998337745667
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.354492723941803,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.466714084148407,
+                    0.5446100234985352
+                  ]
+                },
+                {
+                  "id": 3,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.7674456834793091,
+                    0.6754661798477173
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 4.16,
+          "source_frame": 1677,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 2,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.39251068234443665,
+                  "label": "no_person",
+                  "centroid": [
+                    0.4027225375175476,
+                    0.5694612264633179
+                  ]
+                },
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.7927492260932922,
+                    0.6573065519332886
+                  ]
+                },
+                {
+                  "id": 3,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.6059223413467407,
+                    0.6583183407783508
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 3,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.5080362558364868,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.466714084148407,
+                    0.5446100234985352
+                  ]
+                },
+                {
+                  "id": 3,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.8003139495849609,
+                    0.6491551399230957
+                  ]
+                },
+                {
+                  "id": 4,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.6098728775978088,
+                    0.6568452715873718
+                  ]
+                },
+                {
+                  "id": 5,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.6100189685821533,
+                    0.6516791582107544
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 4.26,
+          "source_frame": 1680,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 2,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.39251068234443665,
+                  "label": "no_person",
+                  "centroid": [
+                    0.4027225375175476,
+                    0.5694612264633179
+                  ]
+                },
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.8033866882324219,
+                    0.661121666431427
+                  ]
+                },
+                {
+                  "id": 3,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.6066933274269104,
+                    0.6593453288078308
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": false,
+              "people": 2,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.5080362558364868,
+                  "label": "no_person",
+                  "centroid": [
+                    0.466714084148407,
+                    0.5446100234985352
+                  ]
+                },
+                {
+                  "id": 3,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.785142183303833,
+                    0.6383413076400757
+                  ]
+                },
+                {
+                  "id": 4,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.6023068428039551,
+                    0.6525779366493225
+                  ]
+                },
+                {
+                  "id": 5,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.6100189685821533,
+                    0.6516791582107544
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 4.4,
+          "source_frame": 1684,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "no_person",
+                  "centroid": [
+                    0.4027225375175476,
+                    0.5694612264633179
+                  ]
+                },
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.5969297885894775,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.8033866882324219,
+                    0.661121666431427
+                  ]
+                },
+                {
+                  "id": 3,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.6188791394233704,
+                    0.6549787521362305
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": true,
+              "people": 2,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.5080362558364868,
+                  "label": "no_person",
+                  "centroid": [
+                    0.466714084148407,
+                    0.5446100234985352
+                  ]
+                },
+                {
+                  "id": 3,
+                  "alert": true,
+                  "score": 0.708044171333313,
+                  "label": "fall",
+                  "centroid": [
+                    0.803016722202301,
+                    0.6275088787078857
+                  ]
+                },
+                {
+                  "id": 4,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.6153267621994019,
+                    0.6533878445625305
+                  ]
+                },
+                {
+                  "id": 5,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.6100189685821533,
+                    0.6516791582107544
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 4.53,
+          "source_frame": 1688,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.5969297885894775,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.8033866882324219,
+                    0.661121666431427
+                  ]
+                },
+                {
+                  "id": 3,
+                  "alert": false,
+                  "score": 0.1361643522977829,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6255006790161133,
+                    0.6586004495620728
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": true,
+              "people": 2,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.5080362558364868,
+                  "label": "no_person",
+                  "centroid": [
+                    0.466714084148407,
+                    0.5446100234985352
+                  ]
+                },
+                {
+                  "id": 3,
+                  "alert": true,
+                  "score": 0.708044171333313,
+                  "label": "fall",
+                  "centroid": [
+                    0.803016722202301,
+                    0.6275088787078857
+                  ]
+                },
+                {
+                  "id": 4,
+                  "alert": false,
+                  "score": 0.38269665837287903,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.620663046836853,
+                    0.6551165580749512
+                  ]
+                },
+                {
+                  "id": 5,
+                  "alert": false,
+                  "score": 0.42728179693222046,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6100189685821533,
+                    0.6516791582107544
+                  ]
+                },
+                {
+                  "id": 6,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.9963265061378479,
+                    0.572190523147583
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 4.66,
+          "source_frame": 1692,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.5969297885894775,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.8033866882324219,
+                    0.661121666431427
+                  ]
+                },
+                {
+                  "id": 3,
+                  "alert": false,
+                  "score": 0.1361643522977829,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6255006790161133,
+                    0.6586004495620728
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": true,
+              "people": 2,
+              "tracks": [
+                {
+                  "id": 0,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "no_person",
+                  "centroid": [
+                    0.466714084148407,
+                    0.5446100234985352
+                  ]
+                },
+                {
+                  "id": 3,
+                  "alert": true,
+                  "score": 0.708044171333313,
+                  "label": "fall",
+                  "centroid": [
+                    0.803016722202301,
+                    0.6275088787078857
+                  ]
+                },
+                {
+                  "id": 4,
+                  "alert": false,
+                  "score": 0.38269665837287903,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.620663046836853,
+                    0.6551165580749512
+                  ]
+                },
+                {
+                  "id": 5,
+                  "alert": false,
+                  "score": 0.42728179693222046,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6100189685821533,
+                    0.6516791582107544
+                  ]
+                },
+                {
+                  "id": 6,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.9900733232498169,
+                    0.5714036226272583
+                  ]
+                },
+                {
+                  "id": 7,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.9979890584945679,
+                    0.5273537635803223
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 4.76,
+          "source_frame": 1695,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.5969297885894775,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.8033866882324219,
+                    0.661121666431427
+                  ]
+                },
+                {
+                  "id": 3,
+                  "alert": false,
+                  "score": 0.1361643522977829,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6255006790161133,
+                    0.6586004495620728
+                  ]
+                },
+                {
+                  "id": 4,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.9756966829299927,
+                    0.5711804032325745
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": true,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 3,
+                  "alert": true,
+                  "score": 0.708044171333313,
+                  "label": "fall",
+                  "centroid": [
+                    0.803016722202301,
+                    0.6275088787078857
+                  ]
+                },
+                {
+                  "id": 4,
+                  "alert": false,
+                  "score": 0.38269665837287903,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.620663046836853,
+                    0.6551165580749512
+                  ]
+                },
+                {
+                  "id": 5,
+                  "alert": false,
+                  "score": 0.42728179693222046,
+                  "label": "no_person",
+                  "centroid": [
+                    0.6100189685821533,
+                    0.6516791582107544
+                  ]
+                },
+                {
+                  "id": 6,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.9807685613632202,
+                    0.5732793807983398
+                  ]
+                },
+                {
+                  "id": 7,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.9979890584945679,
+                    0.5273537635803223
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 4.9,
+          "source_frame": 1699,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 0,
+              "tracks": [
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.5969297885894775,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.8033866882324219,
+                    0.661121666431427
+                  ]
+                },
+                {
+                  "id": 3,
+                  "alert": false,
+                  "score": 0.1361643522977829,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6255006790161133,
+                    0.6586004495620728
+                  ]
+                },
+                {
+                  "id": 4,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.9756966829299927,
+                    0.5711804032325745
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": true,
+              "people": 3,
+              "tracks": [
+                {
+                  "id": 3,
+                  "alert": true,
+                  "score": 0.708044171333313,
+                  "label": "fall",
+                  "centroid": [
+                    0.8148836493492126,
+                    0.6239180564880371
+                  ]
+                },
+                {
+                  "id": 4,
+                  "alert": false,
+                  "score": 0.38269665837287903,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.620663046836853,
+                    0.6551165580749512
+                  ]
+                },
+                {
+                  "id": 5,
+                  "alert": false,
+                  "score": 0.42728179693222046,
+                  "label": "no_person",
+                  "centroid": [
+                    0.6100189685821533,
+                    0.6516791582107544
+                  ]
+                },
+                {
+                  "id": 6,
+                  "alert": false,
+                  "score": 0.4231957495212555,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.9553588032722473,
+                    0.5731539130210876
+                  ]
+                },
+                {
+                  "id": 7,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.9979890584945679,
+                    0.5273537635803223
+                  ]
+                },
+                {
+                  "id": 8,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.8173750042915344,
+                    0.6281609535217285
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 5.03,
+          "source_frame": 1703,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.5969297885894775,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.8033866882324219,
+                    0.661121666431427
+                  ]
+                },
+                {
+                  "id": 3,
+                  "alert": false,
+                  "score": 0.1361643522977829,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6255006790161133,
+                    0.6586004495620728
+                  ]
+                },
+                {
+                  "id": 4,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.945003092288971,
+                    0.5808377861976624
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": true,
+              "people": 2,
+              "tracks": [
+                {
+                  "id": 3,
+                  "alert": true,
+                  "score": 0.708044171333313,
+                  "label": "fall",
+                  "centroid": [
+                    0.8138382434844971,
+                    0.6187676191329956
+                  ]
+                },
+                {
+                  "id": 4,
+                  "alert": false,
+                  "score": 0.38269665837287903,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.620663046836853,
+                    0.6551165580749512
+                  ]
+                },
+                {
+                  "id": 5,
+                  "alert": false,
+                  "score": 0.42728179693222046,
+                  "label": "no_person",
+                  "centroid": [
+                    0.6100189685821533,
+                    0.6516791582107544
+                  ]
+                },
+                {
+                  "id": 6,
+                  "alert": false,
+                  "score": 0.4231957495212555,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.9357509613037109,
+                    0.5723603963851929
+                  ]
+                },
+                {
+                  "id": 7,
+                  "alert": false,
+                  "score": 0.48726415634155273,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.9979890584945679,
+                    0.5273537635803223
+                  ]
+                },
+                {
+                  "id": 8,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.8173750042915344,
+                    0.6281609535217285
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 5.16,
+          "source_frame": 1707,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.5969297885894775,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.8328472375869751,
+                    0.6287765502929688
+                  ]
+                },
+                {
+                  "id": 3,
+                  "alert": false,
+                  "score": 0.1361643522977829,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6255006790161133,
+                    0.6586004495620728
+                  ]
+                },
+                {
+                  "id": 4,
+                  "alert": false,
+                  "score": 0.3261578381061554,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.945003092288971,
+                    0.5808377861976624
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": true,
+              "people": 2,
+              "tracks": [
+                {
+                  "id": 3,
+                  "alert": true,
+                  "score": 0.708044171333313,
+                  "label": "fall",
+                  "centroid": [
+                    0.8166096210479736,
+                    0.6205940246582031
+                  ]
+                },
+                {
+                  "id": 4,
+                  "alert": false,
+                  "score": 0.38269665837287903,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.620663046836853,
+                    0.6551165580749512
+                  ]
+                },
+                {
+                  "id": 5,
+                  "alert": false,
+                  "score": 0.42728179693222046,
+                  "label": "no_person",
+                  "centroid": [
+                    0.6100189685821533,
+                    0.6516791582107544
+                  ]
+                },
+                {
+                  "id": 6,
+                  "alert": false,
+                  "score": 0.4231957495212555,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.9296740293502808,
+                    0.5755860805511475
+                  ]
+                },
+                {
+                  "id": 7,
+                  "alert": false,
+                  "score": 0.48726415634155273,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.9979890584945679,
+                    0.5273537635803223
+                  ]
+                },
+                {
+                  "id": 8,
+                  "alert": false,
+                  "score": 0.0,
+                  "label": "Analyzing...",
+                  "centroid": [
+                    0.8173750042915344,
+                    0.6281609535217285
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 5.26,
+          "source_frame": 1710,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 2,
+              "tracks": [
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.5969297885894775,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.8187967538833618,
+                    0.6232973337173462
+                  ]
+                },
+                {
+                  "id": 3,
+                  "alert": false,
+                  "score": 0.1361643522977829,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6255006790161133,
+                    0.6586004495620728
+                  ]
+                },
+                {
+                  "id": 4,
+                  "alert": false,
+                  "score": 0.3261578381061554,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.9300074577331543,
+                    0.5784718990325928
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": true,
+              "people": 3,
+              "tracks": [
+                {
+                  "id": 3,
+                  "alert": true,
+                  "score": 0.708044171333313,
+                  "label": "fall",
+                  "centroid": [
+                    0.8163196444511414,
+                    0.620136022567749
+                  ]
+                },
+                {
+                  "id": 4,
+                  "alert": false,
+                  "score": 0.38269665837287903,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6418050527572632,
+                    0.6472734212875366
+                  ]
+                },
+                {
+                  "id": 5,
+                  "alert": false,
+                  "score": 0.42728179693222046,
+                  "label": "no_person",
+                  "centroid": [
+                    0.6100189685821533,
+                    0.6516791582107544
+                  ]
+                },
+                {
+                  "id": 6,
+                  "alert": false,
+                  "score": 0.4231957495212555,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.9226292371749878,
+                    0.5767903327941895
+                  ]
+                },
+                {
+                  "id": 7,
+                  "alert": false,
+                  "score": 0.48726415634155273,
+                  "label": "no_person",
+                  "centroid": [
+                    0.9979890584945679,
+                    0.5273537635803223
+                  ]
+                },
+                {
+                  "id": 8,
+                  "alert": false,
+                  "score": 0.264399915933609,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.8173750042915344,
+                    0.6281609535217285
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "t": 5.4,
+          "source_frame": 1714,
+          "sides": {
+            "production": {
+              "alert": false,
+              "people": 1,
+              "tracks": [
+                {
+                  "id": 2,
+                  "alert": false,
+                  "score": 0.5969297885894775,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.8176855444908142,
+                    0.6222929358482361
+                  ]
+                },
+                {
+                  "id": 3,
+                  "alert": false,
+                  "score": 0.1361643522977829,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6255006790161133,
+                    0.6586004495620728
+                  ]
+                },
+                {
+                  "id": 4,
+                  "alert": false,
+                  "score": 0.3261578381061554,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.9300074577331543,
+                    0.5784718990325928
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "alert": true,
+              "people": 2,
+              "tracks": [
+                {
+                  "id": 3,
+                  "alert": true,
+                  "score": 0.708044171333313,
+                  "label": "fall",
+                  "centroid": [
+                    0.8210688829421997,
+                    0.6225672364234924
+                  ]
+                },
+                {
+                  "id": 4,
+                  "alert": false,
+                  "score": 0.38269665837287903,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.6418050527572632,
+                    0.6472734212875366
+                  ]
+                },
+                {
+                  "id": 5,
+                  "alert": false,
+                  "score": 0.42728179693222046,
+                  "label": "no_person",
+                  "centroid": [
+                    0.6100189685821533,
+                    0.6516791582107544
+                  ]
+                },
+                {
+                  "id": 6,
+                  "alert": false,
+                  "score": 0.4231957495212555,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.9073815941810608,
+                    0.5866010189056396
+                  ]
+                },
+                {
+                  "id": 7,
+                  "alert": false,
+                  "score": 0.48726415634155273,
+                  "label": "no_person",
+                  "centroid": [
+                    0.9979890584945679,
+                    0.5273537635803223
+                  ]
+                },
+                {
+                  "id": 8,
+                  "alert": false,
+                  "score": 0.264399915933609,
+                  "label": "no_fall",
+                  "centroid": [
+                    0.8173750042915344,
+                    0.6281609535217285
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
