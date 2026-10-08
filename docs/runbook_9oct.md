@@ -31,6 +31,7 @@ docker compose exec -T db psql -U postgres -d postgres -tA -c "select count(*) f
 - ถ้า `docker` ขึ้น `permission denied` → ใส่ `sudo ` หน้าคำสั่ง `docker ...` **และ** `bash tools/...` ทุกบรรทัดในคู่มือนี้
 - ถ้า `git status --short` **มีบรรทัดใดๆ** แปลว่ามีไฟล์ที่ถูกแก้บน server → **หยุด ส่งให้ทีม** (ทีมจะบอกวิธีเก็บค่าเดิมไว้)
 - บรรทัด `docker ps` / `ps aux` บอกว่าหน้าเว็บ (frontend) รันแบบไหน → ทีมจะส่งคำสั่งอัปเดตหน้าเว็บที่ตรงกับแบบนั้น (ข้อ 0.4)
+- **หยุดตรงนี้ รอทีมตอบกลับ** (ทีมจะส่ง: รหัส commit สำหรับข้อ 0.3 และคำสั่งอัปเดตหน้าเว็บสำหรับข้อ 0.4) แล้วค่อยทำข้อ 0.2 ต่อ
 
 ### 0.2 สำรองข้อมูล
 ```
@@ -40,8 +41,11 @@ git rev-parse HEAD > ~/backup-$STAMP/commit.txt
 docker compose exec -T db pg_dump -U postgres postgres > ~/backup-$STAMP/db.sql
 ls -la ~/backup-$STAMP
 grep -c "CREATE TABLE" ~/backup-$STAMP/db.sql
+docker inspect --format '{{.Image}}' $(docker compose ps -q backend) > ~/backup-$STAMP/image.txt
+docker tag $(cat ~/backup-$STAMP/image.txt) elderly-surveillance-app:before-9oct
 echo "backup = ~/backup-$STAMP"
 ```
+- 2 บรรทัดก่อนสุดท้ายเก็บ "อิมเมจ" (ชุดโปรแกรม) ที่ server ใช้อยู่ไว้ในชื่อ `before-9oct` เพื่อย้อนกลับได้ (ข้อ 0.5) — ถ้าขึ้น error → หยุด ส่งให้ทีม
 - เก็บไว้ในโฟลเดอร์บ้านของผู้ใช้ (`~`) ซึ่งเขียนได้เสมอ และไม่ปนกับโฟลเดอร์โปรเจกต์
 - `db.sql` ต้องไม่ใช่ 0 ไบต์ และตัวเลข CREATE TABLE ต้องมากกว่า 0 → **จดชื่อโฟลเดอร์ backup ไว้** (ใช้ตอนย้อนกลับ)
 
@@ -50,7 +54,7 @@ echo "backup = ~/backup-$STAMP"
 git fetch origin --tags
 git rev-parse 'systest-2026-10-09b^{commit}'
 ```
-- ตัวเลขที่ได้ต้อง**ตรงกับรหัส commit ด้านบน** ทุกตัวอักษร ถ้าไม่ตรง → หยุด
+- ตัวเลขที่ได้ต้อง**ตรงกับรหัส commit ที่ทีมส่งให้ (ทางเจ้าของโครงการ)** ทุกตัวอักษร ถ้าไม่ตรง หรือยังไม่ได้รับรหัส → หยุด ถามทีม
 ```
 git checkout systest-2026-10-09b
 ```
@@ -65,12 +69,13 @@ ls -la models/fall_classifier_v3.onnx models/fall_classifier_t2full_s45.onnx Tes
 
 ### 0.4 เริ่มระบบใหม่
 ```
-docker compose up -d --force-recreate
+docker compose up -d --build --force-recreate
 echo "รอระบบเริ่ม 30 วินาที (หน้าจอจะนิ่ง ไม่ต้องกดอะไร)..."; sleep 30
 docker compose ps
 docker compose logs celery_worker | grep "model identity" | tail -1
 docker compose logs backend | grep -iE "Added missing column|Could not add" | tail -5
 ```
+- `--build` สร้างอิมเมจใหม่ด้วยไลบรารีรุ่นเดียวกับที่ทีมทดสอบ (ไฟล์ `constraints-cpu.txt`) — ใช้เวลา ~5–10 นาที และต้องต่ออินเทอร์เน็ต; ถ้าขึ้น `ERROR` หรือ `failed to solve` → หยุด ส่งข้อความให้ทีม (ระบบเดิมยังอยู่ ย้อนด้วยข้อ 0.5)
 - ทุกบริการต้อง `Up`; บรรทัด model identity ต้องขึ้น (ดูข้อ 1.4); ถ้ามี `Could not add` → ส่งให้ทีม
 - **หน้าเว็บ (frontend) ต้องอัปเดตพร้อมกันเสมอ** ไม่อย่างนั้นหน้าดูกล้องสดจะใช้ไม่ได้ — ทำตามคำสั่งที่ทีมส่งให้จากผลข้อ 0.1:
   - ถ้ารันด้วย `npm run dev` จากโฟลเดอร์นี้ → ไม่ต้องทำอะไร (โหลดไฟล์ใหม่เอง) แค่กด refresh หน้าเว็บ
@@ -80,13 +85,16 @@ docker compose logs backend | grep -iE "Added missing column|Could not add" | ta
 
 ### 0.5 ย้อนกลับ (ถ้าระบบใหม่มีปัญหาที่แก้ไม่ทันวันทดสอบ)
 ```
-B=~/backup-[เติม: STAMP จากข้อ 0.2]
+ls -d ~/backup-*          # ดูชื่อโฟลเดอร์ backup ที่ทำไว้ในข้อ 0.2 แล้วใส่แทน STAMP บรรทัดถัดไป
+B=~/backup-STAMP
 git checkout $(cat $B/commit.txt)
 cp $B/.env .env
+docker tag elderly-surveillance-app:before-9oct elderly-surveillance-app:latest
 docker compose up -d --force-recreate
 ```
+- **ห้ามใส่ `--build` ตอนย้อนกลับ** — ใช้อิมเมจเดิมที่เก็บไว้ในข้อ 0.2
 - ฐานข้อมูล**ไม่ต้อง**คืน (เวอร์ชันใหม่แค่เพิ่มคอลัมน์ เวอร์ชันเก่าไม่อ่านคอลัมน์นั้น) — คืนจาก `db.sql` เฉพาะเมื่อทีมบอก
-- หน้าเว็บ: ย้อนด้วยวิธีเดียวกับข้อ 0.4
+- หน้าเว็บ: ทำคำสั่งอัปเดตหน้าเว็บชุดเดียวกับข้อ 0.4 อีกครั้ง (ทีมส่งให้) — ถ้ารันแบบ `npm run dev` แค่กด refresh
 - เมื่อไหร่ต้องย้อนกลับ: ระบบไม่ขึ้น / หน้าเว็บเข้าไม่ได้ / กล้องไม่ตรวจเลย (ไม่มีบรรทัด Detection rate) แล้วแก้ไม่ได้ภายใน 30 นาที
 
 ---
@@ -142,7 +150,7 @@ docker compose up -d --force-recreate
 
 - **ผู้ใช้แต่ละคนใส่ LINE ID ของตัวเองได้ในหน้าเว็บ "ตั้งค่าการแจ้งเตือน"** (บอท LINE ตัวเดียวของระบบ — token อยู่ใน .env แอดมินเท่านั้นเปลี่ยนได้; ทักบอท 1 ครั้ง บอทตอบ LINE ID กลับมาให้คัดลอก)
 - สวิตช์ที่ใช้จริงคือ**สวิตช์ของผู้ใช้ในหน้าเว็บ "ตั้งค่าการแจ้งเตือน"** (`LINE_ENABLED` ใน `.env` ใช้แค่ตอนสร้างการตั้งค่าครั้งแรก)
-- ปุ่ม "รับทราบ" ใน LINE **(ไม่บังคับ — ถ้าทำไม่ได้ ข้ามไป ใช้ปุ่มรับทราบในหน้าเว็บแทนได้เหมือนกัน)** ต้องตั้งครบ 3 อย่าง (คนที่ดูแลบัญชี LINE Official Account ทำ): (1) ใน LINE Developers Console → เลือก channel → แท็บ Messaging API → Webhook URL = `[เติม: https://<server>]/api/line/webhook` → กด Verify → เปิด Use webhook (2) `LINE_CHANNEL_SECRET` ใน `.env` (แท็บ Basic settings → Channel secret) (3) `PUBLIC_BASE_URL=[เติม: https://<server>]` ใน `.env` → แล้ว `docker compose up -d`
+- ปุ่ม "รับทราบ" ใน LINE **(ไม่บังคับ — ถ้าทำไม่ได้ ข้ามไป ใช้ปุ่มรับทราบในหน้าเว็บแทนได้เหมือนกัน)** ต้องตั้งครบ 3 อย่าง (คนที่ดูแลบัญชี LINE Official Account ทำ): (1) ใน LINE Developers Console → เลือก channel → แท็บ Messaging API → Webhook URL = `[เติม: https://<server>]/api/line/webhook` → กด Verify → เปิด Use webhook (2) `LINE_CHANNEL_SECRET` ใน `.env` (แท็บ Basic settings → Channel secret) (3) `PUBLIC_BASE_URL=[เติม: https://<server>]` ใน `.env` → แล้ว `docker compose up -d` (แก้ `.env` ด้วย `nano .env` → แก้ค่า → Ctrl+O Enter บันทึก → Ctrl+X ออก)
   - ถ้าใน `.env` **ไม่มี** `LINE_CHANNEL_SECRET` หรือ `PUBLIC_BASE_URL` → ระบบจะไม่แสดงปุ่ม ข้อความ LINE จะลงท้ายว่า "กดรับทราบได้ที่หน้าเว็บ เมนู 'มอนิเตอร์'" (หน้า "ตั้งค่าการแจ้งเตือน" บอกว่าขาดอะไร)
   - ถ้าใส่ค่าครบแล้ว ปุ่มจะขึ้น **แต่ระบบไม่รู้ว่าปุ่มกดได้จริงไหม** (เช่น ลืมเปิด Use webhook, URL ผิด) → **ต้องลองกดปุ่มจริงจากมือถือ 1 ครั้ง** แล้วดูในหน้า "มอนิเตอร์" ว่าขึ้น "รับทราบแล้ว" — ถ้าไม่ขึ้น ให้กดรับทราบในหน้าเว็บตลอดการทดสอบ
 - **แจ้งเตือน "⚠️ พบว่ามีคนอยู่ตามลำพัง" เปิดอยู่** (เจ้าของตัดสิน 7 ต.ค.): ส่งเข้า LINE ทุกช่วงพัก (NOTIFICATION_COOLDOWN) ต่อกล้อง เมื่อเห็นคนเดียวในภาพ — เป็นเรื่องปกติ ไม่ใช่ระบบรวน

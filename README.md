@@ -72,7 +72,8 @@ use Firebase; the dashboard runs without them.
 
 `Test/` has 17 real-world video clips (see [Test/README.md](Test/README.md)) that the backend can
 run detection on exactly like a live camera. In the dashboard's "เพิ่มกล้องใหม่"/"แก้ไขกล้อง" form,
-choose "ไฟล์วิดีโอทดสอบ" as the video source and pick one from the dropdown -- no need to type a
+choose "ไฟล์วิดีโอทดสอบ" as the video source, pick one from the dropdown, and set the detection type
+to "ตรวจจับการล้ม" (the form starts on "ลุกจากเตียง", the bed-exit detector) -- no need to type a
 path or own a camera to see fall detection working end to end. `Test/13.mp4`-`Test/16.mp4` are real
 fall footage, one fall each. `Test/17.mp4` has **no fall in it** -- it is a crowd doing an outdoor
 exercise routine, and it is in here on purpose, because staying silent through a lot of

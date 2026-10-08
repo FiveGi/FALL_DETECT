@@ -3832,3 +3832,15 @@ P2 ui_clip_test EXPECT=none: polls through the deadline with a last check; any c
 Live: clip 17 WINDOW=60 PASS (120 checks, 0 errors); clip 14 EXPECT=none FAIL ("ALERT after 9 s") as it must.
 
 ## Codex 2026-10-08 (relayed) — re-check of P1/P2 fixes: APPROVE (four mocked cases: silence, final-interval alert, exception, protocol error).
+
+## Claude 2026-10-08 22:30 — fresh-clone check (owner: "อัพแล้วโหลดมาใช้จะมีปัญหาไหม")
+Fresh clone of GitHub ai/collab-2026-09-30 into D:/project/clone_check, built from scratch per README:
+FOUND: unpinned requirements -> a fresh build got opencv 5.0 / rfdetr 1.11.2 and FAILED at `import rfdetr`.
+FIX: constraints-cpu.txt (= pip freeze of the tested image c940876d21d1), Dockerfile CPU path installs with -c.
+After fix: 114/114 packages identical to the tested image; model identity v3 0cdf7c + yolo26s-pose a083adb thr 0.65;
+web smoke PASS (alert list empty on a fresh DB -- expected), clip 14 alert 10 s + clip + ack, clip 17 silent 120 s,
+Thai-FRAT PASS, LINE settings PASS once LINE_CHANNEL_ACCESS_TOKEN is set (400 without it -- correct).
+Codex audit: CHANGES P1 runbook without --build ignores the pins -> 0.4 now `up -d --build --force-recreate`, 0.2 tags the
+running image before-9oct, 0.5 re-tags it (dry-run on this PC OK); P2 tag not yet pushed (made last, on the reviewed
+commit); P2 README clip walkthrough -> choose "ตรวจจับการล้ม". Gemini runbook: SHA from team, stop after 0.1,
+`ls -d ~/backup-*`, nano for .env -- applied.

@@ -86,7 +86,7 @@ footer { margin-top: 40px; border-top: 1px solid var(--rule); padding-top: 15px;
   <p class="col">ทดสอบบนเครื่องพัฒนาด้วย CPU 4 คอร์ (จำลองเซิร์ฟเวอร์ที่ไม่มีการ์ดจอ) ใช้ <b>โมเดลตัวจริงที่จะใช้วันที่ 9</b>
   ทุกการทดสอบการใช้งานทำผ่านหน้าเว็บ เหมือนที่ผู้ใช้เห็น</p>
   <div class="meta"><span>โมเดล: yolo26s-pose + fall_classifier_v3 (เกณฑ์ 0.65)</span><span>ภาพ 320 px · ครอปภาพคนขนาด 256 · เป้า 8 ภาพ/วินาที · สูงสุด 4 คน</span></div>
-  <nav aria-label="สารบัญ"><a href="#simple">สรุป</a><a href="#func">ฟังก์ชัน</a><a href="#acc">ความแม่น</a><a href="#old">เทียบระบบเดิม</a><a href="#issues">ปัญหาที่พบ</a><a href="#owner">สิ่งที่ต้องตัดสินใจ</a><a href="#src">ที่มาตัวเลข</a></nav>
+  <nav aria-label="สารบัญ"><a href="#simple">สรุป</a><a href="#func">ฟังก์ชัน</a><a href="#acc">ความแม่น</a><a href="#old">เทียบระบบเดิม</a><a href="#clone">โหลดไปใช้</a><a href="#issues">ปัญหาที่พบ</a><a href="#owner">สิ่งที่ต้องตัดสินใจ</a><a href="#src">ที่มาตัวเลข</a></nav>
 </header>
 
 <section class="summary" id="simple">
@@ -226,6 +226,23 @@ footer { margin-top: 40px; border-top: 1px solid var(--rule); padding-top: 15px;
 และวิ่งเร็วกว่าเกือบ 2 เท่าบน CPU (เห็นจังหวะล้มต่อเนื่องกว่า) ทางเลือก A ปิดช่องว่างได้บางส่วน (37 จาก 75 และหลายคน 15)</p>
 <p>สิ่งที่ยังต้องทำต่อหลังวันที่ 9: ทำให้ระบบใหม่เร็วขึ้นบน CPU และแก้ปัญหา A เห็นเฟอร์นิเจอร์เป็นคน แล้วจึงเปลี่ยนเป็น A</p>
 </div>
+<h3>เทียบรายคลิป (คลิปรวมเหตุการณ์ในโฟลเดอร์ Test/)</h3>
+<p class="col">แต่ละคลิปมีหลายเหตุการณ์ ตัดเป็นช่วง · ตัวจริง = ค่าเฉลี่ย 8 รอบ (ต่ำสุด–สูงสุด) · ไฟล์เต็มอยู่ที่ <code>test_result/fulltest_8oct/accuracy_by_clip.md</code></p>
+<div class="tbl" tabindex="0"><table>
+<thead><tr><th>คลิป</th><th class="n">ช่วงที่มีคนล้ม</th><th class="n">ใหม่ จับได้</th><th class="n">เดิม จับได้</th><th class="n">ช่วงไม่มีล้ม</th><th class="n">ใหม่ เตือนผิด</th><th class="n">เดิม เตือนผิด</th><th>จับได้มากกว่า</th></tr></thead>
+<tbody>
+<tr><td>1.mp4</td><td class="n">15</td><td class="n">9.2 (8–10)</td><td class="n">8</td><td class="n">1</td><td class="n">0.0</td><td class="n">0</td><td>ใหม่</td></tr>
+<tr><td>3.mp4</td><td class="n">1</td><td class="n">1.0 (1–1)</td><td class="n">1</td><td class="n">0</td><td class="n">0.0</td><td class="n">0</td><td>ใกล้กัน</td></tr>
+<tr><td>4.mp4</td><td class="n">10</td><td class="n">4.8 (4–6)</td><td class="n">6</td><td class="n">4</td><td class="n">0.8</td><td class="n">3</td><td>เดิม</td></tr>
+<tr><td>5.mp4</td><td class="n">17</td><td class="n">9.8 (8–11)</td><td class="n">10</td><td class="n">0</td><td class="n">0.0</td><td class="n">0</td><td>ใกล้กัน</td></tr>
+<tr><td>6.mp4</td><td class="n">1</td><td class="n">0.9 (0–1)</td><td class="n">1</td><td class="n">0</td><td class="n">0.0</td><td class="n">0</td><td>ใกล้กัน</td></tr>
+<tr><td>7.mp4</td><td class="n">2</td><td class="n">0.6 (0–1)</td><td class="n">2</td><td class="n">0</td><td class="n">0.0</td><td class="n">0</td><td>เดิม</td></tr>
+<tr><td>8.mp4</td><td class="n">10</td><td class="n">2.9 (2–4)</td><td class="n">9</td><td class="n">3</td><td class="n">0.0</td><td class="n">0</td><td>เดิม</td></tr>
+<tr><td>9.mp4</td><td class="n">17</td><td class="n">2.8 (2–4)</td><td class="n">5</td><td class="n">3</td><td class="n">1.0</td><td class="n">1</td><td>เดิม</td></tr>
+<tr><td>12.mp4</td><td class="n">2</td><td class="n">1.9 (1–2)</td><td class="n">2</td><td class="n">2</td><td class="n">0.0</td><td class="n">1</td><td>ใกล้กัน</td></tr>
+<tr style="font-weight:600"><td>รวม</td><td class="n">75</td><td class="n">33.75</td><td class="n">44</td><td class="n">13</td><td class="n">1.75</td><td class="n">5</td><td>เดิม</td></tr>
+</tbody></table></div>
+<p class="note col">ระบบเดิมจับได้มากกว่าชัดในคลิป 8 และ 9 — ยังไม่ได้วิเคราะห์ว่าเพราะอะไร เป็นงานแรกหลังวันที่ 9 ส่วนคลิป 4 ระบบเดิมเตือนผิด 3 ครั้ง ระบบใหม่ 0.8</p>
 <details><summary>หมายเหตุความยุติธรรมของการเทียบ</summary>
 <ul class="col">
 <li>ตัวเลขระบบเดิมมาจากการรัน 1 รอบ ส่วนระบบใหม่เป็นค่าเฉลี่ย 8 รอบ (กลางคืน 3 รอบทั้งคู่)</li>
@@ -236,6 +253,24 @@ footer { margin-top: 40px; border-top: 1px solid var(--rule); padding-top: 15px;
 <li>Le2i: ยังไม่ได้รันระบบเดิม จึงไม่ได้ใส่ในตารางเทียบ</li>
 </ul>
 </details>
+</section>
+
+<section id="clone">
+<h2>ทดสอบโหลดจาก GitHub ไปใช้บนเครื่องใหม่ (เหมือนคนอื่นดาวน์โหลดไป)</h2>
+<p class="col">ดึงโค้ดจาก GitHub ลงโฟลเดอร์ว่าง สร้างระบบใหม่ทั้งหมดตาม README (ฐานข้อมูลใหม่ ไม่มีการเทรนอะไร) แล้วทดสอบผ่านหน้าเว็บ — 8 ต.ค. 21:53–22:13</p>
+<div class="tbl" tabindex="0"><table>
+<thead><tr><th>ตรวจ</th><th>ผล</th></tr></thead>
+<tbody>
+<tr><td>ไฟล์โมเดลและคลิปทดสอบ (Git LFS) ได้ไฟล์จริงครบ ไม่ใช่ไฟล์ชี้</td><td><span class="pill ok">ผ่าน</span> โมเดล 4 ตัว ลายนิ้วมือตรงกับที่ใช้ทดสอบ, คลิป 17 คลิป</td></tr>
+<tr><td>สร้างระบบจากศูนย์</td><td><span class="pill ok">ผ่าน หลังแก้</span> <b>พบปัญหาก่อนแก้:</b> ไลบรารีไม่ได้ล็อกเวอร์ชัน เครื่องใหม่ได้รุ่นใหม่กว่าที่ทดสอบ (opencv 5.0, rfdetr 1.11) และ<b>สร้างไม่ผ่าน</b> → เพิ่มไฟล์ล็อก <code>constraints-cpu.txt</code> ตอนนี้ได้ไลบรารี<b>ตรงกับที่ทดสอบทั้ง 114 ตัว</b></td></tr>
+<tr><td>โหลดโมเดลถูกตัว (ไม่ต้องเทรน)</td><td><span class="pill ok">ผ่าน</span> fall_classifier_v3 + yolo26s-pose เกณฑ์ 0.65 สูงสุด 4 คน</td></tr>
+<tr><td>หน้าเว็บทุกหน้า, ใช้บนมือถือได้</td><td><span class="pill ok">ผ่าน</span></td></tr>
+<tr><td>คลิป 14 (ล้ม) ผ่านหน้าเว็บ</td><td><span class="pill ok">ผ่าน</span> เตือนใน 10 วินาที, เปิดคลิปย้อนหลังได้, กดรับทราบได้</td></tr>
+<tr><td>คลิป 17 (ไม่มีล้ม)</td><td><span class="pill ok">ผ่าน</span> เงียบตลอด 2 นาที</td></tr>
+<tr><td>Thai-FRAT</td><td><span class="pill ok">ผ่าน</span></td></tr>
+<tr><td>ผู้ใช้ใส่ LINE ของตัวเอง</td><td><span class="pill ok">ผ่าน</span> ต้องใส่ token ของบอทใน .env ก่อน (เครื่องใหม่ยังไม่มี ระบบจึงไม่ยอมเปิดสวิตช์ — ถูกต้อง)</td></tr>
+</tbody></table></div>
+<p class="note col">ตรวจซ้ำโดย Codex (ไฟล์ที่ระบบต้องใช้มีครบใน git) และ Gemini (README และคู่มือวันที่ 9 — แก้ตามที่แนะนำแล้ว)</p>
 </section>
 
 <section id="issues">
