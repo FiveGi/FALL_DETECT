@@ -30,13 +30,20 @@ v3 = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(v3)
 
 FPS = float(os.environ.get('TARGET_FPS', 8))
+ROI_PHASE = int(os.environ.get('ROI_PHASE', 0))   # see V3PoseFallDetector.reset_roi_state
 INCIDENTS = os.path.join(ROOT, 'test_result', 'incidents', 'incidents.json')
 OUT = os.path.join(ROOT, 'test_result', 'incidents',
                    'alerts_%s_%dpx_%gfps%s.json' % (os.environ.get('V3_DEVICE', 'auto'),
                                                     v3.IMGSZ, FPS,
                                                     ('_roi%d' % v3.ROI_IMGSZ if v3.ROI_IMGSZ else '')
                                                     + ('_grey%g' % v3.PREPROCESS_GREY_BELOW
-                                                       if v3.PREPROCESS_GREY_BELOW else '')))
+                                                       if v3.PREPROCESS_GREY_BELOW else '')
+                                                    + ('_conf%g' % v3.POSE_CONF
+                                                       if v3.POSE_CONF != 0.3 else '')
+                                                    + ('_thr%g' % v3.THRESHOLD
+                                                       if v3.THRESHOLD != 0.65 else '')
+                                                    + ('_phase%d' % ROI_PHASE
+                                                       if v3.ROI_IMGSZ else '')))
 
 
 def segment_alerts(det, path, start_s, end_s):
@@ -44,6 +51,7 @@ def segment_alerts(det, path, start_s, end_s):
     src = cap.get(cv2.CAP_PROP_FPS) or 30.0
     cap.set(cv2.CAP_PROP_POS_FRAMES, int(start_s * src))
     state = v3.V3MultiPersonFallState()
+    det.reset_roi_state(ROI_PHASE)   # each segment is its own source; no crop carried over
     i, last_slot, hits, peak = int(start_s * src), -1, [], 0.0
     while i < int(end_s * src):
         ok, frame = cap.read()
@@ -67,7 +75,9 @@ def main():
     det = v3.V3PoseFallDetector(model_dir=os.path.join(ROOT, 'models'))
     out = {'profile': {'device': os.environ.get('V3_DEVICE'), 'imgsz': v3.IMGSZ, 'fps': FPS,
                        'threshold': v3.THRESHOLD, 'roi_imgsz': v3.ROI_IMGSZ,
-                       'roi_full_every': v3.ROI_FULL_EVERY}, 'segments': {}}
+                       'roi_full_every': v3.ROI_FULL_EVERY, 'pose_conf': v3.POSE_CONF,
+                       'roi_phase': ROI_PHASE if v3.ROI_IMGSZ else None,
+                       'roi_state': 'reset-per-segment'}, 'segments': {}}
     for clip, rows in data['clips'].items():
         for r in rows:
             hits, peak = segment_alerts(det, os.path.join('Test', clip), r['start_s'], r['end_s'])

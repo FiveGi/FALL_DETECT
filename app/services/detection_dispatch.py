@@ -31,10 +31,14 @@ from app.config import Config
 # one person" right 83.1% of the time against the old detector's 80.5%.
 TASKS_BY_TYPE = {
     'bed_exit': ['process_bed_exit_detection'],
-    'fall': ['process_fall_detection', 'process_alone_detection'],
+    # 'fall' was the MediaPipe detector. The deployed image's mediapipe no longer has
+    # mp.solutions, so its task crashed on the first frame (found in the 9 Oct rehearsal,
+    # 6 Oct) -- a camera set to it would show "monitoring" and watch nothing. It now runs the
+    # current detector, as does any unknown type, instead of a task that cannot start.
+    'fall': ['process_v2_fall_detection'],
     'fall_v2': ['process_v2_fall_detection'],
 }
-DEFAULT_TASKS = ['process_fall_detection']
+DEFAULT_TASKS = ['process_v2_fall_detection']
 
 
 def task_config():
@@ -123,6 +127,10 @@ def resume_active_cameras():
 
 _LOCK_TTL_S = 30          # a dead loop's claim expires this long after its last heartbeat
 _LOCK_PREFIX = 'camera-loop:'
+_HOLD_LUA = ("local v = redis.call('GET', KEYS[1]) "
+             "if v == false or v == ARGV[1] then redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2]) return 1 end "
+             "return 0")
+_RELEASE_LUA = ("if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) end return 0")
 
 
 def _redis():
@@ -163,11 +171,9 @@ def hold_camera(camera_id, token):
     if r is None:
         return True
     try:
-        current = r.get(_LOCK_PREFIX + str(camera_id))
-        if current is not None and current.decode() != token:
-            return False
-        r.set(_LOCK_PREFIX + str(camera_id), token, ex=_LOCK_TTL_S)
-        return True
+        # One atomic step (Codex P1): a GET-then-SET could overwrite a claim another loop took in
+        # between, and both loops would carry on. Renew only if the claim is ours or has expired.
+        return bool(r.eval(_HOLD_LUA, 1, _LOCK_PREFIX + str(camera_id), token, _LOCK_TTL_S))
     except Exception:
         return True
 
@@ -178,9 +184,9 @@ def release_camera(camera_id, token):
     if r is None:
         return
     try:
-        current = r.get(_LOCK_PREFIX + str(camera_id))
-        if current is not None and current.decode() == token:
-            r.delete(_LOCK_PREFIX + str(camera_id))
+        # Compare-and-delete in one step (Codex P1): a GET-then-DELETE could delete a claim
+        # another loop took after ours expired.
+        r.eval(_RELEASE_LUA, 1, _LOCK_PREFIX + str(camera_id), token)
     except Exception:
         pass
 

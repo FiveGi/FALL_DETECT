@@ -11,6 +11,7 @@ import requests
 
 from app import db
 from app.config import Config
+from app.services.line_service import acknowledge_ready
 from app.models.line_settings import LineSettings
 from app.models.line_target import LineDiscoveredTarget
 from app.models.notification_history import NotificationHistory
@@ -30,7 +31,7 @@ def get_line_settings():
         # clip is ever sent, with nothing on screen explaining why -- so the settings page can
         # say which piece is missing instead of leaving the feature quietly half-working.
         base = (Config.PUBLIC_BASE_URL or '').rstrip('/')
-        data['acknowledge_ready'] = bool(base) and bool(Config.LINE_CHANNEL_SECRET)
+        data['acknowledge_ready'] = acknowledge_ready()
         data['public_base_url'] = base
         data['channel_secret_set'] = bool(Config.LINE_CHANNEL_SECRET)
         data['webhook_url'] = f'{base}/api/line/webhook' if base else ''

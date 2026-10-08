@@ -1,4 +1,7 @@
 import cv2
+import os as _os
+# RTSP over TCP for the live view too -- see camera_manager (UDP never arrived through NAT).
+_os.environ.setdefault('OPENCV_FFMPEG_CAPTURE_OPTIONS', 'rtsp_transport;tcp')
 import threading
 import time
 from collections import defaultdict

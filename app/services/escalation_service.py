@@ -17,8 +17,10 @@ from app import celery, db
 from app.config import Config
 from app.models.notification_history import NotificationHistory
 from app.models.camera import Camera
+from app.models.line_settings import LineSettings
 
 tz = pytz.timezone('Asia/Bangkok')
+MAX_SENDS_PER_SWEEP = 20
 
 
 @celery.task(name='app.services.escalation_service.check_pending_acknowledgements')
@@ -50,10 +52,13 @@ def check_pending_acknowledgements():
                    .filter(NotificationHistory.sent_at <= cutoff)
                    .filter(NotificationHistory.sent_at >= floor)
                    .order_by(NotificationHistory.sent_at.asc())
-                   .limit(20)
+                   # Every row in the window: it is bounded by ESCALATION_MAX_AGE_MINUTES, and a
+                   # row limit let undeliverable alerts (LINE off for that user) hold every slot so
+                   # a deliverable one -- older or newer -- was never tried (Codex P2, twice).
                    .all())
 
-        escalated = 0
+        escalated = attempts = 0
+        line_on, broken = {}, set()
         for notif in pending:
             camera = Camera.query.get(notif.camera_id) if notif.camera_id else None
             if camera is None:
@@ -61,16 +66,41 @@ def check_pending_acknowledgements():
                 # more, so stop it escalating forever rather than leaving it pending.
                 notif.escalation_count = Config.MAX_ESCALATIONS
                 continue
+            # LINE off for this camera's owner: nothing can be delivered, so skip without an
+            # attempt (and without counting) instead of spending a send on it.
+            if camera.user_id not in line_on:
+                line_on[camera.user_id] = bool(LineSettings.get_settings(camera.user_id).enabled)
+            if not line_on[camera.user_id]:
+                continue
+            # Cap real send attempts per sweep, not rows, so a failing network (10 s timeout per
+            # target) cannot make one sweep run for minutes. Skipped rows above cost nothing.
+            if attempts >= MAX_SENDS_PER_SWEEP:
+                break
+            # An owner whose send already failed this sweep (bad token, LINE down for them) is
+            # skipped for the rest of it: a broken channel costs ONE attempt per sweep, so any
+            # number of broken owners cannot use up the cap and starve a healthy one (Codex P2).
+            if camera.user_id in broken:
+                continue
+            attempts += 1
 
-            notif.escalation_count = (notif.escalation_count or 0) + 1
-            notify_alert(
+            # Counted only when the re-send reached someone. Counting before sending meant a
+            # LINE switched off, a bad token or a network failure used up every escalation
+            # (MAX_ESCALATIONS) without one message delivered, and the alert then went quiet
+            # for good while still unacknowledged.
+            level = (notif.escalation_count or 0) + 1
+            delivered = notify_alert(
                 camera.id, camera.name, camera.room_name,
                 notif.detection_type, notif.sent_at.isoformat(), notif.image_path,
                 confidence=notif.confidence,
-                escalation_level=notif.escalation_count,
+                escalation_level=level,
                 notification_id=notif.id,
+                wait=True,
             )
-            escalated += 1
+            if delivered:
+                notif.escalation_count = level
+                escalated += 1
+            else:
+                broken.add(camera.user_id)
 
         db.session.commit()
         if escalated:

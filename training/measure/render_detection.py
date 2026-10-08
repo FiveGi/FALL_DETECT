@@ -74,22 +74,41 @@ def main():
     source, dest = sys.argv[1], sys.argv[2]
 
     det = v3.V3PoseFallDetector(model_dir=os.path.join(ROOT, 'models'))
+    # Draw the people the DETECTOR saw, not a second pose pass. extract_all_keypoints is
+    # stateful when V3_ROI_IMGSZ is set (crop cadence + last boxes), and an earlier version
+    # called it again here: every frame then ran the pose model twice, the crop cadence ran at
+    # double speed, and the render showed a different detector from the one that was scored --
+    # it drew "alert at never" on 8.mp4#1, which the scorer had caught at 4.2 s.
+    seen = {'people': []}
+    _extract = det.extract_all_keypoints
+
+    def _spy(frame):
+        seen['people'] = _extract(frame)
+        return seen['people']
+    det.extract_all_keypoints = _spy
+    # Same start as the scorer's segment, so a phase-N evaluation can be rendered as it ran.
+    det.reset_roi_state(int(os.environ.get('ROI_PHASE', 0)))
     state = v3.V3MultiPersonFallState()
     cap = cv2.VideoCapture(source)
     src_fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+    # START_S / END_S: render one segment of a compilation instead of the whole file.
+    start_s, end_s = float(os.environ.get('START_S', 0)), float(os.environ.get('END_S', 0))
+    if start_s:
+        cap.set(cv2.CAP_PROP_POS_FRAMES, int(start_s * src_fps))
 
-    shots, i, last_slot, alert_at = [], 0, -1, None
+    shots, i, last_slot, alert_at = [], int(start_s * src_fps), -1, None
     while True:
         ok, frame = cap.read()
-        if not ok:
+        if not ok or (end_s and i >= int(end_s * src_fps)):
             break
         slot = int(i * FPS / src_fps)
         i += 1
         if slot == last_slot:
             continue
         last_slot = slot
+        seen['people'] = []
         results = v3.detect_v3_fall_multi(frame, state, det, config=None)
-        people = det.extract_all_keypoints(frame)
+        people = seen['people']
         # Match each drawn person to their result by hip position, the same way the tracker
         # does, so a score is never drawn on the wrong body -- which has happened.
         scores, alerting = {}, {}
@@ -101,10 +120,12 @@ def main():
                     best = (d, prob, detected)
             if best and best[0] < 0.1:
                 scores[idx], alerting[idx] = best[1], best[2]
-        if any(alerting.values()) and alert_at is None:
+        # The alert is the detector's, whether or not its track matched a drawn body (a track
+        # held through a missed frame has no body this frame) -- the scorer counts it too.
+        hit = any(r[1] for r in results)
+        if hit and alert_at is None:
             alert_at = len(shots)
-        shots.append((len(shots), draw(frame, people, scores, alerting),
-                      any(alerting.values())))
+        shots.append((len(shots), draw(frame, people, scores, alerting), hit))
     cap.release()
     if not shots:
         print('no frames read from %s' % source)

@@ -59,6 +59,17 @@ const evAsync = async (ws, expr) => (await send(ws, 'Runtime.evaluate',
 
 const failures = [];
 
+// Poll until `expr` is truthy instead of sleeping a fixed time. Fixed sleeps made this test fail
+// a different page on every run whenever the machine was busy (7 Oct: Thai-FRAT blank on a cold
+// dev server, then an empty alert list, then a missing dropdown -- each passing on the next run).
+const waitFor = async (ws, expr, ms = 20000) => {
+  for (let t = 0; t < ms; t += 500) {
+    if (await ev(ws, `JSON.stringify(!!(${expr}))`)) return true;
+    await sleep(500);
+  }
+  return false;
+};
+
 async function main() {
   const tab = await jsonNew(APP + '/');
   const ws = await connect(tab.webSocketDebuggerUrl);
@@ -83,7 +94,9 @@ async function main() {
   for (const [path, label] of PAGES) {
     jsErrors = []; httpErrors = [];
     await send(ws, 'Page.navigate', { url: APP + path });
-    await sleep(7000);
+    await sleep(1000);
+    await waitFor(ws, `location.pathname === ${JSON.stringify(path)} && (document.body.innerText||'').trim().length >= 60`);
+    await sleep(4000);   // let the page's own requests finish, so their errors are counted
     const o = await ev(ws, `JSON.stringify({
       path: location.pathname,
       textLen: (document.body.innerText||'').trim().length,
@@ -100,7 +113,8 @@ async function main() {
 
   // The alert list is the product's main surface: assert its parts are actually there.
   await send(ws, 'Page.navigate', { url: APP + '/monitor' });
-  await sleep(9000);
+  await sleep(1000);
+  await waitFor(ws, `document.querySelectorAll('.log-entry').length > 0`, 30000);
   const m = await ev(ws, `JSON.stringify({
     entries: document.querySelectorAll('.log-entry').length,
     tier: document.querySelectorAll('.tier-badge').length,
@@ -161,6 +175,9 @@ async function main() {
         if (!text || r.width < 4 || r.height < 4) continue;
         const cs = getComputedStyle(el);
         if (cs.visibility === 'hidden' || cs.display === 'none') continue;
+        // A disabled control is dimmed on purpose (About's "save this profile" until another
+        // profile is chosen) and WCAG exempts it; reporting it made this check flap.
+        if (el.disabled || el.getAttribute('aria-disabled') === 'true') continue;
         // A gradient or image background reports backgroundColor as transparent, so walking
         // up to the parent would compare the text against the page behind the button and
         // call white-on-green white-on-white. Skipped rather than guessed: this check should
@@ -187,7 +204,8 @@ async function main() {
   // has no fall in it, so someone picking it sees no alert and concludes the detector is
   // broken -- which is exactly the conclusion this project drew about its own clip for days.
   await send(ws, 'Page.navigate', { url: APP + '/camera' });
-  await sleep(2500);
+  await sleep(1000);
+  await waitFor(ws, `[...document.querySelectorAll('input[type=radio]')].some(r => (r.closest('label') || {}).textContent?.includes('ไฟล์วิดีโอทดสอบ'))`);
   const dropdown = await evAsync(ws, `(async () => {
     // The add-camera form is a card on the page, not behind a button; the only thing that
     // has to be clicked is the "test clip" source radio, which is what reveals the dropdown.

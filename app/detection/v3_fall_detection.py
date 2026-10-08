@@ -57,6 +57,23 @@ STRIDE = 10
 # (41/56 clean either way). Sweep it with training/measure_alert_tier.py-style runs if the
 # window or frame rate ever changes; the right value is not independent of those (SS38, SS51).
 THRESHOLD = float(os.environ.get("V3_THRESHOLD", 0.65))
+LOADED_IDENTITY = None   # set when a detector loads; see V3PoseFallDetector.__init__
+
+
+def _sha12(path):
+    """First 12 hex chars of the sha256 of a file (or of a directory's files, e.g. an OpenVINO export)."""
+    import hashlib
+    h = hashlib.sha256()
+    try:
+        files = [path] if os.path.isfile(path) else sorted(
+            os.path.join(r, f) for r, _, fs in os.walk(path) for f in fs)
+        for f in files:
+            with open(f, "rb") as fh:
+                for chunk in iter(lambda: fh.read(1 << 20), b""):
+                    h.update(chunk)
+        return h.hexdigest()[:12] if files else None
+    except OSError:
+        return None
 # Env-overridable alongside V3_WINDOW_SIZE: at a live camera'''s real frame rate each window
 # advances by a whole 1/5 s, so "2 positive windows out of 3" is a much longer wait than it
 # was at 30fps -- worth measuring rather than assuming (training/eval_v3_frame_drop.py).
@@ -70,7 +87,12 @@ THRESHOLD = float(os.environ.get("V3_THRESHOLD", 0.65))
 # a system whose failure mode is a person lying on the floor unnoticed.
 SMOOTH_NEED = int(os.environ.get("V3_SMOOTH_NEED", 1))   # need this many...
 SMOOTH_OF = int(os.environ.get("V3_SMOOTH_OF", 3))   # ...positive windows out of the last this many (not strictly consecutive)
-NUM_POSES = 4      # max people tracked per camera at once -- see detect_v3_fall_multi
+# Max people the FALL path keeps per frame (highest box confidence first) -- see
+# detect_v3_fall_multi. The people COUNT for alone detection is not capped (count_people).
+# A person lying on the floor tends to have the lowest box confidence, so in a crowd larger
+# than this the faller is the one dropped; the cap saves little CPU (the pose pass costs the
+# same whatever it is). Env so 4 vs 8 can be measured: plan_v4_cliptest.md, item 1.
+NUM_POSES = int(os.environ.get("V3_NUM_POSES", 4))
 
 MEDIAPIPE33_TO_COCO17 = [0, 2, 5, 7, 8, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28]
 LEFT_SHOULDER, RIGHT_SHOULDER = 5, 6
@@ -384,11 +406,15 @@ def preprocess_frame(frame_bgr):
         return frame_bgr, ()
     ops = PREPROCESS
     if "auto" in ops:
+        # The gate reads the ORIGINAL frame and opens or closes the whole list. "auto" expands in
+        # place to clahe+gamma, so "bilateral,auto" denoises first and "auto,unsharp" sharpens
+        # after (NIGHT-NOISE-v1 arms); a lone "auto" is exactly what it always was.
         dark = frame_luminance(frame_bgr) < PREPROCESS_DARK_BELOW
         grey = PREPROCESS_GREY_BELOW > 0 and frame_chroma(frame_bgr) < PREPROCESS_GREY_BELOW
         if not (dark or grey):
             return frame_bgr, ()
-        ops = [o for o in ops if o != "auto"] + ["clahe", "gamma"]
+        i = ops.index("auto")
+        ops = ops[:i] + ["clahe", "gamma"] + [o for o in ops[i + 1:] if o != "auto"]
     applied = []
     out = frame_bgr
     for op in ops:
@@ -396,10 +422,62 @@ def preprocess_frame(frame_bgr):
             out = _apply_clahe(out)
         elif op == "gamma":
             out = cv2.LUT(out, _gamma_lut())
+        elif op in _LUMA_OPS:
+            out = _on_luma(out, _LUMA_OPS[op])
         else:
             continue
         applied.append(op)
     return out, tuple(applied)
+
+
+# NIGHT-NOISE-v1 (Codex design 2026-10-01, training/data/multi_diag_v2/codex_night_noise_final.md):
+# candidate clean-ups for noisy night frames, each on luminance only, parameters fixed before any
+# measurement. Unmeasured: none is on unless V3_PREPROCESS names it. PREPROCESS_PARAMS goes into
+# every cache key that uses one, so a changed constant can never answer for an old cache.
+PREPROCESS_PARAMS = ("vflat:64/16/0.8-1.25/floor16;unsharp:s1/0.25/clip8;bilateral:5/15/3;"
+                     "guided:r4/eps(8/255)^2;nlmeans:h5/t7/s15")
+
+
+def _on_luma(frame_bgr, fn):
+    ycc = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2YCrCb)
+    ycc[:, :, 0] = fn(ycc[:, :, 0])
+    return cv2.cvtColor(ycc, cv2.COLOR_YCrCb2BGR)
+
+
+def _vflat(y):
+    """Blind illumination flattening: no knowledge of any simulated vignette."""
+    small = cv2.resize(y, (64, 64), interpolation=cv2.INTER_AREA).astype(np.float32)
+    illum = cv2.resize(cv2.GaussianBlur(small, (0, 0), 16), (y.shape[1], y.shape[0]),
+                       interpolation=cv2.INTER_LINEAR)
+    gain = np.clip(float(np.median(illum)) / np.maximum(illum, 16.0), 0.8, 1.25)
+    return np.clip(y.astype(np.float32) * gain, 0, 255).astype(np.uint8)
+
+
+def _unsharp(y):
+    yf = y.astype(np.float32)
+    corr = np.clip(0.25 * (yf - cv2.GaussianBlur(yf, (0, 0), 1.0)), -8, 8)
+    return np.clip(yf + corr, 0, 255).astype(np.uint8)
+
+
+def _guided(y, r=4, eps=(8 / 255.0) ** 2):
+    """Self-guided filter (He et al.), box filters only -- no opencv-contrib needed."""
+    i = y.astype(np.float32) / 255.0
+    k = (2 * r + 1, 2 * r + 1)
+    mean = cv2.boxFilter(i, -1, k)
+    var = cv2.boxFilter(i * i, -1, k) - mean * mean
+    a = var / (var + eps)
+    b = mean - a * mean
+    q = cv2.boxFilter(a, -1, k) * i + cv2.boxFilter(b, -1, k)
+    return np.clip(q * 255.0, 0, 255).astype(np.uint8)
+
+
+_LUMA_OPS = {
+    "vflat": _vflat,
+    "unsharp": _unsharp,
+    "bilateral": lambda y: cv2.bilateralFilter(y, 5, 15, 3),
+    "guided": _guided,
+    "nlmeans": lambda y: cv2.fastNlMeansDenoising(y, None, 5, 7, 15),
+}
 
 
 # Set by V3PoseFallDetector.__init__ once a detector exists in this process.
@@ -528,7 +606,10 @@ class V3PoseFallDetector:
         than the 30-frame window can span a fall and recall collapses -- see
         training/eval_v3_frame_drop.py. Auto-detect rather than defaulting to CPU so a host
         that has a GPU actually uses it; V3_DEVICE overrides when that is not wanted."""
-        onnx_path = os.path.join(model_dir, "fall_classifier_v3.onnx")
+        # V3_CLASSIFIER names the classifier file inside model_dir (default: the deployed one), so
+        # a candidate can ship next to production and be switched on or off from .env alone --
+        # rollback is deleting one line, no files moved (9 Oct system test plan, F4).
+        onnx_path = os.path.join(model_dir, os.environ.get("V3_CLASSIFIER", "fall_classifier_v3.onnx"))
         # V3_POSE_MODEL names a different pose checkpoint in the same directory. It exists for
         # the CPU-only production server, where the pose pass is the entire frame budget:
         # yolo26n-pose runs in about half the time of yolo26s-pose at every input size, so the
@@ -556,6 +637,15 @@ class V3PoseFallDetector:
         self.session = ort.InferenceSession(onnx_path, sess_options=sess_opts,
                                             providers=providers)
         _check_feature_width(self.session, onnx_path)
+        # Which model is actually running, provably: file names + content hashes + threshold in
+        # the log at start, and on the module for the status endpoint. A switch that silently
+        # did not take effect is otherwise indistinguishable from one that did.
+        global LOADED_IDENTITY
+        LOADED_IDENTITY = {"classifier": os.path.basename(onnx_path), "classifier_sha": _sha12(onnx_path),
+                           "pose": os.path.basename(yolopose_path.rstrip("/\\")),
+                           "pose_sha": _sha12(yolopose_path), "threshold": THRESHOLD,
+                           "num_poses": NUM_POSES}
+        print("[V3] model identity: %s" % LOADED_IDENTITY, flush=True)
 
         # V3_ENSEMBLE: comma-separated extra classifier files (paths, or bare names inside
         # model_dir) whose sigmoid outputs are averaged with the main one. Training the same
@@ -612,6 +702,20 @@ class V3PoseFallDetector:
         if not people:
             return np.zeros((NUM_KEYPOINTS, 3), dtype=np.float32), False
         return people[0][0], True
+
+    def reset_roi_state(self, phase=0):
+        """Forget where people were: call at the start of every new video source.
+
+        With V3_ROI_IMGSZ set, extract_all_keypoints remembers the last boxes and counts frames
+        to schedule its full-frame pass. That memory belongs to ONE source. Carried into the
+        next -- the next camera task in the same worker process, or the next clip in an
+        evaluation -- the first frame is cropped at another scene's boxes and the full-pass
+        schedule starts mid-cycle. Measured: an evaluation that reused one detector across
+        segments scored 8.mp4#1 as caught; the same segment alone peaks at 0.645 and is not.
+        `phase` (0 .. V3_ROI_FULL_EVERY-1) shifts the full-pass schedule, so an evaluation can
+        report the spread over phases instead of whichever phase it happened to get."""
+        self._roi_frame = int(phase)
+        self._roi_boxes = None
 
     def extract_all_keypoints(self, frame_bgr):
         """-> list of (kpts17 (17,3) [x, y, confidence], hip_center (2,)) for every
@@ -1077,6 +1181,23 @@ MAX_MISSED_FRAMES = WINDOW_SIZE
 # How many consecutive frames a track can go undetected (occluded, briefly off-camera)
 # before being dropped -- one full window's worth, so a track surviving a gap this
 # long still has stale-but-recent history rather than restarting cold.
+# V3_TRACK_REASSOC: let a recently lost track reclaim a person over a wider, unambiguous gate --
+# see PersonTracker._match_reassoc. Off by default; FAILED MULTI-REASSOC-v1's gates (2026-10-01,
+# owner segments x 8 phases, cache replay): caught 33.8 -> 33.6 /75, FA 1.8 -> 2.0 /13 (a new false
+# alarm on 4.mp4#3), multi 10.9 -> 10.6 /25. On 1.mp4#15, the case it was built for, the fallers
+# are undetected for the whole 1.3 s descent and come back 0.38 away: there is no descent in any
+# window to keep continuous. Kept as a switch only; the lever is detection during the fall.
+REASSOC = os.environ.get("V3_TRACK_REASSOC", "0") == "1"
+# V3_HELD_ALERT_MAX=k (P3, overnight exploration 8 Oct; OFF by default = 0 = unchanged behaviour): a track that has
+# not been SEEN for more than k consecutive frames may not START an alert -- a held pose is a copy of an old frame,
+# and 14 of 22 first wrong-person/far alerts in the 7 Oct diagnosis came from such held tracks. The collapse rule
+# (a visible, high-scoring person who then vanishes) is exempt, and an alert already running is not cut.
+HELD_ALERT_MAX = int(os.environ.get("V3_HELD_ALERT_MAX", 0))
+REASSOC_GATE_STEP = 0.01   # gate grows by this per frame missed ...
+REASSOC_GATE_MAX = 0.30    # ... up to twice the one-frame gate
+REASSOC_MARGIN = 0.05      # runner-up must be at least this much farther, both ways
+# V3_TRACK_TRACE: record every association decision on tracker.trace (diagnostics only).
+TRACK_TRACE = os.environ.get("V3_TRACK_TRACE", "0") == "1"
 
 
 class PersonTracker:
@@ -1088,9 +1209,11 @@ class PersonTracker:
     MAX_TRACK_DISTANCE step could swap track IDs. That's a state-continuity glitch,
     not a missed detection -- both people are still tracked and classified."""
 
-    def __init__(self):
+    def __init__(self, reassoc=None):
         self.next_id = 0
         self.tracks = {}  # track_id -> {"centroid": (x, y), "missed": int}
+        self.reassoc = REASSOC if reassoc is None else reassoc
+        self.trace = [] if TRACK_TRACE else None
 
     def update(self, detections):
         """detections: list of (kpts, hip_center) from extract_all_keypoints.
@@ -1099,17 +1222,20 @@ class PersonTracker:
         unmatched = list(range(len(detections)))
         matched = {}
 
-        for track_id, t in sorted(self.tracks.items()):
-            if not unmatched:
-                break
-            dists = sorted(
-                ((float(np.linalg.norm(t["centroid"] - detections[i][1])), i) for i in unmatched),
-                key=lambda x: x[0],
-            )
-            best_dist, best_i = dists[0]
-            if best_dist < MAX_TRACK_DISTANCE:
-                matched[track_id] = best_i
-                unmatched.remove(best_i)
+        if self.reassoc:
+            matched, unmatched = self._match_reassoc(detections)
+        else:
+            for track_id, t in sorted(self.tracks.items()):
+                if not unmatched:
+                    break
+                dists = sorted(
+                    ((float(np.linalg.norm(t["centroid"] - detections[i][1])), i) for i in unmatched),
+                    key=lambda x: x[0],
+                )
+                best_dist, best_i = dists[0]
+                if best_dist < MAX_TRACK_DISTANCE:
+                    matched[track_id] = best_i
+                    unmatched.remove(best_i)
 
         results = []
         for track_id, t in self.tracks.items():
@@ -1128,9 +1254,83 @@ class PersonTracker:
             self.next_id += 1
             self.tracks[track_id] = {"centroid": centroid, "missed": 0}
             results.append((track_id, kpts, True))
+            if self.trace is not None:
+                self.trace.append({"event": "birth", "det": i, "id": track_id,
+                                   "at": [round(float(c), 4) for c in centroid]})
 
         self.tracks = {tid: t for tid, t in self.tracks.items() if t["missed"] <= MAX_MISSED_FRAMES}
         return [r for r in results if r[0] in self.tracks]
+
+    def _match_reassoc(self, detections):
+        """V3_TRACK_REASSOC (Codex design MULTI-REASSOC-v1, AI_HANDOFF 2026-10-01).
+
+        A person who falls is often not detected while going down and comes back a second later
+        on the floor, further from where they were than one frame's 0.15 gate -- so the plain
+        tracker gives them a NEW id with an empty window and the fall motion is split in two
+        (owner segment 1.mp4#15). Here a recently lost track may reclaim a detection over a gate
+        that widens with how long it has been missing, but only when the pairing is unambiguous:
+        mutual nearest neighbours, a clear runner-up margin both ways, and never a detection that
+        sits where a still-visible person just was. Ambiguity makes a new id, as before: a missed
+        re-link costs one fall's continuity, a wrong one feeds two people into one window.
+        Constants are design choices fixed before any replay, not fitted.
+        Returns (matched {track_id: det_index}, unmatched [det_index])."""
+        unmatched = list(range(len(detections)))
+        matched = {}
+        active = {tid: t for tid, t in self.tracks.items() if t["missed"] == 0}
+        prev_active = [t["centroid"] for t in active.values()]
+        # 1. Tracks seen last frame: exactly the plain tracker's rule, restricted to them.
+        for track_id, t in sorted(active.items()):
+            if not unmatched:
+                break
+            best_dist, best_i = min(
+                (float(np.linalg.norm(t["centroid"] - detections[i][1])), i) for i in unmatched)
+            if best_dist < MAX_TRACK_DISTANCE:
+                matched[track_id] = best_i
+                unmatched.remove(best_i)
+                if self.trace is not None:
+                    self.trace.append({"event": "active", "id": track_id, "det": best_i,
+                                       "dist": round(best_dist, 4)})
+        # 2. Lost tracks (1 <= missed <= MAX_MISSED_FRAMES, counted before this update).
+        lost = sorted(tid for tid, t in self.tracks.items() if 1 <= t["missed"] <= MAX_MISSED_FRAMES)
+        cand = [i for i in unmatched
+                if all(float(np.linalg.norm(c - detections[i][1])) >= MAX_TRACK_DISTANCE
+                       for c in prev_active)]
+        if self.trace is not None:
+            for i in unmatched:
+                if i not in cand:
+                    self.trace.append({"event": "reject_near_active", "det": i})
+        if not lost or not cand:
+            return matched, unmatched
+        D = {(tid, i): float(np.linalg.norm(self.tracks[tid]["centroid"] - detections[i][1]))
+             for tid in lost for i in cand}
+        accepted = []
+        for tid in lost:
+            m = self.tracks[tid]["missed"]
+            gate = min(REASSOC_GATE_MAX, MAX_TRACK_DISTANCE + REASSOC_GATE_STEP * m)
+            row = sorted((D[(tid, i)], i) for i in cand)
+            d, i = row[0]
+            col = sorted((D[(t2, i)], t2) for t2 in lost)
+            row_next = row[1][0] if len(row) > 1 else float("inf")
+            col_next = col[1][0] if len(col) > 1 else float("inf")
+            why = None
+            if d >= gate:
+                why = "gate"
+            elif col[0][1] != tid:
+                why = "not_mutual"
+            elif row_next < d + REASSOC_MARGIN or col_next < d + REASSOC_MARGIN:
+                why = "ambiguous"
+            if self.trace is not None:
+                self.trace.append({"event": "lost_try", "id": tid, "missed": m, "det": i,
+                                   "dist": round(d, 4), "gate": round(gate, 4),
+                                   "result": why or "accept"})
+            if why is None:
+                accepted.append((d, tid, i))
+        for d, tid, i in sorted(accepted):
+            if tid in matched or i not in unmatched:
+                continue
+            matched[tid] = i
+            unmatched.remove(i)
+        return matched, unmatched
 
 
 class V3MultiPersonFallState:
@@ -1187,7 +1387,13 @@ def detect_v3_fall_multi(frame, multi_state: V3MultiPersonFallState,
     for track_id, kpts, seen in tracked:
         state = multi_state.person_states.setdefault(track_id, V3FallDetectionState())
         step_kpts = kpts if seen else np.zeros((NUM_KEYPOINTS, 3), dtype=np.float32)
+        was_detected, collapse_before = state.last_detected, state.collapse_fired
         detected, probability, label = _step_person(step_kpts, seen, state, fall_detector, threshold)
+        if (HELD_ALERT_MAX > 0 and detected and not seen and not was_detected
+                and state.held_run > HELD_ALERT_MAX
+                and not (state.collapse_fired and not collapse_before)):
+            state.last_detected = False      # not started; it may start once the person is seen again
+            detected, label = False, "held"
         if TRACKER == "bytetrack":
             centroid = multi_state.last_centroid.get(track_id, np.zeros(2, dtype=np.float32))
         else:

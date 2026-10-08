@@ -110,7 +110,7 @@ def alert_tier(detection_type, escalation_level=0, still_down_seconds=None):
 
 def notify_alert(camera_id, camera_name, room_name, detection_type, timestamp, image_path,
                  confidence=None, escalation_level=0, notification_id=None,
-                 still_down_seconds=None):
+                 still_down_seconds=None, wait=False):
     """Single entry point for every outbound alert channel (currently LINE). Detection loops call this
     instead of each channel's sender directly, so adding/removing a channel or changing
     the tier rule is a one-line change here rather than an edit repeated at every alert
@@ -123,8 +123,10 @@ def notify_alert(camera_id, camera_name, room_name, detection_type, timestamp, i
     tier = alert_tier(detection_type, escalation_level, still_down_seconds)
     # notification_id only reaches LINE: it is what the "รับทราบ" button posts back, so the
     # webhook can mark that exact alert acknowledged and reply with its clip.
-    send_line_message_async(camera_id, camera_name, room_name, detection_type, timestamp,
-                            image_path, tier=tier, confidence=confidence,
-                            escalation_level=escalation_level,
-                            notification_id=notification_id,
-                            still_down_seconds=still_down_seconds)
+    # wait=True returns how many targets the alert reached (see line_service); detection loops
+    # do not wait, so a slow LINE API can never stall frame processing.
+    return send_line_message_async(camera_id, camera_name, room_name, detection_type, timestamp,
+                                   image_path, tier=tier, confidence=confidence,
+                                   escalation_level=escalation_level,
+                                   notification_id=notification_id,
+                                   still_down_seconds=still_down_seconds, wait=wait)

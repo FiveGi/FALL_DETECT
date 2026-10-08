@@ -40,6 +40,7 @@ spec.loader.exec_module(v3)
 from eval_v3_frame_drop import TRAIN_ADL  # noqa: E402
 
 FPS = float(os.environ.get('TARGET_FPS', 8))
+ROI_PHASE = int(os.environ.get('ROI_PHASE', 0))   # see V3PoseFallDetector.reset_roi_state
 # SIMULATE_DARK: scale every frame's brightness before the detector sees it, to ask a question
 # the corpus cannot answer on its own -- how does this behave in a room at night?
 #
@@ -118,8 +119,34 @@ def to_infrared(frame, rng=None):
     return np.clip(out, 0, 255).astype(np.uint8)
 
 
+# SIMULATE_NIGHT_ALT: a second, independently written night degradation used ONLY for testing the
+# POSE-IR fine-tune (Codex 2026-10-01: the training augmentation reuses the IR simulator's ideas --
+# greyscale, vignette, Gaussian noise -- so testing on to_infrared alone would partly measure the
+# simulator against itself). Different mechanisms on purpose: gamma instead of vignette, Poisson shot
+# noise instead of Gaussian, resolution loss and JPEG re-encoding (a compressed CCTV stream).
+SIMULATE_NIGHT_ALT = os.environ.get('SIMULATE_NIGHT_ALT', '0') == '1'
+
+
+def to_night_alt(frame, rng=None):
+    rng = rng if rng is not None else np.random.default_rng(0)
+    g = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY).astype(np.float32) / 255.0
+    g = np.power(g, 1.6)                                           # darker mid-tones
+    h, w = g.shape
+    g = cv2.resize(cv2.resize(g, (w // 2, h // 2), interpolation=cv2.INTER_AREA), (w, h),
+                   interpolation=cv2.INTER_LINEAR)                 # lost detail
+    photons = 250.0                                                # low light: grain ~10 levels at mid-grey
+    g = rng.poisson(np.clip(g, 0, 1) * photons) / photons          # shot noise
+    out = np.clip(g * 255.0, 0, 255).astype(np.uint8)
+    q = int(rng.integers(20, 41))
+    ok, enc = cv2.imencode('.jpg', out, [cv2.IMWRITE_JPEG_QUALITY, q])
+    out = cv2.imdecode(enc, cv2.IMREAD_GRAYSCALE) if ok else out   # compressed stream
+    return cv2.cvtColor(out, cv2.COLOR_GRAY2BGR)
+
+
 def darken(frame, rng=None):
     """Scale brightness to SIMULATE_DARK and add sensor noise proportional to the loss."""
+    if SIMULATE_NIGHT_ALT:
+        return to_night_alt(frame, rng=rng)
     if SIMULATE_IR:
         frame = to_infrared(frame, rng=rng)
     if SIMULATE_DARK >= 0.999:
@@ -182,6 +209,18 @@ def cache_key():
     # only when enabled, so every cache built before it existed (all with it off) keeps its key.
     if getattr(v3, 'PREPROCESS_GREY_BELOW', 0):
         key['grey_below'] = v3.PREPROCESS_GREY_BELOW
+    # NIGHT-NOISE-v1 clean-ups carry their fixed parameters into the key -- only when one is named,
+    # so every cache built without them keeps its key.
+    if any(op in getattr(v3, '_LUMA_OPS', {}) for op in v3.PREPROCESS):
+        key['preprocess_params'] = v3.PREPROCESS_PARAMS
+    if SIMULATE_NIGHT_ALT:
+        key['night_alt'] = 'gamma1.6-down2x-poisson250-jpeg20-40-v1'
+    # Crop caches built before 2026-09-30 carried crop state from one clip into the next (see
+    # V3PoseFallDetector.reset_roi_state), so they must not answer for per-clip-reset runs.
+    # Full-frame caches have no such state and keep their keys.
+    if v3.ROI_IMGSZ:
+        key['roi_state'] = 'reset-per-clip'
+        key['roi_phase'] = ROI_PHASE
     return key
 
 
@@ -230,6 +269,7 @@ def main():
             if os.path.exists(npz):
                 continue
             counts, kpts = [], []
+            det.reset_roi_state(ROI_PHASE)   # each clip is its own source; no crop carried over
             for frame in sampled_frames(path, FPS, rgb_half):
                 people = det.extract_all_keypoints(frame)
                 counts.append(len(people))

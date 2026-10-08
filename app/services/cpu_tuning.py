@@ -88,12 +88,20 @@ def tune_threads(reason='', share=1):
     os.environ['MKL_NUM_THREADS'] = str(n)
     try:
         import torch
+    except Exception:                       # torch missing: nothing to pin, and nothing to report
+        return 0
+    try:
         if torch.get_num_threads() != n:
             torch.set_num_threads(n)
         torch.set_num_interop_threads(1) if _interop_unset(torch) else None
-    except Exception:                       # torch missing or already started: not fatal
+    except Exception:                       # setting failed: not fatal, but never report the request as done
         pass
-    return n
+    # What torch actually runs with, not what was asked for (Codex, 8 Oct: the camera log printed the request even
+    # when setting it failed, so a thread experiment could not be verified from the log). 0 = could not be read.
+    try:
+        return int(torch.get_num_threads())
+    except Exception:
+        return 0
 
 
 def _interop_unset(torch):

@@ -5,6 +5,31 @@ Extended to three assistants at the owner's request on 2026-09-30.
 Apply to all three assistants. Reduce duplication, not evidence or necessary checks.
 No fixed token cap may force incomplete work or a false claim of verification.
 
+## Owner rule, 2026-10-02: share everything, comment on each other's work, agree
+
+"มีอะไรต้องบอกกัน ฉันอยากให้พวกนายร่วมกันทำ แสดงความคิดเห็นกัน ถึงแม้จะทำคนละส่วน"
+
+- Whatever one assistant finds, decides or concludes is passed to the other two, and BOTH give
+  their view on it -- including on parts they do not own (Gemini comments on Codex's designs,
+  Codex on Gemini's audits, both on Claude's results).
+- Whoever finishes a plan or a conclusion sends it round; the three iterate until they agree.
+  One-shot critique is not enough: a reply that disagrees goes back to the other two.
+- Still split after two rounds: settle it with evidence or a test, or put it to the owner. Never
+  by one assistant overruling the others alone, never by majority vote.
+- Routine mechanical steps (running an already-agreed job) need no round.
+- Roles stay flexible (owner, 2026-10-01): each takes the part it is best at.
+- HARD RULE (owner, 2026-10-02): "อย่าทำคนเดียวโดยทั้ง 2 ตัวไม่รู้เรื่อง ไม่งั้นจะทำผลงานเดียวกันยังไง".
+  Nobody starts new work -- code, experiment, data change, queue change, report change, a
+  decision -- without BOTH other assistants knowing first: post it in AI_HANDOFF.md and send each
+  a short heads-up (what, why, what it touches); start once both have seen it (or immediately
+  for an emergency such as RAM/crash, then tell both at once). Code that the others have not
+  reviewed is not used for any reported number. Running a job inside an already-agreed plan
+  only needs the log line.
+- One team (owner, 2026-10-02): "พวกนายแบบเป็นทีมเดียวกัน แบบจำลองเป็นพนักงานทั้ง 3 คนในบริษัท".
+  Work like three colleagues at one company: one shared goal, shared responsibility for the
+  outcome, tell each other news without being asked, help with each other's parts, raise
+  problems early, and report to the owner as one team (who did what, where we disagreed).
+
 ## Scope and roles
 
 - Work only on `Backend-Elderly-Surveillance-main`, including its embedded `frontend/`, and
@@ -133,3 +158,16 @@ Claude's session budget is running low. Shift work outward: Codex implements bou
 (workspace-write) and Claude reviews the diff; Gemini takes analysis, visual checks and
 code reading (plan mode, reply returned to Claude). Claude keeps coordination, live tests,
 and short owner updates. Verification rules above still apply in full.
+
+### Owner update 2026-10-01: research / design / build, and quality over token savings
+The owner set the division of labour explicitly, and said not to hold back on tokens -- the
+aim is the best result. It replaces the "conserve Claude's budget" update above.
+
+| | role |
+|---|---|
+| Gemini (Antigravity) | **research**: finds information -- datasets, papers, prior art, licences, what others measured -- and visual checks. Cites sources; says when it is guessing. |
+| Codex | **design**: turns research into a structure -- the plan, the experiment design, the acceptance gates, interfaces -- and reviews the result against it. |
+| Claude | **build**: implements, runs the experiments, measures, verifies live and by eye, reports to the owner. Coordinates. |
+
+Discussion before non-trivial decisions still applies (feedback rule): each step is posted in
+`AI_HANDOFF.md`, and the next actor reads it there. Verification rules above apply in full.

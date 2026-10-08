@@ -32,6 +32,15 @@ services:
       - CUDA_VISIBLE_DEVICES=""
       - OMP_NUM_THREADS=1
       - TF_ENABLE_ONEDNN_OPTS=0
+      # Fall model = PRODUCTION (stock pose + v3 classifier @0.65) for the 9 Oct test (owner, 8 Oct). Option A
+      # (Le2i half 1: 42.5 vs 42.0 falls /47, 0/16 false alarms both) sees furniture as people in empty rooms -- COCO
+      # empty home scenes 14.0 % vs 8.1 % of images, and an empty-room soak camera raised 24 false 'alone' alerts in 4 h
+      # -- so it stays a switch. To use A, put these three lines in .env and `docker compose up -d --force-recreate`:
+      #   V3_POSE_MODEL=pose_nightaug_s44.pt  V3_CLASSIFIER=fall_classifier_t2full_s45.onnx  V3_THRESHOLD=0.70
+      # Same values in backend and celery_worker (both load the detector); the worker's "model identity" line shows which.
+      - V3_POSE_MODEL=${V3_POSE_MODEL:-yolo26s-pose.pt}
+      - V3_CLASSIFIER=${V3_CLASSIFIER:-fall_classifier_v3.onnx}
+      - V3_THRESHOLD=${V3_THRESHOLD:-0.65}
     deploy:
       resources:
         limits:
@@ -56,6 +65,15 @@ services:
       - TF_CPP_MIN_LOG_LEVEL=3
       - CUDA_VISIBLE_DEVICES=""
       - TF_ENABLE_ONEDNN_OPTS=0
+      # Fall model = PRODUCTION (stock pose + v3 classifier @0.65) for the 9 Oct test (owner, 8 Oct). Option A
+      # (Le2i half 1: 42.5 vs 42.0 falls /47, 0/16 false alarms both) sees furniture as people in empty rooms -- COCO
+      # empty home scenes 14.0 % vs 8.1 % of images, and an empty-room soak camera raised 24 false 'alone' alerts in 4 h
+      # -- so it stays a switch. To use A, put these three lines in .env and `docker compose up -d --force-recreate`:
+      #   V3_POSE_MODEL=pose_nightaug_s44.pt  V3_CLASSIFIER=fall_classifier_t2full_s45.onnx  V3_THRESHOLD=0.70
+      # Same values in backend and celery_worker (both load the detector); the worker's "model identity" line shows which.
+      - V3_POSE_MODEL=${V3_POSE_MODEL:-yolo26s-pose.pt}
+      - V3_CLASSIFIER=${V3_CLASSIFIER:-fall_classifier_v3.onnx}
+      - V3_THRESHOLD=${V3_THRESHOLD:-0.65}
       # Only this worker restarts camera loops when it comes up; the maintenance worker shares
       # the same code and must not. Detection tasks are infinite loops that never survive a
       # worker restart, so without this a restart leaves every camera marked active in the
@@ -79,7 +97,9 @@ services:
       # this machine's four-core container sustains WITH alone-detection running; the
       # production server is a QEMU VM with slower cores and will sit below it, so measure
       # there before trusting the recall figures above.
-      - V3_TARGET_FPS=8
+      - V3_TARGET_FPS=${V3_TARGET_FPS:-8}
+      # RTSP over TCP: UDP media does not cross NAT/VPN (measured: UDP 0 frames, TCP 1.8 s).
+      - OPENCV_FFMPEG_CAPTURE_OPTIONS=rtsp_transport;tcp
       # Pose on a crop around the people at 256 px, full-frame pass every 8 frames. Owner's
       # compilation footage at this profile: 34/75 real falls caught against 28/75 full-frame,
       # false alarms 1 against 2; URFD 46/60 against 45/60; ~11% cheaper per frame on four

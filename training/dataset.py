@@ -13,6 +13,7 @@ normalized per-frame relative to the hip center and torso size so the model
 is robust to where the person stands in the frame and how far from the
 camera they are.
 """
+import json
 import os
 import glob
 import numpy as np
@@ -38,13 +39,100 @@ LEFT_HIP, RIGHT_HIP = 11, 12
 # loop is pinned to. Window size, temporal stride, runtime window and V3_TARGET_FPS are
 # one decision; tools/check_config_coherence.py fails if they drift apart.
 WINDOW_SIZE = int(os.environ.get("WINDOW_SIZE", 15))
-STRIDE = 10
+# Window step. 10 was set when clips were 30 fps; at RESAMPLE_FPS=8 a 3 s clip is 24 frames, and
+# a step of 10 leaves one or two windows per clip. WINDOW_STEP overrides it.
+STRIDE = int(os.environ.get("WINDOW_STEP", 10))
 
 # TEMPORAL_STRIDE: keep every k-th frame, to match the frame rate the live pipeline can
 # actually sustain (see this module's git history / SKILL.md -- offline eval sees 30fps,
 # a real camera loop sees ~1-5fps). 1 = original behaviour, every frame.
 TEMPORAL_STRIDE = int(os.environ.get("TEMPORAL_STRIDE", 2))   # train on every 2nd frame
                                                              # of 30fps source = 15 fps
+
+# RESAMPLE_FPS: resample every file to this rate BY ITS OWN TIMESTAMPS before velocity is
+# computed, instead of TEMPORAL_STRIDE's blanket "keep every k-th frame" (which replaces it).
+# A blanket stride assumes every source is 30 fps; measured 2026-10-01 they are not: CAUCAFall
+# is 20 fps, and FallVision -- 58% of the files -- mixes 15/24/30/60/120 fps, so at stride 2 a
+# 120 fps clip was trained as 60 fps (its 15-frame window spanned 0.25 s). 8 = the CPU camera
+# loop. Each file's native rate comes from an `fps` key in the file or from
+# data/source_fps.json (build_source_fps.py); a file with neither is an error, not a guess.
+RESAMPLE_FPS = float(os.environ.get("RESAMPLE_FPS", 0))
+_SOURCE_FPS = None
+
+
+_EXCLUDED = None
+
+
+def source_fps(pose_dir, name, data):
+    """Native rate, or None for a file build_source_fps.py excluded (no usable time base)."""
+    global _SOURCE_FPS, _EXCLUDED
+    if "fps" in data:
+        return float(data["fps"])
+    if _SOURCE_FPS is None:
+        p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "source_fps.json")
+        j = json.load(open(p)) if os.path.exists(p) else {}
+        _SOURCE_FPS, _EXCLUDED = j.get("fps", {}), set(j.get("excluded", []))
+    key = "%s/%s" % (os.path.basename(os.path.normpath(pose_dir)), name)
+    if key in _EXCLUDED:
+        return None
+    if RESAMPLE_FPS <= 0 and key not in _SOURCE_FPS:
+        return 0.0   # rate unknown but not needed without resampling; only exclusion matters here
+    if key not in _SOURCE_FPS:
+        raise KeyError("RESAMPLE_FPS is set but the native rate of %s is unknown "
+                       "(run build_source_fps.py, or store an `fps` key)" % key)
+    return float(_SOURCE_FPS[key])
+
+
+# RUNTIME_MISSES=1: replay frames with nobody detected the way the camera loop does
+# (v3_fall_detection._step_person), not as zeros. At runtime a miss repeats the last real pose
+# for up to MAX_HELD_RUN frames, then adds nothing (the window freezes); only before anyone has
+# been seen are zeros used. Every extractor here writes zeros for a miss, so training saw a
+# real->zero->real jump the runtime never produces (Codex review, 2026-10-01, P1). Applied after
+# resampling, because the runtime counts misses in frames it actually sampled.
+RUNTIME_MISSES = os.environ.get("RUNTIME_MISSES", "0") == "1"
+_MAX_HELD_RUN = None
+
+
+def max_held_run():
+    """MAX_HELD_RUN read from the runtime module's source, so the two cannot drift apart."""
+    global _MAX_HELD_RUN
+    if _MAX_HELD_RUN is None:
+        import re
+        p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                         "app", "detection", "v3_fall_detection.py")
+        m = re.search(r'MAX_HELD_RUN = int\(os\.environ\.get\("V3_MAX_HELD_RUN", (\d+)\)\)', open(p).read())
+        if not m:
+            raise RuntimeError("MAX_HELD_RUN not found in %s -- update dataset.max_held_run()" % p)
+        _MAX_HELD_RUN = int(os.environ.get("V3_MAX_HELD_RUN", m.group(1)))
+    return _MAX_HELD_RUN
+
+
+def runtime_miss_indices(raw):
+    """raw (T,17,3) with all-zero frames for misses -> (frames, source_index) as the runtime
+    buffer would hold them: held copies of the last real pose, frozen past MAX_HELD_RUN."""
+    found = raw[:, :, 2].max(axis=1) > 0
+    out, src, last, held = [], [], None, 0
+    for i in range(len(raw)):
+        if found[i]:
+            last, held = i, 0
+            out.append(raw[i]); src.append(i)
+        else:
+            held += 1
+            if last is None:
+                out.append(raw[i]); src.append(i)          # nothing real yet: zeros
+            elif held <= max_held_run():
+                out.append(raw[last]); src.append(i)       # held copy, labelled as this frame
+            # else: frozen -- the frame contributes nothing
+    if not out:
+        return raw, np.arange(len(raw))
+    return np.stack(out), np.asarray(src)
+
+
+def resample_indices(n_frames, native_fps, target_fps, offset=0.0):
+    """Frame indices a camera loop sampling at target_fps would see, by timestamp."""
+    duration = n_frames / native_fps
+    t = np.arange(offset / target_fps, duration, 1.0 / target_fps)
+    return np.clip(np.round(t * native_fps).astype(int), 0, n_frames - 1)
 
 # USE_HIP_MOTION: add the hip centre's own frame-to-frame displacement as two extra input
 # channels, scaled by torso size so it stays camera-distance invariant.
@@ -240,6 +328,8 @@ def load_all_videos(pose_dirs):
         pose_dirs = [pose_dirs]
 
     videos = []
+    n_excluded = 0
+    n_slow = 0
     for pose_dir in pose_dirs:
         scale = COORD_SCALE.get(os.path.basename(os.path.normpath(pose_dir)))
         for path in sorted(glob.glob(os.path.join(pose_dir, "*.npz"))):
@@ -250,10 +340,38 @@ def load_all_videos(pose_dirs):
                 # and the space the runtime feeds. See COORD_SCALE above.
                 raw = raw.copy()
                 raw[:, :, :2] /= scale
-            if TEMPORAL_STRIDE > 1:
+            idx = None
+            if RESAMPLE_FPS <= 0 and os.environ.get("EXCLUDE_NO_TIMEBASE") == "1"                     and source_fps(pose_dir, os.path.basename(path), data) is None:
+                # Ablation A (Codex): stride-based training on the SAME clip membership as the
+                # resampled runs, so cadence is not confounded with the 495 excluded files.
+                n_excluded += 1
+                continue
+            if RESAMPLE_FPS > 0:
+                native = source_fps(pose_dir, os.path.basename(path), data)
+                if native is None:
+                    n_excluded += 1
+                    continue
+                idx = resample_indices(len(raw), native, RESAMPLE_FPS)
+                raw = raw[idx]
+            elif TEMPORAL_STRIDE > 1 and "fps" in data:
+                # A file that states its own rate (new extractions: Le2i, OF-Syn) is not a 30 fps
+                # recording, so a blanket stride would halve an already-reduced rate (8 -> 4 fps).
+                # Bring it to the stride's nominal rate (30 / stride) by timestamp, never upward.
+                # Tolerance 0.1 fps absorbs rounding of a stated rate (15.0 vs 14.99) only; anything
+                # faster is resampled down (Codex review: 0.5 let 15.25-15.5 fps through unchanged).
+                nominal = 30.0 / TEMPORAL_STRIDE
+                if float(data["fps"]) > nominal + 0.1:
+                    idx = resample_indices(len(raw), float(data["fps"]), nominal)
+                    raw = raw[idx]
+                else:
+                    n_slow += 1
+            elif TEMPORAL_STRIDE > 1:
                 # Before velocity: vx/vy must be the delta between two frames the runtime
                 # actually sees in sequence, not between two 30fps neighbours.
                 raw = raw[::TEMPORAL_STRIDE]
+            keep = None
+            if RUNTIME_MISSES:
+                raw, keep = runtime_miss_indices(raw)
             motion = compute_motion_energy(raw)
             seq = add_velocity(normalize_sequence(raw), raw_seq=raw)
             video = {
@@ -262,12 +380,32 @@ def load_all_videos(pose_dirs):
                 "label": int(data["label"]),
                 "subject": str(data["subject"]),
                 "name": os.path.basename(path),
+                "source": os.path.basename(os.path.normpath(pose_dir)),
             }
             if "frame_labels" in data:
                 # Real per-frame ground truth (CAUCAFall) -- used instead of the
                 # peak-motion heuristic when available, since it's not a guess.
-                video["frame_labels"] = data["frame_labels"].astype(np.int64)
+                # Strided exactly like the keypoints above. Until 2026-10-01 they were not
+                # (Codex, DATA-DESIGN #9): at TEMPORAL_STRIDE=2 a window centred on keypoint
+                # frame c read the label of ORIGINAL frame c, i.e. from the first half of the
+                # clip's timeline. Measured on the deployed recipe: 17% of CAUCAFall and 18.5%
+                # of GMDCSA24 windows mislabelled, 9/50 and 6/79 fall clips with no fall
+                # window at all; OF-ItW unaffected (its clips carry one label throughout).
+                fl = data["frame_labels"].astype(np.int64)
+                # Exactly the selection applied to the keypoints above: resampled indices, a blanket
+                # stride, or nothing (a stated-rate file already at or below the nominal rate).
+                if idx is not None:
+                    fl = fl[idx]
+                elif TEMPORAL_STRIDE > 1 and "fps" not in data:
+                    fl = fl[::TEMPORAL_STRIDE]
+                if keep is not None:
+                    fl = fl[keep]
+                video["frame_labels"] = fl
             videos.append(video)
+    if n_slow:
+        print(f"TEMPORAL_STRIDE: {n_slow} files with a stated rate at or below {30.0 / TEMPORAL_STRIDE:.1f} fps used as they are")
+    if n_excluded:
+        print(f"RESAMPLE_FPS: skipped {n_excluded} files with no usable time base (source_fps.json 'excluded')")
     return videos
 
 
@@ -337,6 +475,61 @@ def flip_horizontal_window(feat, num_keypoints=NUM_KEYPOINTS, feat_dim=None):
     # must leave alone. Negating it would have taught the model that beds are upside down.
     if HIP_MOTION_AT is not None:
         seq[:, :, HIP_MOTION_AT] = -seq[:, :, HIP_MOTION_AT]   # hip dx travels the other way
+    return seq.reshape(T, -1)
+
+
+# TRUNC_AUG (TRUNC-v1, Codex design 2026-10-02 + P4 decision 2026-10-04; agreed by the team, Gemini's
+# full-cap variant measured as TRUNC_FULL=1): near-camera falls lose joints to the frame edge or to an
+# occluder, often progressively as the body slides out of view. With probability 0.25 per training window:
+#   80% frame edge (bottom/top/left/right 0.5/0.1/0.2/0.2): joints ranked by their temporal-median
+#        coordinate toward that edge (ties by COCO index), cap 4 or 6 equiprobably;
+#   20% occlusion of one limb group {5,7,9} {6,8,10} {11,13,15} {12,14,16}, cap 3, ascending index;
+#   then 50% static (the capped joints hidden in all frames) or 50% progressive (onset uniform 0..10,
+#   one joint at onset, one more each frame through frame 14, up to the cap).
+# Hidden joints get x, y, conf, vx, vy = 0; the global hip/frame channels (5+) are kept. Whole-person
+# loss is NOT simulated here: RUNTIME_MISSES already trains the runtime's hold/freeze. Own RNG, so the
+# control arm's sampling is unchanged.
+TRUNC_AUG = os.environ.get("TRUNC_AUG", "0") == "1"
+TRUNC_FULL = os.environ.get("TRUNC_FULL", "0") == "1"
+_TRUNC_RNG = np.random.default_rng(int(os.environ.get("TRAIN_SEED", 42)) + 7919)
+_LIMB_GROUPS = ([5, 7, 9], [6, 8, 10], [11, 13, 15], [12, 14, 16])
+
+
+def trunc_window(feat, num_keypoints=NUM_KEYPOINTS, feat_dim=None, rng=None):
+    rng = _TRUNC_RNG if rng is None else rng
+    if rng.random() >= 0.25:
+        return feat
+    feat_dim = FEAT_DIM if feat_dim is None else feat_dim
+    T = feat.shape[0]
+    seq = feat.reshape(T, num_keypoints, feat_dim).copy()
+    if rng.random() < 0.8:
+        edge = rng.choice(4, p=[0.5, 0.1, 0.2, 0.2])            # bottom, top, left, right
+        axis, sign = {0: (1, 1), 1: (1, -1), 2: (0, -1), 3: (0, 1)}[int(edge)]
+        med = np.median(seq[:, :, axis], axis=0) * sign
+        order = sorted(range(num_keypoints), key=lambda j: (-med[j], j))
+        cap = int(rng.choice([4, 6]))
+    else:
+        order = list(_LIMB_GROUPS[int(rng.integers(4))])
+        cap = 3
+    progressive = rng.random() < 0.5
+    full = progressive and TRUNC_FULL
+    if full:
+        # Gemini's variant (Codex review 2026-10-04 P2): the whole skeleton must be reachable, so the
+        # order covers all 17 joints (limb group first, then the rest by index) and the growth rate is
+        # set so the last frame hides all of them, whatever the onset.
+        order = list(order) + [j for j in range(num_keypoints) if j not in order]
+        cap = num_keypoints
+    hidden = np.zeros((T, num_keypoints), dtype=bool)
+    if progressive:
+        onset = int(rng.integers(0, 11))
+        for t in range(onset, T):
+            n = t - onset + 1
+            if full:
+                n = int(np.ceil(n * num_keypoints / (T - onset)))
+            hidden[t, order[:min(cap, n)]] = True
+    else:
+        hidden[:, order[:cap]] = True
+    seq[:, :, :5][hidden] = 0.0
     return seq.reshape(T, -1)
 
 
@@ -438,7 +631,49 @@ class FallWindowDataset(Dataset):
             if np.random.rand() < 0.5:
                 feat = flip_horizontal_window(feat)
             feat = occlude_window(feat)
+            if TRUNC_AUG:
+                feat = trunc_window(feat)
         return torch.from_numpy(feat), torch.tensor(label, dtype=torch.float32)
+
+
+def group_key(v):
+    """The unit that must stay on one side of the split (Codex DATA-DESIGN #2, #4): everything
+    that shares a person or a recording. OF-ItW segments of one source video share the video;
+    FallVision's `subject` is its archive batch (no person id exists), so a batch is one group;
+    OF-Syn's two 8 fps offsets of one clip share the clip."""
+    src, name, subj = v.get("source", ""), v["name"], v["subject"]
+    if "ofitw" in src or "omnifall_adl" in src:
+        return "%s:%s" % (src, name.rsplit("_", 2)[0])
+    if subj not in ("-1", "", "None"):
+        return "%s:%s" % (src, subj)
+    return "%s:%s" % (src, name)
+
+
+def split_by_group(videos, val_pct=20):
+    """Deterministic split by a hash of group_key: a group's side never depends on which other
+    sources are loaded, so adding data cannot silently move existing videos between train and
+    validation (the old random split reshuffled everything whenever a source was added)."""
+    import hashlib
+    # GMDCSA24_TRAIN_SUBJECTS / GMDCSA24_VAL_SUBJECTS (e.g. "2,3,4" / "1"): GMDCSA24 has only four
+    # people, so the hash put three in validation and left one indoor-ADL subject to train on
+    # (Codex ablation C, 2026-10-01). Listed subjects are forced; unlisted ones keep the hash.
+    tr_s = {x.strip().lstrip("s") for x in os.environ.get("GMDCSA24_TRAIN_SUBJECTS", "").split(",") if x.strip()}
+    va_s = {x.strip().lstrip("s") for x in os.environ.get("GMDCSA24_VAL_SUBJECTS", "").split(",") if x.strip()}
+    if tr_s & va_s:
+        raise ValueError("a GMDCSA24 subject cannot be both train and val: %s" % sorted(tr_s & va_s))
+    train, val = [], []
+    for v in videos:
+        if v.get("source") in ("poses_yolopose", "poses_gmdcsa24_v2", "poses_gmdcsa24"):
+            subj = str(v["subject"]).lstrip("s")
+            if subj in tr_s:
+                train.append(v)
+                continue
+            if subj in va_s:
+                val.append(v)
+                continue
+        h = int(hashlib.md5(group_key(v).encode()).hexdigest(), 16) % 100
+        (val if h < val_pct else train).append(v)
+    return train, val
 
 
 def split_videos(videos, val_ratio=0.2, seed=42):

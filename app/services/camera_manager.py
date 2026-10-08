@@ -11,6 +11,7 @@ from app.services.alert_service import save_alert_log
 from app.models.camera import Camera
 from app.models.notification_history import NotificationHistory
 from app import db
+from sqlalchemy.orm.exc import ObjectDeletedError
 import cv2
 import time
 from datetime import datetime
@@ -46,7 +47,135 @@ ALONE_DETECTION_READ_PERIOD_S = 0.5
 # doubles from one second so a momentary blip costs a second, not half a minute, while a camera
 # that is genuinely off does not spin. The loop never gives up on its own: a camera that comes
 # back should start being watched again without anyone pressing anything.
-RECONNECT_MAX_BACKOFF_S = 30
+RECONNECT_MAX_BACKOFF_S = 20   # below the camera claim TTL (30 s), see the reconnect path
+
+# How long OpenCV may block opening a network stream or waiting for one frame. Without a limit
+# an RTSP camera that accepts the connection and then stops sending holds the loop forever: no
+# read failure, so the reconnect below never runs, and the dashboard keeps saying "monitoring".
+STREAM_TIMEOUT_MS = int(os.environ.get('STREAM_TIMEOUT_MS', 10000))
+
+# RTSP over TCP, not FFmpeg's default UDP. Measured in the CPU stack (6 Oct): through Docker's NAT
+# the UDP media never arrived and every open timed out (20 s, nothing read), while TCP opened and
+# read in 1.8 s. IP cameras reached across a router or VPN -- the 9 Oct setup -- behave the same.
+# setdefault, so a deployment that needs other FFmpeg options can still set its own.
+os.environ.setdefault('OPENCV_FFMPEG_CAPTURE_OPTIONS', 'rtsp_transport;tcp')
+
+# A gap longer than this between two good frames (a dropped stream, a stalled camera) means the
+# people tracked before it may not be the people after it, so tracks and windows start fresh.
+TRACK_RESET_GAP_S = float(os.environ.get('TRACK_RESET_GAP_S', 5))
+
+
+def is_network_source(url):
+    return (url or '').lower().startswith(('rtsp:', 'rtmp:', 'http:', 'https:'))
+
+
+class LatestFrameCapture:
+    """A network camera read continuously on its own thread; read() returns the NEWEST frame.
+
+    The detection loop reads at the target rate (8 fps) while a camera sends 20-30 fps. Over RTSP
+    TCP (needed through NAT, see above) the unread frames do not vanish: they queue in the socket,
+    every frame the loop gets is older than the last, and the camera's server finally drops the
+    session for not keeping up -- measured in the 6 Oct rehearsal as a reconnect per camera every
+    one to two minutes ("write ... i/o timeout" in the RTSP server) and decode errors in between.
+    CAP_PROP_BUFFERSIZE does nothing on the FFmpeg backend. Draining on a thread keeps the
+    connection healthy and the frames current, at the cost of decoding every frame.
+
+    Only the methods the camera loops use on network sources are provided."""
+
+    def __init__(self, cap):
+        self._cap = cap
+        self._cond = threading.Condition()
+        # _want: the loop asked for a frame; the reader converts the NEXT grabbed frame to BGR and
+        # hands it over. Frames nobody asked for are only grabbed (decoded, never colour-converted):
+        # converting all of them cost about a quarter of the frame rate with four 1080p cameras on
+        # four cores (6 Oct capacity run), for frames that were thrown away.
+        # _want starts True and is re-armed on every delivery: the reader converts the first frame
+        # grabbed after each hand-over, so the loop's next read() returns at once (no wait for a
+        # grab, which cost ~20% of the rate) and the frame is at most one loop period old.
+        self._frame, self._ready, self._want, self._ok, self._stop = None, False, True, True, False
+        self._exited, self._release_on_exit = False, False
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+
+    def _run(self):
+        try:
+            self._loop()
+        finally:
+            with self._cond:
+                self._exited = True
+                self._ok = False
+                self._cond.notify_all()
+                release = self._release_on_exit
+            if release:
+                self._cap.release()
+
+    def _loop(self):
+        while not self._stop:
+            ok = self._cap.grab()   # bounded by the read timeout set on open
+            frame = None
+            if ok and self._want:
+                ok, frame = self._cap.retrieve()
+            with self._cond:
+                if not ok:
+                    self._ok = False
+                    self._cond.notify_all()
+                    return
+                if frame is not None and self._want:
+                    self._frame, self._ready, self._want = frame, True, False
+                    self._cond.notify_all()
+
+    def read(self):
+        """(True, the frame prefetched since the last read), or (False, None) if the stream ended or
+        nothing arrived within the stream timeout -- the caller's reconnect path handles both."""
+        deadline = time.monotonic() + STREAM_TIMEOUT_MS / 1000.0
+        with self._cond:
+            while self._ok and not self._ready:
+                left = deadline - time.monotonic()
+                if left <= 0:
+                    return False, None
+                self._cond.wait(left)
+            if not self._ready:
+                return False, None
+            frame = self._frame
+            self._ready, self._want = False, True   # prefetch the next one
+            return True, frame
+
+    def isOpened(self):
+        return self._ok and self._cap.isOpened()
+
+    def get(self, prop):
+        return self._cap.get(prop)
+
+    def set(self, prop, value):
+        return True   # buffer/position settings are meaningless on a live drained stream
+
+    def release(self):
+        self._stop = True
+        # The reader may be inside a blocking grab for up to the stream timeout, and releasing the
+        # capture under it is not safe in OpenCV (Codex P1). Wait for it; if it is still inside the
+        # grab, hand the release to the reader, which does it as its last act.
+        self._thread.join(STREAM_TIMEOUT_MS / 1000.0 + 2)
+        with self._cond:
+            if not self._exited:
+                self._release_on_exit = True
+                return
+        self._cap.release()
+
+
+def open_capture(url, latest=True):
+    """Capture for `url`. Network sources get open/read timeouts (a dead or stalled camera fails
+    fast instead of blocking the loop) and are drained on a thread (LatestFrameCapture)."""
+    if is_network_source(url):
+        cap = cv2.VideoCapture(url, cv2.CAP_FFMPEG,
+                               [cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, STREAM_TIMEOUT_MS,
+                                cv2.CAP_PROP_READ_TIMEOUT_MSEC, STREAM_TIMEOUT_MS])
+        if latest and cap.isOpened() and os.environ.get('LATEST_FRAME_READER', '1') != '0':
+            return LatestFrameCapture(cap)
+        return cap
+    cap = cv2.VideoCapture(url)
+    if cap.isOpened():
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    return cap
 
 @dataclass
 class TrackState:
@@ -196,7 +325,7 @@ def process_fall_detection(camera_id, config):
             
             is_video_file = not camera.url.startswith(('rtsp', 'rtmp')) and ('.' in camera.url or 'localhost' in original_url)
             
-            cap = cv2.VideoCapture(camera.url)
+            cap = open_capture(camera.url, latest=False)
             if not cap.isOpened():
                 # A Windows path can never resolve inside the container; say that instead of
                 # the generic open failure, which sent people looking at the camera hardware.
@@ -352,7 +481,7 @@ def process_alone_detection(camera_id, config):
             
             is_video_file = not camera.url.startswith(('rtsp', 'rtmp')) and ('.' in camera.url or 'localhost' in original_url)
             
-            cap = cv2.VideoCapture(camera.url)
+            cap = open_capture(camera.url, latest=False)
             if not cap.isOpened():
                 # A Windows path can never resolve inside the container; say that instead of
                 # the generic open failure, which sent people looking at the camera hardware.
@@ -495,7 +624,7 @@ def process_bed_exit_detection(camera_id, config):
             
             is_video_file = not camera.url.startswith(('rtsp', 'rtmp')) and ('.' in camera.url or 'localhost' in original_url)
             
-            cap = cv2.VideoCapture(camera.url)
+            cap = open_capture(camera.url, latest=False)
             if not cap.isOpened():
                 # A Windows path can never resolve inside the container; say that instead of
                 # the generic open failure, which sent people looking at the camera hardware.
@@ -666,12 +795,51 @@ def process_v2_fall_detection(camera_id, config):
                 return
 
             print(f"[V3 Pose] Using pre-loaded fall detector for camera {camera.name}")
+            # The detector is a per-process singleton; this worker process may have run another
+            # camera before, and its crop boxes must not be applied to this one's first frame.
+            fall_detector.reset_roi_state()
 
             # Initialize detection state
             fall_state = V3MultiPersonFallState()
 
+            # The alert cooldown lived only on this in-memory object, so a worker restart (or a
+            # container recreate on deploy) forgot it and a person still on the floor produced a
+            # second LINE alert at once. Start from the last fall alert actually written for this
+            # camera instead.
+            try:
+                last = (NotificationHistory.query
+                        .filter(NotificationHistory.camera_id == camera_id)
+                        .filter(NotificationHistory.detection_type.like('%fall%'))
+                        .order_by(NotificationHistory.sent_at.desc()).first())
+                if last is not None and last.sent_at is not None:
+                    sent = last.sent_at if last.sent_at.tzinfo else tz.localize(last.sent_at)
+                    camera._last_fall_v2_alert_time = max(
+                        getattr(camera, '_last_fall_v2_alert_time', 0), sent.timestamp())
+            except Exception as exc:
+                db.session.rollback()
+                print(f"[Camera {camera_id}] could not read the last alert time: {exc}")
+
             # Initialize camera capture
-            cap = cv2.VideoCapture(camera.url)
+            cap = open_capture(camera.url)
+            # A network camera that is off or unreachable when detection starts used to end the
+            # task here for good -- the same silent failure the mid-stream reconnect below fixes,
+            # just at start-up (camera powered on after the server, router reboot). Keep trying
+            # with the same backoff for as long as the camera row stays active.
+            open_attempts = 0
+            while not cap.isOpened() and is_network_source(camera.url):
+                open_attempts += 1
+                if open_attempts == 1:
+                    save_system_log('WARNING', f'Camera {camera.name}: cannot open the video '
+                                    f'stream yet, retrying', 'DETECTION', camera.user_id)
+                if not camera_still_active(camera_id):
+                    cap.release()
+                    return
+                cap.release()
+                time.sleep(min(RECONNECT_MAX_BACKOFF_S, 2 ** min(open_attempts, 5)))
+                cap = open_capture(camera.url)
+            if open_attempts and cap.isOpened():
+                save_system_log('INFO', f'Camera {camera.name}: video stream opened after '
+                                f'{open_attempts} retry(s)', 'DETECTION', camera.user_id)
             if not cap.isOpened():
                 # A Windows path can never resolve inside the container; say that instead of
                 # the generic open failure, which sent people looking at the camera hardware.
@@ -683,14 +851,13 @@ def process_v2_fall_detection(camera_id, config):
                                     'DETECTION', camera.user_id)
                 save_system_log('ERROR', f'Failed to open camera {camera.name} for V2 fall detection', 'DETECTION', camera.user_id)
                 return
-            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # avoid processing a growing backlog of stale frames on live RTSP sources -- see stream_service.py, which already does this
 
             # Get video properties
             fps = cap.get(cv2.CAP_PROP_FPS)
             if fps == 0:
                 fps = 30  # Default FPS
             
-            is_video_file = not camera.url.startswith(('rtsp:', 'rtmp:', 'http:'))
+            is_video_file = not is_network_source(camera.url)
             
             frame_count = 0
             last_log_time = 0
@@ -734,12 +901,36 @@ def process_v2_fall_detection(camera_id, config):
             # cost several wrong guesses before it was added.
             t_read = t_clip = t_detect = t_rest = 0.0
             read_failures = 0
+            last_good_frame_at = 0.0   # monotonic time of the last frame read; see TRACK_RESET_GAP_S
             # One loop per camera. A second one halves the frame rate and says nothing about
             # it; see detection_dispatch.claim_camera for why the dispatch-side check is not
             # enough on its own.
             from app.services.detection_dispatch import claim_camera, hold_camera, release_camera
             loop_token = uuid.uuid4().hex
-            if not claim_camera(camera_id, loop_token):
+            # A claim left by a loop that DIED (worker restart, container recreate, power cut) is
+            # still in Redis for up to the lock TTL, and the resume-on-start dispatches the new
+            # loop within seconds -- so the new loop used to find the dead one's claim, conclude
+            # "already running" and exit, leaving the camera marked active and watched by nothing
+            # (6 Oct rehearsal: 3 of 4 cameras after one worker restart). A dead claim expires
+            # within the TTL; a LIVE loop renews its claim (every 10 s and throughout reconnects).
+            # So on a failed claim this loop does not hold a worker slot waiting (Codex P2): it
+            # re-queues itself ONCE to run after the TTL and exits. The second attempt finds a dead
+            # claim gone and takes over; a live duplicate still holds it, and the retry exits.
+            from app.services.detection_dispatch import _LOCK_TTL_S
+            _claimed = claim_camera(camera_id, loop_token)
+            if not _claimed and not (config or {}).get('_claim_retry'):
+                _retry_cfg = dict(config or {}, _claim_retry=1)
+                process_v2_fall_detection.apply_async(args=[camera_id, _retry_cfg],
+                                                      countdown=_LOCK_TTL_S + 5)
+                print(f"[Camera {camera_id}] camera claimed by another loop -- retrying once in "
+                      f"{_LOCK_TTL_S + 5}s (a dead loop's claim expires by then)")
+                cap.release()
+                return
+            if _claimed and (config or {}).get('_claim_retry'):
+                print(f"[Camera {camera_id}] claimed after a stale lock expired -- resuming")
+                save_system_log('INFO', f'Camera {camera.name}: resumed after a stale claim expired',
+                                'DETECTION', camera.user_id)
+            if not _claimed:
                 save_system_log('WARNING', f'Fall detection for camera {camera.name} is already '
                                 f'running in another loop; this one is exiting', 'DETECTION',
                                 camera.user_id)
@@ -812,6 +1003,7 @@ def process_v2_fall_detection(camera_id, config):
                         # demonstrated, so the seam is worth not having.
                         fall_state = V3MultiPersonFallState()
                         awaiting_still_down.clear()
+                        fall_detector.reset_roi_state()   # nor may the crop boxes
                         continue
                     # A network camera that misses a frame used to end the loop here, which
                     # meant one wifi blip or one camera reboot stopped detection for good --
@@ -825,20 +1017,54 @@ def process_v2_fall_detection(camera_id, config):
                                         f'stream, reconnecting', 'DETECTION', camera.user_id)
                     if not camera_still_active(camera_id):
                         break
-                    cap.release()
+                    # Keep the claim alive while reconnecting (Codex P1): a camera that is down for
+                    # longer than the claim TTL must not let a second loop take this camera over.
+                    if not hold_camera(camera_id, loop_token):
+                        print(f"[Camera {camera_id}] claim taken by another loop while reconnecting -- exiting")
+                        break
+                    cap.release()            # may wait up to the stream timeout for the reader
+                    if not hold_camera(camera_id, loop_token):
+                        print(f"[Camera {camera_id}] claim taken by another loop while reconnecting -- exiting")
+                        break
                     time.sleep(min(RECONNECT_MAX_BACKOFF_S, 2 ** min(read_failures, 5)))
-                    cap = cv2.VideoCapture(camera.url)
+                    if not hold_camera(camera_id, loop_token):
+                        print(f"[Camera {camera_id}] claim taken by another loop while reconnecting -- exiting")
+                        break
+                    cap = open_capture(camera.url)   # up to STREAM_TIMEOUT_MS
+                    if not hold_camera(camera_id, loop_token):
+                        print(f"[Camera {camera_id}] claim taken by another loop while reconnecting -- exiting")
+                        break
+                    last_hold = time.monotonic()
                     if cap.isOpened():
-                        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
                         save_system_log('INFO', f'Camera {camera.name}: video stream '
                                         f'reconnected after {read_failures} attempt(s)',
                                         'DETECTION', camera.user_id)
                         print(f"[Camera {camera_id}] stream reconnected after {read_failures} attempt(s)")
                         read_failures = 0
+                        # A camera that rebooted may be pointing somewhere else now; look at
+                        # the whole picture again instead of cropping at the old boxes.
+                        fall_detector.reset_roi_state()
                     continue
 
                 if read_failures:
                     read_failures = 0
+                # After a long gap (dropped stream, stalled camera) the people being tracked
+                # before it may not be the ones in view now: a stale track could inherit a new
+                # person's pose, or a window could span motion that never happened. Start the
+                # tracks and windows fresh. File sources never gap (they loop above).
+                _now = time.monotonic()
+                if (not is_video_file and last_good_frame_at
+                        and _now - last_good_frame_at > TRACK_RESET_GAP_S):
+                    print(f"[Camera {camera_id}] {_now - last_good_frame_at:.1f}s without frames "
+                          f"-- tracks reset")
+                    fall_state = V3MultiPersonFallState()
+                    for _tid, _pending in awaiting_still_down.items():
+                        # Said out loud: the follow-up is UNKNOWN, not "got up" (Codex P3).
+                        print(f"[Camera {camera_id}] still-down unknown for alert {_pending[0]}: "
+                              f"video gap, track {_tid} lost")
+                    awaiting_still_down.clear()
+                    fall_detector.reset_roi_state()
+                last_good_frame_at = _now
                 frame_count += 1
                 # Print every 30 frames (about 1 second at 30 fps)
                 if frame_count % 30 == 0:
@@ -1100,6 +1326,14 @@ def process_v2_fall_detection(camera_id, config):
                             if record is not None:
                                 record.still_down_seconds = down_for
                                 db.session.commit()
+                            if record is not None and record.acknowledged_at is not None:
+                                # Someone already answered this alert; telling them again that
+                                # the person is still down adds noise to a phone that has
+                                # already acted. The duration is still recorded above.
+                                print(f"[Camera {camera_id}] STILL DOWN: track {tid} down "
+                                      f"{down_for:.0f}s, alert {notification_id} already "
+                                      f"acknowledged -- recorded, not pushed")
+                                continue
                             notify_alert(
                                 camera.id, camera.name, camera.room_name,
                                 'fall_red', datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -1136,8 +1370,15 @@ def process_v2_fall_detection(camera_id, config):
             cap.release()
             clip_buffer.clear(camera_id)
             release_camera(camera_id, loop_token)
-            save_system_log('INFO', f'V2 Fall detection session ended for camera {camera.name}', 'DETECTION', camera.user_id)
-            
+            # The row may have been DELETED while the loop ran (camera removed from the UI); reading
+            # camera.name then raised ObjectDeletedError after a clean stop (seen 32 times in the
+            # 6 Oct rehearsal). Log by id in that case.
+            try:
+                save_system_log('INFO', f'V2 Fall detection session ended for camera {camera.name}', 'DETECTION', camera.user_id)
+            except ObjectDeletedError:
+                db.session.rollback()
+                save_system_log('INFO', f'V2 Fall detection session ended for camera {camera_id} (camera deleted)', 'DETECTION')
+
         except Exception as e:
             save_system_log('ERROR', f'V2 Fall detection error for {camera_id}: {str(e)}', 'DETECTION')
             if 'cap' in locals():
@@ -1178,7 +1419,7 @@ def process_v2_alone_detection(camera_id, config):
             
             print(f"[V2 ONNX] Using pre-loaded person detector for camera {camera.name}")
             
-            cap = cv2.VideoCapture(camera.url)
+            cap = open_capture(camera.url, latest=False)
             if not cap.isOpened():
                 # A Windows path can never resolve inside the container; say that instead of
                 # the generic open failure, which sent people looking at the camera hardware.
@@ -1196,7 +1437,7 @@ def process_v2_alone_detection(camera_id, config):
             if fps == 0:
                 fps = 30
             
-            is_video_file = not camera.url.startswith(('rtsp:', 'rtmp:', 'http:'))
+            is_video_file = not is_network_source(camera.url)
             
             frame_count = 0
             last_log_time = 0

@@ -1,0 +1,12 @@
+# Local rehearsal of the production server (4 online vCPU): every service is pinned to the SAME
+# four cores, so they compete for CPU the way they will on the server. Use on top of the CPU file:
+#   docker compose -f docker-compose.yml -f docker-compose.cpu4.yml up -d
+# Not for the server itself (it only has 4 cores anyway).
+services:
+  db:                 { cpuset: "0-3" }
+  redis:              { cpuset: "0-3" }
+  backend:            { cpuset: "0-3" }
+  celery_worker:      { cpuset: "0-3" }
+  celery_maintenance: { cpuset: "0-3" }
+  celery_beat:        { cpuset: "0-3" }
+  flower:             { cpuset: "0-3" }

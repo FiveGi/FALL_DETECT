@@ -18,7 +18,9 @@
 export const DETECTION_TYPE_OPTIONS = [
     { value: 'bed_exit', label: 'ตรวจจับการลุกจากเตียง' },
     { value: 'fall_v2', label: 'ตรวจจับการล้ม — โมเดลปัจจุบัน YOLO-pose (แนะนำ)' },
-    { value: 'fall', label: 'ตรวจจับการล้ม — โมเดลเก่า MediaPipe (ไม่แนะนำ)' },
+    // 'fall' (MediaPipe) is no longer offered: its task cannot start in the deployed image, and the
+    // backend now runs the current detector for it (detection_dispatch). Its label stays below for
+    // cameras and records that still carry the old value.
 ]
 
 // Every value getDetectionTypeText() may see, including ones that aren't a

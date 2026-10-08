@@ -42,9 +42,14 @@ def load_stream(npz_path):
     """-> list of (n_people, (n, 17, 3)) per frame, in frame order."""
     with np.load(npz_path) as data:
         counts, kpts = data['counts'], data['kpts']
+    # Each frame is cut to v3.NUM_POSES (V3_NUM_POSES), the cap the live pipeline applies in
+    # extract_all_keypoints. Caches store people highest-confidence first, so an uncapped cache
+    # (built with V3_NUM_POSES=99) replays any cap exactly; on a cache built at the same cap this
+    # is a no-op. The offset still advances by the ORIGINAL count, or every later frame would be
+    # read from the wrong rows (Codex, plan_v5 T2).
     frames, at = [], 0
     for n in counts:
-        frames.append(kpts[at:at + n])
+        frames.append(kpts[at:at + int(n)][:v3.NUM_POSES])
         at += int(n)
     return frames
 
@@ -83,6 +88,8 @@ def main():
     meta = {'model': MODEL_DIR, 'window': v3.WINDOW_SIZE, 'need': v3.SMOOTH_NEED,
             'of': v3.SMOOTH_OF, 'threshold': v3.THRESHOLD, 'fps': key['fps'],
             'partial_min': v3.PARTIAL_MIN, 'replay_of': key}
+    if v3.NUM_POSES != 4:   # the cap load_stream applied (see replay_owner_segments)
+        meta['replay_num_poses'] = v3.NUM_POSES
 
     rows = []
     if os.path.exists(out):
