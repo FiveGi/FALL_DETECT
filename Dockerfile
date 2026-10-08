@@ -22,8 +22,9 @@ RUN apt-get update && apt-get install -y \
 # live camera at all (~26 fps on GPU vs ~2 fps on 2 CPU cores).
 ARG TORCH_VARIANT=cpu
 
-COPY requirements.txt requirements-gpu.txt ./
-RUN if [ "$TORCH_VARIANT" = "gpu" ]; then         pip install --no-cache-dir -r requirements-gpu.txt;     else         pip install --no-cache-dir -r requirements.txt;     fi
+# constraints-cpu.txt = the exact versions tested on 8 Oct (see its header); the CPU build installs with them.
+COPY requirements.txt requirements-gpu.txt constraints-cpu.txt ./
+RUN if [ "$TORCH_VARIANT" = "gpu" ]; then         pip install --no-cache-dir -r requirements-gpu.txt;     else         pip install --no-cache-dir -c constraints-cpu.txt -r requirements.txt;     fi
 
 # Fail the build immediately if pip's resolver pulled in a CUDA build of torch instead
 # of the +cpu wheel pinned in requirements.txt (e.g. because rfdetr depends on

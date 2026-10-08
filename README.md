@@ -22,11 +22,19 @@ git lfs pull
 
 ### Backend
 
-1. Copy `.env.example` to `.env` and configure your values
+1. Copy `.env.example` to `.env` and configure your values. **Before the first start**, add
+   `ADMIN_PASSWORD=<your password>` (otherwise the admin login is the default `admin123`, see Usage).
+   Nothing else is required to run: the fall model and its CPU settings (YOLO-pose `yolo26s-pose.pt`
+   + `fall_classifier_v3.onnx`, threshold 0.65, 320 px, 8 fps) are the defaults in
+   `docker-compose.yml`, and the trained models ship in `models/` -- no training happens at start.
+   LINE stays off until `LINE_ENABLED` and the LINE keys are set.
 2. Build and run with Docker Compose:
    ```sh
    docker compose up -d --build
    ```
+   The CPU image installs the exact library versions this build was tested with
+   (`constraints-cpu.txt`). On a 4-core server add the core pinning used in testing:
+   `docker compose -f docker-compose.yml -f docker-compose.cpu4.yml up -d --build`.
    (older Docker installs may only have the hyphenated `docker-compose` command instead -- same
    thing, just swap the command name in every example below)
 3. For higher load, scale workers:
