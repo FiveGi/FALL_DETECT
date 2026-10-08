@@ -3846,3 +3846,6 @@ commit); P2 README clip walkthrough -> choose "ตรวจจับการล
 `ls -d ~/backup-*`, nano for .env -- applied.
 
 ## Codex 2026-10-08 (relayed) — fresh-clone re-check: APPROVE on 30c37e8; tag systest-2026-10-09b created on it.
+
+## Claude 2026-10-08 — repo hygiene (owner: "no junk files", 3-way check)
+Codex + Gemini audit; removed 24 agreed files: 5 unused classifier backups/seeds (no runtime/test/tool reference), 11 unreferenced test_result/_*.png debug images (added by mistake in de7b003), day3_media scratch media. Kept: everything Codex found referenced (report.md, review2_delta_*, syn_audit, pose_landmarker_lite, docs/reviews, xlsx). Big .pt models were already on old main and are loaded by app/. After removal: test_model_switch + compose default PASS. Note (Codex): Test/ clips show real people incl. children and the repo is public -- owner decision.
